@@ -245,20 +245,66 @@ function agregarFrente(){
 }
 agregarFrente();
 
-// --- C: Laboratorio ---
-const ENSAYOS = ["Resistencias iniciales y temporadas","Medici\u00F3n de espesor","Aguja de Vicat / tiempo de fraguado","Extracci\u00F3n de testigos","Cono de Abrams / fluidez","Densidad de lechada","Otro"];
+// --- C: Laboratorio (ensayos segun PIE PLN-GOMS-IMS-004 / 4600031460-000000-PLNCL-00002) ---
+const ENSAYOS_PIE = {
+  "SHOTCRETE - Mezcla fresca": [
+    "Temperatura de la mezcla (ASTM C1064)",
+    "Docilidad - Cono de Abrams (Nch 1019 / ASTM C143)",
+    "Consistencia - Mesa sacudida (EN 12350-5)",
+    "Densidad aparente fresca (Nch 1564 / ASTM C138)",
+    "Dosis aditivo acelerante",
+    "Control de dosificaci\u00F3n"
+  ],
+  "SHOTCRETE - Resistencias": [
+    "Resistencia inicial - Penetr\u00F3metro (UNE-EN-14488-2 M\u00E9t. A)",
+    "Resistencia temprana - Hincado de clavo (UNE-EN-14488-2 M\u00E9t. B)",
+    "Resistencias iniciales y temporadas",
+    "Resistencia final - Paneles / testigos (UNE-EN-14488-1 / NCh1171)",
+    "Tenacidad - Absorci\u00F3n de energ\u00EDa (EN 14488-5 / ASTM C1550)",
+    "Conteo de fibras (EN-14488-7)"
+  ],
+  "SHOTCRETE - Proyeccion": [
+    "Espesor de shotcrete - Taladro / ferrodetector / esc\u00E1ner (EN-14488-6)",
+    "Adherencia - Tracci\u00F3n directa (UNE-EN-14488-4)",
+    "Permeabilidad (Nch 2262 / EN 12390-8)",
+    "Control del rebote (UNE-83-608)",
+    "Uniformidad (Anexo 17)",
+    "Rendimiento bomba de aditivo / hormig\u00F3n"
+  ],
+  "LECHADA": [
+    "Inicio y fin de fraguado - Aguja de Vicat (Nch 152)",
+    "Resistencia compresi\u00F3n lechada pernos helicoidales (Nch 158)",
+    "Resistencia compresi\u00F3n lechada cables - Intersecci\u00F3n",
+    "Resistencia compresi\u00F3n lechada cables - Avance",
+    "Llenado de la perforaci\u00F3n / rebase"
+  ],
+  "PERNOS / CABLES": [
+    "Tracci\u00F3n de perno al 60% carga de fluencia (ASTM D4435)",
+    "Tensado de cables de fortificaci\u00F3n (5 Ton o seg\u00FAn planos)",
+    "Prueba de tensi\u00F3n - Intersecciones",
+    "Prueba de tensi\u00F3n - Avance / por sector"
+  ]
+};
+const OPCION_OTRO = "Otro (especificar)";
 function agregarEnsayo(){
+  const opciones = Object.entries(ENSAYOS_PIE).map(([g,items])=>
+    `<optgroup label="${g}">${items.map(e=>`<option>${e}</option>`).join('')}</optgroup>`
+  ).join('') + `<optgroup label="OTRO"><option>${OPCION_OTRO}</option></optgroup>`;
   const div = document.createElement('div');
   div.className = 'fila-dyn';
   div.innerHTML = `<span class="num">Ensayo</span>
     <button class="quitar" onclick="quitarFila(this)">Quitar</button>
-    <div class="campo"><label>Tipo de ensayo</label>
-      <select class="e-tipo">${ENSAYOS.map(e=>`<option>${e}</option>`).join('')}</select>
+    <div class="campo"><label>Tipo de ensayo (seg\u00FAn PIE)</label>
+      <select class="e-tipo">${opciones}</select>
     </div>
+    <div class="campo e-otro-campo" style="display:none;"><label>Especificar otro ensayo</label><input class="e-otro" type="text" placeholder="Nombre del ensayo"></div>
     <div class="grid2">
       <div class="campo"><label>Cantidad</label><input class="e-cant" type="number" inputmode="numeric" placeholder="Ej: 1"></div>
       <div class="campo"><label>Frente / Ubicaci\u00F3n</label><input class="e-frente" type="text" placeholder="Ej: C-41-W NH MB 52"></div>
     </div>`;
+  div.querySelector('.e-tipo').addEventListener('change', ev=>{
+    div.querySelector('.e-otro-campo').style.display = ev.target.value===OPCION_OTRO ? 'block' : 'none';
+  });
   document.getElementById('ensayos').appendChild(div);
   renumerar('ensayos','Ensayo');
 }
@@ -408,13 +454,13 @@ function generarPDF(){
   y+=4; doc.setDrawColor(180,180,180); doc.setLineWidth(0.2); doc.line(izq, y, izq+ancho, y); y+=8;
 
   function tituloSeccion(t){
-    salto(20);
-    doc.setFillColor(215,38,34);
-    doc.rect(izq, y-4.5, ancho, 6.5, 'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont(undefined,'bold');
-    doc.text(t, izq+2, y);
+    y+=3; salto(24);
+    doc.setTextColor(215,38,34); doc.setFontSize(10.5); doc.setFont(undefined,'bold');
+    doc.text(t, izq, y);
+    doc.setDrawColor(215,38,34); doc.setLineWidth(0.3);
+    doc.line(izq, y+1.5, izq+ancho, y+1.5);
     doc.setTextColor(30,30,30);
-    y+=7;
+    y+=7.5;
   }
 
   // A - Personal
@@ -440,14 +486,16 @@ function generarPDF(){
 
   // C - Laboratorio
   tituloSeccion('C.- LABORATORIO');
-  const ensayos = Array.from(document.querySelectorAll('#ensayos .fila-dyn')).map(f=>({
-    tipo:f.querySelector('.e-tipo').value, cant:f.querySelector('.e-cant').value, frente:f.querySelector('.e-frente').value
-  })).filter(f=>f.frente.trim()!=='' || f.cant.trim()!=='');
+  const ensayos = Array.from(document.querySelectorAll('#ensayos .fila-dyn')).map(f=>{
+    let tipo = f.querySelector('.e-tipo').value;
+    if(tipo===OPCION_OTRO){ tipo = f.querySelector('.e-otro').value.trim() || 'Otro'; }
+    return { tipo, cant:f.querySelector('.e-cant').value, frente:f.querySelector('.e-frente').value };
+  }).filter(f=>f.frente.trim()!=='' || f.cant.trim()!=='');
   doc.setFontSize(9); doc.setFont(undefined,'normal');
   if(ensayos.length===0){ doc.text('Sin ensayos en el turno.', izq+3, y); y+=5; }
   ensayos.forEach(f=>{
     salto(10);
-    let linea = '- Se realiza(n) '+(f.cant||'-')+' ensayo(s) de '+f.tipo.toLowerCase()+': '+(f.frente||'-')+'.';
+    let linea = '- Se realiza(n) '+(f.cant||'-')+' ensayo(s): '+f.tipo+' / '+(f.frente||'-')+'.';
     const ls = doc.splitTextToSize(linea, ancho-6);
     doc.text(ls, izq+3, y); y += ls.length*4.5;
   });
@@ -547,7 +595,7 @@ function generarPDF(){
   const totalPag = doc.getNumberOfPages();
   const ahora = new Date();
   const dias = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
-  const marca = 'Generado por: '+gen+'  |  '+dias[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs';
+  const marca = 'Generado por: '+gen+'  |  '+dias[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+'  |  Turno '+(turno==='DIA'?'D\u00EDa':'Noche');
   for(let pg=1; pg<=totalPag; pg++){
     doc.setPage(pg);
     doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(130,130,130);
