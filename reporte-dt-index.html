@@ -64,6 +64,19 @@
   .kpi.cerradas{ border-top-color:var(--verde); } .kpi.cerradas .num{ color:var(--verde); }
   .kpi.cierre{ border-top-color:var(--rojo); }
 
+  /* Tarjetas de niveles agrupados (Punto 4) */
+  .grupo-cards{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+  @media (max-width:520px){ .grupo-cards{ grid-template-columns:1fr; } }
+  .gcard{ border:1px solid #e3e3e3; border-radius:10px; padding:10px 12px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  .gcard .gtit{ font-size:12.5px; font-weight:800; display:flex; align-items:center; gap:6px; }
+  .gcard .gdot{ width:9px; height:9px; border-radius:2px; display:inline-block; flex-shrink:0; }
+  .gcard .gsub{ font-size:9.5px; color:#999; margin:3px 0 8px; letter-spacing:.2px; text-transform:uppercase; }
+  .gcard .gkpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:4px; }
+  .gcard .gk .glbl{ font-size:8.5px; color:#999; font-weight:700; letter-spacing:.4px; }
+  .gcard .gk .gnum{ font-size:19px; font-weight:800; }
+  .gcard .gk.cer .gnum{ color:var(--verde); }
+  .gcard .gk.atr .gnum{ color:var(--rojo); }
+
   /* Puntos del reporte */
   .punto{ border:1px solid #e3e3e3; border-radius:10px; padding:10px 12px; margin-bottom:14px; }
   .punto-tit{ font-size:13px; font-weight:800; color:var(--rojo); margin:0 0 2px; }
@@ -154,8 +167,9 @@
     </div>
 
     <div class="punto">
-      <p class="punto-tit">Punto 4 &middot; Agrupaci&oacute;n de Niveles: Superiores vs Inferiores</p>
-      <p class="punto-sub">Niveles Superiores = NP + NH &middot; Niveles Inferiores = EXS + INS + ACA</p>
+      <p class="punto-tit">Punto 4 &middot; Niveles agrupados (seg&uacute;n &Aacute;rea)</p>
+      <p class="punto-sub">Grupo 1 = Accesos a Subniveles + MB-N52 N1 + Nivel de Producci&oacute;n &middot; Grupo 2 = Nivel de Inyecci&oacute;n + Extracci&oacute;n + Acarreo</p>
+      <div class="grupo-cards" id="cardsGrupo"></div>
       <div class="chartbox"><canvas id="chGrupo"></canvas></div>
       <table class="mini" id="tbGrupo"></table>
     </div>
@@ -269,6 +283,30 @@ function clasificarNivel(area, subarea){
   if(t.includes('INYECCION')) return 'INS';
   if(t.includes('ACARREO')) return 'ACA';
   return 'OTROS';
+}
+
+/* Agrupacion de niveles segun la columna Area (codigo WBS de 6 digitos) */
+const GRUPOS_DEF = {
+  G1:{nombre:'Grupo 1 \u00b7 Accesos, Hundimiento y Producci\u00f3n', color:'#2b5fb8'},
+  G2:{nombre:'Grupo 2 \u00b7 Inyecci\u00f3n, Extracci\u00f3n y Acarreo', color:'#7a3fbf'},
+  OTROS:{nombre:'Otras \u00c1reas', color:'#757575'}
+};
+const CODIGOS_G1 = ['221300','222700','224200'];
+const CODIGOS_G2 = ['224300','224400','224500'];
+function clasificarGrupo(area){
+  const t = norm(area);
+  const m = t.match(/^(\d{6})/);
+  if(m){
+    if(CODIGOS_G1.includes(m[1])) return 'G1';
+    if(CODIGOS_G2.includes(m[1])) return 'G2';
+  }
+  if(t.includes('ACCESOS')||t.includes('N52 N1')||t.includes('HUNDIMIENTO')||t.includes('PRODUCCION')) return 'G1';
+  if(t.includes('INYECCION')||t.includes('EXTRACCION')||t.includes('ACARREO')) return 'G2';
+  return 'OTROS';
+}
+function areaNombre(a){
+  const m = String(a).match(/\[(.*?)\]/);
+  return (m ? m[1] : String(a)).trim();
 }
 
 /* ================= Lectura del archivo ================= */
@@ -392,7 +430,7 @@ function calcularYRenderizar(){
   const G = resumen(registros);
   const porDisc = agrupar(registros, x=>x.disc);
   const porNivel = agrupar(registros, x=>x.nivel);
-  const porGrupo = agrupar(registros, x=>NIVEL_INFO[x.nivel].grupo);
+  const porGrupo = agrupar(registros, x=>clasificarGrupo(x.area));
   const porSub = agrupar(registros, x=>x.sub||'(sin Sub\u00c1rea)');
 
   // Semanas miercoles a martes (Fecha Emision)
@@ -461,6 +499,8 @@ function tablaResumen(elId, titulo1, filas){
 
 function renderTodo(){
   document.getElementById('zonaReporte').style.display = 'block';
+  // La firma se creo con la zona oculta (canvas 0x0): re-dimensionar ahora que es visible
+  setTimeout(()=>{ if(!firma.hayFirma) firma.ajustar(); }, 150);
   const {G} = R;
   document.getElementById('fechaDatos1').textContent = fechaDatos || 'fecha no indicada en el export';
   document.getElementById('kTotal').textContent = G.total;
@@ -494,16 +534,30 @@ function renderTodo(){
   });
   tablaResumen('tbNivel','Nivel', nivs.map(n=>[NIVEL_INFO[n].nombre, rNiv.get(n)]));
 
-  // Punto 4: grupos superior / inferior
-  const grupos = [['SUP','Niveles Superiores (NP + NH)'],['INF','Niveles Inferiores (EXS + INS + ACA)']]
-    .filter(g=>R.porGrupo.has(g[0]));
-  if(R.porGrupo.has('OTROS')) grupos.push(['OTROS','Otros niveles']);
-  const rGru = new Map(grupos.map(g=>[g[0], resumen(R.porGrupo.get(g[0]))]));
+  // Punto 4: niveles agrupados segun Area (G1 / G2)
+  const grupos = ['G1','G2','OTROS'].filter(g=>R.porGrupo.has(g));
+  const rGru = new Map(grupos.map(g=>[g, resumen(R.porGrupo.get(g))]));
+  const areasDe = g=>{
+    const set = new Set(R.porGrupo.get(g).map(x=>areaNombre(x.area)));
+    return [...set].join(' \u00b7 ');
+  };
+  document.getElementById('cardsGrupo').innerHTML = grupos.map(g=>{
+    const r = rGru.get(g), D = GRUPOS_DEF[g];
+    return '<div class="gcard">'
+      +'<div class="gtit"><span class="gdot" style="background:'+D.color+'"></span>'+D.nombre+'</div>'
+      +'<div class="gsub">'+areasDe(g)+'</div>'
+      +'<div class="gkpis">'
+      +'<div class="gk"><div class="glbl">TOTAL</div><div class="gnum">'+r.total+'</div></div>'
+      +'<div class="gk cer"><div class="glbl">CERRADAS</div><div class="gnum">'+r.CERRADA+'</div></div>'
+      +'<div class="gk atr"><div class="glbl">ATRASADAS</div><div class="gnum">'+r.ATRASADA+'</div></div>'
+      +'<div class="gk"><div class="glbl">% CIERRE</div><div class="gnum">'+Math.round(r.pctCierre)+'%</div></div>'
+      +'</div></div>';
+  }).join('');
   nuevoChart('chGrupo', { type:'bar',
-    data:{ labels:grupos.map(g=>g[1]), datasets: dsEstados(l=>rGru.get(grupos[grupos.map(x=>x[1]).indexOf(l)][0]), grupos.map(g=>g[1])) },
-    options:{ scales:{x:{stacked:true},y:{stacked:true}}, plugins:{legend:{position:'bottom'}, title:{display:true,text:'Superiores vs Inferiores'}} }
+    data:{ labels:grupos.map(g=>GRUPOS_DEF[g].nombre), datasets: dsEstados(l=>rGru.get(grupos[grupos.map(x=>GRUPOS_DEF[x].nombre).indexOf(l)]), grupos.map(g=>GRUPOS_DEF[g].nombre)) },
+    options:{ scales:{x:{stacked:true},y:{stacked:true}}, plugins:{legend:{position:'bottom'}, title:{display:true,text:'Niveles agrupados \u00b7 Grupo 1 vs Grupo 2'}} }
   });
-  tablaResumen('tbGrupo','Grupo de Niveles', grupos.map(g=>[g[1], rGru.get(g[0])]));
+  tablaResumen('tbGrupo','Grupo de Niveles', grupos.map(g=>[GRUPOS_DEF[g].nombre, rGru.get(g)]));
 
   // Punto 5: pendientes por SubArea
   const subs = [...R.porSub.keys()].map(s=>[s, resumen(R.porSub.get(s))])
@@ -554,9 +608,10 @@ function crearFirma(id){
     ctx.strokeStyle = '#111'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   }
   setTimeout(ajustar, 100);
+  obj.ajustar = ajustar;
   let dib=false, ux=0, uy=0;
   function coord(e){ const r=canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return [t.clientX-r.left, t.clientY-r.top]; }
-  function ini(e){ dib=true; [ux,uy]=coord(e); e.preventDefault(); }
+  function ini(e){ if(canvas.width===0) ajustar(); dib=true; [ux,uy]=coord(e); e.preventDefault(); }
   function mov(e){ if(!dib)return; const [x,y]=coord(e); ctx.beginPath(); ctx.moveTo(ux,uy); ctx.lineTo(x,y); ctx.stroke(); [ux,uy]=[x,y]; obj.hayFirma=true; e.preventDefault(); }
   function fin(){ dib=false; }
   canvas.addEventListener('mousedown',ini); canvas.addEventListener('mousemove',mov); window.addEventListener('mouseup',fin);
@@ -697,13 +752,36 @@ function generarPDF(){
   }
 
   // Punto 4
-  y = puntoTitulo(doc, y, 'Punto 4 - Agrupacion de Niveles: Superiores vs Inferiores');
-  y = addChart(doc, 'chGrupo', y, 55);
+  y = puntoTitulo(doc, y, 'Punto 4 - Niveles agrupados (segun Area)');
   {
-    const grupos = [['SUP','Niveles Superiores (NP + NH)'],['INF','Niveles Inferiores (EXS + INS + ACA)']].filter(g=>R.porGrupo.has(g[0]));
-    if(R.porGrupo.has('OTROS')) grupos.push(['OTROS','Otros niveles']);
+    const grupos = ['G1','G2','OTROS'].filter(g=>R.porGrupo.has(g));
+    // Tarjetas por grupo
+    if(y + 24 > 280){ doc.addPage(); y = 14; }
+    const anchoG = (ancho - (grupos.length-1)*4) / grupos.length;
+    grupos.forEach((g,i)=>{
+      const r = resumen(R.porGrupo.get(g));
+      const x = izq + i*(anchoG+4);
+      const D = GRUPOS_DEF[g];
+      doc.setFillColor(246,246,246); doc.roundedRect(x, y, anchoG, 22, 1.5, 1.5, 'F');
+      const c = D.color.match(/\w\w/g).map(h=>parseInt(h,16));
+      doc.setFillColor(c[0],c[1],c[2]); doc.rect(x+3, y+3.2, 2.5, 2.5, 'F');
+      doc.setFontSize(7.5); doc.setFont(undefined,'bold'); doc.setTextColor(30,30,30);
+      doc.text(D.nombre.replace(/\u00b7/g,'-'), x+7, y+5.5);
+      const kk = [['TOTAL',String(r.total),[30,30,30]],['CERRADAS',String(r.CERRADA),[46,125,50]],['ATRASADAS',String(r.ATRASADA),[215,38,34]],['% CIERRE',Math.round(r.pctCierre)+'%',[30,30,30]]];
+      const wk = (anchoG-6)/4;
+      kk.forEach((k,j)=>{
+        const kx = x+3 + j*wk;
+        doc.setFontSize(5.5); doc.setFont(undefined,'bold'); doc.setTextColor(130,130,130);
+        doc.text(k[0], kx, y+11);
+        doc.setFontSize(10); doc.setTextColor(k[2][0],k[2][1],k[2][2]);
+        doc.text(k[1], kx, y+17.5);
+      });
+      doc.setTextColor(30,30,30);
+    });
+    y += 26;
+    y = addChart(doc, 'chGrupo', y, 55);
     let T={ABIERTA:0,ATRASADA:0,CERRADA:0,total:0};
-    const body = grupos.map(g=>{ const r=resumen(R.porGrupo.get(g[0])); T.ABIERTA+=r.ABIERTA;T.ATRASADA+=r.ATRASADA;T.CERRADA+=r.CERRADA;T.total+=r.total; return filaTabla(g[1],r); });
+    const body = grupos.map(g=>{ const r=resumen(R.porGrupo.get(g)); T.ABIERTA+=r.ABIERTA;T.ATRASADA+=r.ATRASADA;T.CERRADA+=r.CERRADA;T.total+=r.total; return filaTabla(GRUPOS_DEF[g].nombre.replace(/\u00b7/g,'-'),r); });
     y = addTablaPDF(doc, y, ['Grupo de Niveles','Abiertas','Atrasadas','Cerradas','Total','% Cierre'], body,
       ['TOTAL',T.ABIERTA,T.ATRASADA,T.CERRADA,T.total,pct(T.CERRADA,T.total).toFixed(1)+'%']);
   }
