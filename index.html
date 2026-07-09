@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Check List Inicio Turno Camioneta - Zublin</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <style>
   :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -89,10 +90,24 @@
       <div class="campo"><label>Cargo</label><input id="cargo" type="text"></div>
     </div>
     <div class="campo"><label>Correo (para recibir copia)</label><input id="correo" type="email" placeholder="nombre@zublin.cl"></div>
-    <label style="font-size:12px;color:#555;font-weight:600;">Firma</label>
-    <canvas id="firma"></canvas>
+    <label style="font-size:12px;color:#555;font-weight:600;">Firma del conductor</label>
+    <canvas id="firma1" class="firma"></canvas>
     <div class="acciones">
-      <button class="btn-limpiar" onclick="limpiarFirma()">Limpiar firma</button>
+      <button class="btn-limpiar" onclick="limpiarFirma(1)">Limpiar firma</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="seccion-tit">5 - Revisado por (supervisor / jefe directo)</div>
+    <div class="campo"><label>Nombre</label><input id="nombre2" type="text"></div>
+    <div class="grid2">
+      <div class="campo"><label>RUT</label><input id="rut2" type="text" placeholder="12.345.678-9"></div>
+      <div class="campo"><label>Cargo</label><input id="cargo2" type="text"></div>
+    </div>
+    <label style="font-size:12px;color:#555;font-weight:600;">Firma del revisor</label>
+    <canvas id="firma2" class="firma"></canvas>
+    <div class="acciones">
+      <button class="btn-limpiar" onclick="limpiarFirma(2)">Limpiar firma</button>
     </div>
   </section>
 
@@ -173,26 +188,32 @@ cont.querySelectorAll('button').forEach(btn=>{
   });
 });
 
-// Firma
-const canvas = document.getElementById('firma');
-const ctx = canvas.getContext('2d');
-function ajustarCanvas(){
-  const rect = canvas.getBoundingClientRect();
-  const ratio = window.devicePixelRatio || 1;
-  canvas.width = rect.width * ratio;
-  canvas.height = rect.height * ratio;
-  ctx.scale(ratio, ratio);
-  ctx.strokeStyle = '#111'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+// Firmas (doble panel: conductor y revisor)
+function crearFirma(id){
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  const obj = { canvas, ctx, hayFirma:false };
+  function ajustar(){
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    ctx.scale(ratio, ratio);
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  }
+  setTimeout(ajustar, 100);
+  let dibujando=false, ux=0, uy=0;
+  function coord(e){ const r=canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return [t.clientX-r.left, t.clientY-r.top]; }
+  function iniciar(e){ dibujando=true; [ux,uy]=coord(e); e.preventDefault(); }
+  function mover(e){ if(!dibujando)return; const [x,y]=coord(e); ctx.beginPath(); ctx.moveTo(ux,uy); ctx.lineTo(x,y); ctx.stroke(); [ux,uy]=[x,y]; obj.hayFirma=true; e.preventDefault(); }
+  function terminar(){ dibujando=false; }
+  canvas.addEventListener('mousedown',iniciar); canvas.addEventListener('mousemove',mover); window.addEventListener('mouseup',terminar);
+  canvas.addEventListener('touchstart',iniciar,{passive:false}); canvas.addEventListener('touchmove',mover,{passive:false}); canvas.addEventListener('touchend',terminar);
+  obj.limpiar = function(){ ctx.clearRect(0,0,canvas.width,canvas.height); obj.hayFirma=false; };
+  return obj;
 }
-setTimeout(ajustarCanvas, 100);
-let dibujando=false, ux=0, uy=0, hayFirma=false;
-function coord(e){ const r=canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return [t.clientX-r.left, t.clientY-r.top]; }
-function iniciar(e){ dibujando=true; [ux,uy]=coord(e); e.preventDefault(); }
-function mover(e){ if(!dibujando)return; const [x,y]=coord(e); ctx.beginPath(); ctx.moveTo(ux,uy); ctx.lineTo(x,y); ctx.stroke(); [ux,uy]=[x,y]; hayFirma=true; e.preventDefault(); }
-function terminar(){ dibujando=false; }
-canvas.addEventListener('mousedown',iniciar); canvas.addEventListener('mousemove',mover); window.addEventListener('mouseup',terminar);
-canvas.addEventListener('touchstart',iniciar,{passive:false}); canvas.addEventListener('touchmove',mover,{passive:false}); canvas.addEventListener('touchend',terminar);
-function limpiarFirma(){ ctx.clearRect(0,0,canvas.width,canvas.height); hayFirma=false; }
+const firmas = { 1: crearFirma('firma1'), 2: crearFirma('firma2') };
+function limpiarFirma(n){ firmas[n].limpiar(); }
 
 function v(id){ return document.getElementById(id).value; }
 
@@ -206,6 +227,12 @@ function generarPDF(){
 
   // Logo
   try{ doc.addImage(LOGO, 'PNG', izq, y, 32, 16); }catch(e){}
+  // QR de trazabilidad (patente | fecha | km | conductor)
+  try{
+    const qrData = ['GCC-003', v('patente')||'-', fecha, 'KM:'+(v('km')||'-'), nombre].join(' | ');
+    const qr = new QRious({ value: qrData, size: 200, level: 'M' });
+    doc.addImage(qr.toDataURL(), 'PNG', izq+ancho-24, y-2, 24, 24);
+  }catch(e){}
   doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.setTextColor(30,30,30);
   doc.text('CHECK LIST INICIO TURNO CAMIONETA', izq+38, y+9);
   y = 30;
@@ -269,10 +296,22 @@ function generarPDF(){
   doc.text('RUT: '+v('rut'), izq+100, y); y+=5;
   doc.text('Cargo: '+v('cargo'), izq, y);
   doc.text('Correo: '+v('correo'), izq+100, y); y+=6;
-  doc.setFont(undefined,'bold'); doc.text('Firma:', izq, y); y+=2;
-  if(hayFirma){ doc.addImage(canvas.toDataURL('image/png'), 'PNG', izq, y, 60, 22); }
+  // Revisado por
+  y+=2;
+  doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.text('Revisado por:', izq, y); y+=5;
+  doc.setFontSize(8.5); doc.setFont(undefined,'normal');
+  doc.text('Nombre: '+(v('nombre2')||'-'), izq, y);
+  doc.text('RUT: '+(v('rut2')||'-'), izq+100, y); y+=5;
+  doc.text('Cargo: '+(v('cargo2')||'-'), izq, y); y+=7;
+  // Firmas lado a lado
+  doc.setFont(undefined,'bold');
+  doc.text('Firma conductor:', izq, y);
+  doc.text('Firma revisor:', izq+100, y); y+=2;
+  if(firmas[1].hayFirma){ doc.addImage(firmas[1].canvas.toDataURL('image/png'), 'PNG', izq, y, 60, 22); }
   else { doc.setFont(undefined,'normal'); doc.text('(sin firma)', izq, y+8); }
-  y+=24; doc.line(izq, y, izq+60, y);
+  if(firmas[2].hayFirma){ doc.addImage(firmas[2].canvas.toDataURL('image/png'), 'PNG', izq+100, y, 60, 22); }
+  else { doc.setFont(undefined,'normal'); doc.text('(sin firma)', izq+100, y+8); }
+  y+=24; doc.line(izq, y, izq+60, y); doc.line(izq+100, y, izq+160, y);
 
   const nombreArch = 'ChecklistCamioneta_'+nombre.replace(/\s+/g,'_')+'_'+fecha+'.pdf';
   doc.save(nombreArch);
