@@ -231,12 +231,12 @@ function generarPDF(){
   try{
     const qrData = ['GCC-003', v('patente')||'-', fecha, 'KM:'+(v('km')||'-'), nombre].join(' | ');
     const qr = new QRious({ value: qrData, size: 200, level: 'M' });
-    doc.addImage(qr.toDataURL(), 'PNG', izq+ancho-24, y-2, 24, 24);
+    doc.addImage(qr.toDataURL(), 'PNG', izq+ancho-25, y, 25, 25);
   }catch(e){}
   doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.setTextColor(30,30,30);
   doc.text('CHECK LIST INICIO TURNO CAMIONETA', izq+38, y+9);
-  y = 30;
-  doc.setDrawColor(215,38,34); doc.setLineWidth(0.5); doc.line(izq, y-2, izq+ancho, y-2);
+  y = 44;
+  doc.setDrawColor(215,38,34); doc.setLineWidth(0.5); doc.line(izq, y-5, izq+ancho, y-5);
 
   // Datos equipo
   const datos = [
@@ -288,8 +288,8 @@ function generarPDF(){
   const obs = doc.splitTextToSize(v('obs')||'-', ancho);
   doc.text(obs, izq, y); y += obs.length*4 + 4;
 
-  // Realizado por
-  if(y>235){ doc.addPage(); y=15; }
+  // Realizado por (bloque completo con ambas firmas necesita ~65 mm)
+  if(y>205){ doc.addPage(); y=15; }
   doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.text('Realizado por:', izq, y); y+=5;
   doc.setFontSize(8.5); doc.setFont(undefined,'normal');
   doc.text('Nombre: '+v('nombre'), izq, y);
@@ -306,12 +306,26 @@ function generarPDF(){
   // Firmas lado a lado
   doc.setFont(undefined,'bold');
   doc.text('Firma conductor:', izq, y);
-  doc.text('Firma revisor:', izq+100, y); y+=2;
+  doc.text('Firma revisor:', izq+100, y); y+=3;
   if(firmas[1].hayFirma){ doc.addImage(firmas[1].canvas.toDataURL('image/png'), 'PNG', izq, y, 60, 22); }
   else { doc.setFont(undefined,'normal'); doc.text('(sin firma)', izq, y+8); }
   if(firmas[2].hayFirma){ doc.addImage(firmas[2].canvas.toDataURL('image/png'), 'PNG', izq+100, y, 60, 22); }
   else { doc.setFont(undefined,'normal'); doc.text('(sin firma)', izq+100, y+8); }
   y+=24; doc.line(izq, y, izq+60, y); doc.line(izq+100, y, izq+160, y);
+
+  // Pie de pagina en todas las hojas
+  const totalPag = doc.getNumberOfPages();
+  const ahora = new Date();
+  const dias = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+  const marca = 'Generado por: '+nombre+'  |  '+dias[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs';
+  for(let p=1; p<=totalPag; p++){
+    doc.setPage(p);
+    doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(130,130,130);
+    doc.setDrawColor(200,200,200); doc.setLineWidth(0.2); doc.line(izq, 287, izq+ancho, 287);
+    doc.text(marca, izq, 291);
+    doc.text('Pagina '+p+' de '+totalPag, izq+ancho, 291, {align:'right'});
+  }
+  doc.setTextColor(30,30,30);
 
   const nombreArch = 'ChecklistCamioneta_'+nombre.replace(/\s+/g,'_')+'_'+fecha+'.pdf';
   doc.save(nombreArch);
