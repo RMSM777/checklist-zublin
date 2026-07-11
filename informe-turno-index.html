@@ -133,21 +133,37 @@
   </section>
 
   <section>
-    <div class="seccion-tit">8 - Firmas de cierre</div>
-    <div class="campo"><label>Inspector de Calidad 1 (obligatorio)</label><input id="nombre1" type="text" placeholder="Nombre"></div>
+    <div class="seccion-tit">8 - Firma de cierre</div>
+    <div class="leyenda">Los firmantes se toman autom&aacute;ticamente de la secci&oacute;n <b>2 - Personal en turno</b>. Si agrega un segundo inspector arriba, aparecer&aacute; aqu&iacute; su recuadro de firma.</div>
+    <div class="campo"><label>Inspector de Calidad 1: <span id="lblFirma1" style="color:#000;font-weight:800;">(ingrese el nombre en la secci&oacute;n 2)</span></label></div>
     <canvas id="firma1" class="firma"></canvas>
     <div class="acciones"><button class="btn-limpiar" onclick="F1.limpiar()">Limpiar firma 1</button></div>
-    <div class="campo" style="margin-top:14px;"><label>Inspector de Calidad 2 (opcional)</label><input id="nombre2" type="text" placeholder="Nombre"></div>
-    <canvas id="firma2" class="firma"></canvas>
-    <div class="acciones"><button class="btn-limpiar" onclick="F2.limpiar()">Limpiar firma 2</button></div>
+    <div id="bloqueFirma2" style="display:none; margin-top:14px;">
+      <div class="campo"><label>Inspector de Calidad 2: <span id="lblFirma2" style="color:#000;font-weight:800;"></span></label></div>
+      <canvas id="firma2" class="firma"></canvas>
+      <div class="acciones"><button class="btn-limpiar" onclick="F2.limpiar()">Limpiar firma 2</button></div>
+    </div>
   </section>
 
   <section>
     <div class="acciones">
-      <button class="btn-generar" onclick="generarPDF()">Cerrar y descargar PDF</button>
+      <button class="btn-generar" onclick="generarVistaPrevia()">Firmar y ver vista previa</button>
     </div>
-    <p class="nota" id="nota">El PDF incluye la estructura formal del informe (objetivo, antecedentes, registros clasificados, conclusiones), los anexos fotogr&aacute;ficos numerados y las firmas.</p>
+    <p class="nota" id="nota">Al firmar se muestra la vista previa del informe y luego puedes descargar el PDF para compartirlo.</p>
   </section>
+
+  <!-- Vista previa del PDF -->
+  <div id="modalPrev" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:100; flex-direction:column;">
+    <div style="background:var(--rojo); color:#fff; padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+      <b style="font-size:13px;">Vista previa del informe</b>
+      <button onclick="cerrarVista()" style="background:rgba(255,255,255,.2); border:none; color:#fff; font-size:16px; font-weight:800; width:32px; height:32px; border-radius:6px; cursor:pointer;">&times;</button>
+    </div>
+    <iframe id="framePrev" style="flex:1; border:none; background:#525659;"></iframe>
+    <div style="background:#fff; padding:10px 14px; display:flex; gap:8px;">
+      <button class="btn-limpiar" style="flex:1; padding:12px; border:none; border-radius:8px; font-weight:700; cursor:pointer;" onclick="cerrarVista()">Volver a editar</button>
+      <button class="btn-generar" style="flex:2; padding:12px; border:none; border-radius:8px; font-weight:700; cursor:pointer; background:var(--rojo); color:#fff;" onclick="descargarPDF()">Descargar PDF</button>
+    </div>
+  </div>
 
   <footer>Zublin - Informe de Turno Calidad GCC-003</footer>
 </div>
@@ -173,10 +189,34 @@ function agregarPersona(nombre, cargo){
   div.className = 'fila-persona';
   div.innerHTML = '<input type="text" placeholder="Nombre" value="'+(nombre||'')+'">'
     +'<input type="text" placeholder="Cargo" value="'+(cargo||'Inspector de Calidad')+'">'
-    +'<button class="btn-x" onclick="this.parentElement.remove()">&times;</button>';
+    +'<button class="btn-x" onclick="this.parentElement.remove(); actualizarFirmantes();">&times;</button>';
   document.getElementById('personas').appendChild(div);
+  actualizarFirmantes();
 }
-agregarPersona(); agregarPersona();
+
+/* Nombres de firmantes tomados del personal en turno */
+function nombresPersonal(){
+  const res = [];
+  document.querySelectorAll('#personas .fila-persona').forEach(f=>{
+    const [nom, cargo] = f.querySelectorAll('input');
+    if(nom.value.trim()) res.push({nombre:nom.value.trim(), cargo:(cargo.value||'Inspector de Calidad').trim()});
+  });
+  return res;
+}
+function actualizarFirmantes(){
+  const p = nombresPersonal();
+  document.getElementById('lblFirma1').textContent = p[0] ? p[0].nombre : '(ingrese el nombre en la secci\u00f3n 2)';
+  const b2 = document.getElementById('bloqueFirma2');
+  if(p.length >= 2){
+    document.getElementById('lblFirma2').textContent = p[1].nombre;
+    if(b2.style.display==='none'){ b2.style.display='block'; setTimeout(()=>F2.ajustar(), 120); }
+  } else {
+    b2.style.display = 'none';
+    if(typeof F2 !== 'undefined' && F2) F2.limpiar();
+  }
+}
+document.getElementById('personas').addEventListener('input', actualizarFirmantes);
+agregarPersona();
 
 /* ============ Registros del turno ============ */
 const TIPOS = {
@@ -307,15 +347,41 @@ const F2 = crearFirma('firma2');
 
 function v(id){ return document.getElementById(id).value; }
 
-/* ============ PDF ============ */
-function generarPDF(){
+/* ============ PDF: vista previa y descarga ============ */
+let docActual = null, urlPrev = null;
+
+function generarVistaPrevia(){
+  const p = nombresPersonal();
   if(!v('tituloInf')){ alert('Ingrese el t\u00edtulo del informe (secci\u00f3n 1).'); return; }
   if(!turno){ alert('Seleccione el turno.'); return; }
-  if(!v('nombre1') || !F1.hayFirma){ alert('El Inspector 1 debe indicar su nombre y firmar para cerrar el informe.'); return; }
+  if(!p.length){ alert('Ingrese al menos un inspector en la secci\u00f3n 2 - Personal en turno.'); return; }
+  if(!F1.hayFirma){ alert('El Inspector 1 ('+p[0].nombre+') debe firmar para cerrar el informe.'); return; }
+  if(p.length >= 2 && !F2.hayFirma){ alert('El Inspector 2 ('+p[1].nombre+') debe firmar, o elim\u00ednelo de la secci\u00f3n 2 si no corresponde.'); return; }
   const regsValidos = registros.filter(r=>r.tipo || v('rt'+r.id) || v('rd'+r.id));
   const sinTipo = regsValidos.filter(r=>!r.tipo);
   if(sinTipo.length){ alert('Hay registros sin clasificar (DESVIACI\u00d3N / POSITIVA / ACCI\u00d3N CORRECTIVA).'); return; }
 
+  docActual = construirPDF(p, regsValidos);
+  if(urlPrev) URL.revokeObjectURL(urlPrev);
+  urlPrev = URL.createObjectURL(docActual.output('blob'));
+  document.getElementById('framePrev').src = urlPrev;
+  document.getElementById('modalPrev').style.display = 'flex';
+}
+function cerrarVista(){
+  document.getElementById('modalPrev').style.display = 'none';
+}
+function descargarPDF(){
+  if(!docActual) return;
+  const p = nombresPersonal();
+  const nombreArch = 'Informe_'+v('tituloInf').replace(/\s+/g,'_')+'_'+(v('fecha')||'')+'_'+turno.replace(/\s+/g,'')+'.pdf';
+  docActual.save(nombreArch);
+  cerrarVista();
+  const nota = document.getElementById('nota');
+  nota.textContent = 'PDF generado y descargado ('+nombreArch+'). Listo para compartir.';
+  nota.style.color = '#2e7d32';
+}
+
+function construirPDF(p, regsValidos){
   const fecha = v('fecha'), hora = v('hora');
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({unit:'mm', format:'a4'});
@@ -460,19 +526,18 @@ function generarPDF(){
 
   // Firmas
   checkY(45);
-  y = Math.max(y+8, y);
   const yF = y + 22;
   doc.addImage(F1.canvas.toDataURL('image/png'), 'PNG', izq+5, y, 55, 20);
   doc.setDrawColor(30,30,30); doc.setLineWidth(0.2);
   doc.line(izq+5, yF, izq+65, yF);
   doc.setFontSize(8.5); doc.setFont(undefined,'normal');
-  doc.text(v('nombre1'), izq+35, yF+4.5, {align:'center'});
-  doc.text('Firma Inspector Calidad', izq+35, yF+9, {align:'center'});
-  if(v('nombre2') && F2.hayFirma){
+  doc.text(p[0].nombre, izq+35, yF+4.5, {align:'center'});
+  doc.text('Firma '+(p[0].cargo||'Inspector Calidad'), izq+35, yF+9, {align:'center'});
+  if(p.length >= 2 && F2.hayFirma){
     doc.addImage(F2.canvas.toDataURL('image/png'), 'PNG', izq+115, y, 55, 20);
     doc.line(izq+115, yF, izq+175, yF);
-    doc.text(v('nombre2'), izq+145, yF+4.5, {align:'center'});
-    doc.text('Firma Inspector Calidad', izq+145, yF+9, {align:'center'});
+    doc.text(p[1].nombre, izq+145, yF+4.5, {align:'center'});
+    doc.text('Firma '+(p[1].cargo||'Inspector Calidad'), izq+145, yF+9, {align:'center'});
   }
   y = yF + 14;
 
@@ -494,26 +559,22 @@ function generarPDF(){
   // QR y pie en todas las paginas
   const total = doc.getNumberOfPages();
   const ahora = new Date();
-  const marca = 'Generado por: '+v('nombre1')+'  |  '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs  |  '+v('tituloInf').toUpperCase();
+  const marca = 'Generado por: '+p[0].nombre+'  |  '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs  |  '+v('tituloInf').toUpperCase();
   let qrImg = null;
   try{
-    const qr = new QRious({ value:['GCC-003', v('tituloInf').toUpperCase(), fecha, turno, v('nombre1')].join(' | '), size:200, level:'M' });
+    const qr = new QRious({ value:['GCC-003', v('tituloInf').toUpperCase(), fecha, turno, p[0].nombre].join(' | '), size:200, level:'M' });
     qrImg = qr.toDataURL();
   }catch(e){}
-  for(let p=1;p<=total;p++){
-    doc.setPage(p);
-    if(p===1 && qrImg) doc.addImage(qrImg, 'PNG', izq+ancho-22, 24, 22, 22);
+  for(let pg=1;pg<=total;pg++){
+    doc.setPage(pg);
+    if(pg===1 && qrImg) doc.addImage(qrImg, 'PNG', izq+ancho-22, 24, 22, 22);
     doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(130,130,130);
     doc.setDrawColor(200,200,200); doc.setLineWidth(0.2); doc.line(izq, 287, izq+ancho, 287);
     doc.text(marca, izq, 291);
-    doc.text('Pagina '+p+' de '+total, izq+ancho, 291, {align:'right'});
+    doc.text('Pagina '+pg+' de '+total, izq+ancho, 291, {align:'right'});
   }
 
-  const nombreArch = 'Informe_'+v('tituloInf').replace(/\s+/g,'_')+'_'+fecha+'_'+turno.replace(/\s+/g,'')+'.pdf';
-  doc.save(nombreArch);
-  const nota = document.getElementById('nota');
-  nota.textContent = 'PDF generado y descargado ('+nombreArch+').';
-  nota.style.color = '#2e7d32';
+  return doc;
 }
 
 </script>
