@@ -96,6 +96,15 @@
         <button data-v="TURNO NOCHE">TURNO NOCHE</button>
       </div>
     </div>
+    <div class="campo">
+      <label>Grupo</label>
+      <div class="toggle" id="grupoT">
+        <button data-v="GRUPO 1">G1</button>
+        <button data-v="GRUPO 2">G2</button>
+        <button data-v="GRUPO 3">G3</button>
+        <button data-v="GRUPO 4">G4</button>
+      </div>
+    </div>
   </section>
 
   <section>
@@ -180,8 +189,16 @@ document.querySelectorAll('#turnoT button').forEach(b=>{
     b.classList.add('act'); turno = b.dataset.v;
   });
 });
+let grupo = '';
+document.querySelectorAll('#grupoT button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('#grupoT button').forEach(x=>x.classList.remove('act'));
+    b.classList.add('act'); grupo = b.dataset.v;
+  });
+});
 
 /* ============ Personal en turno ============ */
+let F1 = null, F2 = null; // firmas: se crean mas abajo, declaradas aqui para evitar errores de inicializacion
 let nPersona = 0;
 function agregarPersona(nombre, cargo){
   nPersona++;
@@ -209,10 +226,10 @@ function actualizarFirmantes(){
   const b2 = document.getElementById('bloqueFirma2');
   if(p.length >= 2){
     document.getElementById('lblFirma2').textContent = p[1].nombre;
-    if(b2.style.display==='none'){ b2.style.display='block'; setTimeout(()=>F2.ajustar(), 120); }
+    if(b2.style.display==='none'){ b2.style.display='block'; setTimeout(()=>{ if(F2) F2.ajustar(); }, 120); }
   } else {
     b2.style.display = 'none';
-    if(typeof F2 !== 'undefined' && F2) F2.limpiar();
+    if(F2) F2.limpiar();
   }
 }
 document.getElementById('personas').addEventListener('input', actualizarFirmantes);
@@ -342,8 +359,8 @@ function crearFirma(id){
   obj.limpiar = function(){ ctx.clearRect(0,0,canvas.width,canvas.height); obj.hayFirma=false; };
   return obj;
 }
-const F1 = crearFirma('firma1');
-const F2 = crearFirma('firma2');
+F1 = crearFirma('firma1');
+F2 = crearFirma('firma2');
 
 function v(id){ return document.getElementById(id).value; }
 
@@ -354,6 +371,7 @@ function generarVistaPrevia(){
   const p = nombresPersonal();
   if(!v('tituloInf')){ alert('Ingrese el t\u00edtulo del informe (secci\u00f3n 1).'); return; }
   if(!turno){ alert('Seleccione el turno.'); return; }
+  if(!grupo){ alert('Seleccione el grupo (G1 a G4).'); return; }
   if(!p.length){ alert('Ingrese al menos un inspector en la secci\u00f3n 2 - Personal en turno.'); return; }
   if(!F1.hayFirma){ alert('El Inspector 1 ('+p[0].nombre+') debe firmar para cerrar el informe.'); return; }
   if(p.length >= 2 && !F2.hayFirma){ alert('El Inspector 2 ('+p[1].nombre+') debe firmar, o elim\u00ednelo de la secci\u00f3n 2 si no corresponde.'); return; }
@@ -373,7 +391,7 @@ function cerrarVista(){
 function descargarPDF(){
   if(!docActual) return;
   const p = nombresPersonal();
-  const nombreArch = 'Informe_'+v('tituloInf').replace(/\s+/g,'_')+'_'+(v('fecha')||'')+'_'+turno.replace(/\s+/g,'')+'.pdf';
+  const nombreArch = 'Informe_'+v('tituloInf').replace(/\s+/g,'_')+'_'+(v('fecha')||'')+'_'+grupo.replace(/\s+/g,'')+'_'+turno.replace(/\s+/g,'')+'.pdf';
   docActual.save(nombreArch);
   cerrarVista();
   const nota = document.getElementById('nota');
@@ -417,13 +435,29 @@ function construirPDF(p, regsValidos){
 
   encabezado(); y = 30;
 
+  // Condicion global del informe (segun clasificacion de los registros)
+  const cond = {DESV:0,POS:0,AC:0};
+  regsValidos.forEach(r=>cond[r.tipo]++);
+  let condTipo, condTxt;
+  if(cond.DESV > 0){ condTipo='DESV'; condTxt='\u26a0  INFORME CON DESVIACI\u00d3N / HALLAZGO ('+cond.DESV+' registro'+(cond.DESV>1?'s':'')+')'; }
+  else if(cond.AC > 0){ condTipo='AC'; condTxt='INFORME CON ACCI\u00d3N CORRECTIVA ('+cond.AC+' registro'+(cond.AC>1?'s':'')+')'; }
+  else if(cond.POS > 0){ condTipo='POS'; condTxt='INFORME CONFORME \u2014 CONDICI\u00d3N POSITIVA / CUMPLE ('+cond.POS+' registro'+(cond.POS>1?'s':'')+')'; }
+  else { condTipo=null; condTxt='SIN REGISTROS CLASIFICADOS'; }
+  const condCol = condTipo ? TIPOS[condTipo].color : [120,120,120];
+  doc.setFillColor(condCol[0],condCol[1],condCol[2]);
+  doc.rect(izq, y-5, ancho, 9, 'F');
+  doc.setFontSize(9.5); doc.setFont(undefined,'bold'); doc.setTextColor(255,255,255);
+  doc.text(condTxt, 105, y+0.8, {align:'center'});
+  doc.setTextColor(30,30,30);
+  y += 10;
+
   // Portada del informe
   doc.setFontSize(17); doc.setFont(undefined,'bold');
   doc.text(v('tituloInf').toUpperCase(), izq, y); y+=7;
   doc.setFontSize(10.5); doc.setTextColor(90,90,90);
   doc.text('D E P A R T A M E N T O   D E   C A L I D A D', izq, y); y+=9;
   doc.setTextColor(30,30,30); doc.setFontSize(9.5);
-  const dat = [['FECHA:', fecha], ['HORA:', hora], ['TURNO:', turno.replace('TURNO ','')], ['\u00c1REA:', v('area')||'-'], ['PROCESO:', v('proceso')||'-'], ['SECTOR / PK:', v('sector')||'-']];
+  const dat = [['FECHA:', fecha], ['HORA:', hora], ['TURNO:', turno.replace('TURNO ','')], ['GRUPO:', grupo.replace('GRUPO ','G')], ['\u00c1REA:', v('area')||'-'], ['PROCESO:', v('proceso')||'-'], ['SECTOR / PK:', v('sector')||'-']];
   dat.forEach(d=>{
     doc.setFont(undefined,'bold'); doc.text(d[0], izq, y);
     doc.setFont(undefined,'normal'); doc.text(String(d[1]), izq+30, y);
