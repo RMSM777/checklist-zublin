@@ -57,6 +57,23 @@
     font-weight:600;
     padding:16px 16px 8px;
   }
+  .banner-estado{
+    background:#2f6b3a;
+    color:#fff;
+    font-size:12px;
+    font-weight:600;
+    text-align:center;
+    padding:7px 12px;
+    margin:0 16px 4px;
+    border-radius:6px;
+  }
+  .titulo-seccion{
+    border-left:3px solid var(--rojo);
+    padding-left:8px;
+    font-size:13px;
+    font-weight:700;
+    margin-bottom:6px;
+  }
 
   /* ---------- Secciones ---------- */
   .seccion{padding:10px 16px;}
@@ -141,7 +158,7 @@
     display:flex;justify-content:space-between;align-items:center;
     padding:14px 16px 6px;
   }
-  .participantes-header h3{margin:0;font-size:15px;}
+  .participantes-header h3{margin:0;}
   .contador{font-size:12px;color:var(--gris-texto);}
   #listaParticipantes{padding:0 16px;display:flex;flex-direction:column;gap:12px;}
   .tarjeta-participante{
@@ -199,7 +216,7 @@
     padding-top:16px;
     border-top:1px solid var(--gris-borde);
   }
-  .relator-final h3{font-size:15px;margin:0 0 10px;}
+  .relator-final h3{margin:0 0 10px;}
 
   .btn-pdf{
     width:calc(100% - 32px);
@@ -291,6 +308,7 @@
   </div>
 
   <div class="titulo-doc">Registro de charla / reunión — Listado de firmas digitales</div>
+  <div class="banner-estado" id="bannerEstado">Listado conforme — 0 participantes registrados</div>
 
   <div class="grupo-botones turno" id="grupoTurno">
     <button type="button" class="btn-selector activo" data-valor="Día">Turno día</button>
@@ -329,24 +347,24 @@
   </div>
 
   <div class="seccion">
-    <label for="campoObjetivos">Objetivos</label>
+    <label for="campoObjetivos" class="titulo-seccion">Objetivos</label>
     <textarea id="campoObjetivos" placeholder="Objetivo de la charla"></textarea>
   </div>
   <div class="seccion">
-    <label for="campoMaterias">Materias tratadas</label>
+    <label for="campoMaterias" class="titulo-seccion">Materias tratadas</label>
     <textarea id="campoMaterias"></textarea>
   </div>
   <div class="seccion">
-    <label for="campoDecisiones">Decisiones tomadas</label>
+    <label for="campoDecisiones" class="titulo-seccion">Decisiones tomadas</label>
     <textarea id="campoDecisiones"></textarea>
   </div>
   <div class="seccion">
-    <label for="campoCompromisos">Compromisos</label>
+    <label for="campoCompromisos" class="titulo-seccion">Compromisos</label>
     <textarea id="campoCompromisos"></textarea>
   </div>
 
   <div class="seccion">
-    <label>Evidencia fotográfica (participantes presentes)</label>
+    <label class="titulo-seccion">Evidencia fotográfica (participantes presentes)</label>
     <div id="cajaFoto" class="caja-foto">
       <img id="previewFoto" style="display:none;">
       <div id="placeholderFoto" class="placeholder-foto">
@@ -361,14 +379,14 @@
   </div>
 
   <div class="participantes-header">
-    <h3>Participantes</h3>
+    <h3 class="titulo-seccion" style="margin:0;">Participantes</h3>
     <div class="contador"><span id="contadorNum">0</span> / 20</div>
   </div>
   <div id="listaParticipantes"></div>
   <button type="button" class="btn-agregar" id="btnAgregarParticipante">+ Agregar participante</button>
 
   <div class="relator-final">
-    <h3>Firma del relator</h3>
+    <h3 class="titulo-seccion" style="margin:0 0 10px;">Firma del relator</h3>
     <input type="text" id="campoNombreRelatorFirma" placeholder="Nombre del relator" style="margin-bottom:8px;">
     <label style="font-size:11px;color:var(--gris-texto);display:block;margin-bottom:4px;">Firma</label>
     <canvas id="canvasFirmaRelator" class="canvas-firma"></canvas>
@@ -600,6 +618,10 @@ function renumerarParticipantes(){
   contadorNumEl.textContent = tarjetas.length;
   document.getElementById("btnAgregarParticipante").style.display =
     tarjetas.length >= MAX_PARTICIPANTES ? "none" : "block";
+  var bannerEl = document.getElementById("bannerEstado");
+  if(bannerEl){
+    bannerEl.textContent = "Listado conforme — " + tarjetas.length + " participante" + (tarjetas.length === 1 ? "" : "s") + " registrado" + (tarjetas.length === 1 ? "" : "s");
+  }
 }
 
 document.getElementById("btnAgregarParticipante").addEventListener("click", function(){
@@ -757,11 +779,13 @@ function dibujarPiePagina(doc, nombreGenerador, fechaGen, numPagina, totalPagina
 }
 
 function tituloSeccion(doc, texto, y, anchoPagina){
+  doc.setFillColor(COLOR_ROJO[0], COLOR_ROJO[1], COLOR_ROJO[2]);
+  doc.rect(8, y - 3.8, 1.2, 4.8, "F");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   var maxAncho = anchoPagina - 40;
   var lineas = doc.splitTextToSize(texto, maxAncho);
-  doc.text(lineas, 8, y);
+  doc.text(lineas, 11, y);
   doc.setFont("helvetica", "normal");
   return y + (lineas.length * 5) + 2;
 }
@@ -791,7 +815,17 @@ function construirPDF(datos, callback){
     doc.setFont("helvetica", "bold");
     doc.setFontSize(13);
     doc.text("Registro de charla / reunión — listado de firmas", anchoPagina / 2, y, { align: "center" });
-    y += 8;
+    y += 6;
+
+    var textoBanner = "Listado conforme — " + datos.participantes.length + " participante" + (datos.participantes.length === 1 ? "" : "s") + " registrado" + (datos.participantes.length === 1 ? "" : "s");
+    doc.setFillColor(47, 107, 58);
+    doc.roundedRect(8, y, anchoPagina - 16, 7, 1.5, 1.5, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.text(textoBanner, anchoPagina / 2, y + 4.8, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    y += 13;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
