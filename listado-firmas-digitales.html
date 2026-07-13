@@ -99,6 +99,44 @@
   .btn-selector.activo{background:var(--rojo);color:#fff;border-color:var(--rojo);}
 
   /* ---------- Participantes ---------- */
+  /* ---------- Evidencia fotográfica ---------- */
+  .caja-foto{
+    width:100%;
+    min-height:140px;
+    border:1px dashed var(--gris-borde);
+    border-radius:8px;
+    background:#fafafa;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .caja-foto img{width:100%;max-height:280px;object-fit:contain;display:block;}
+  .placeholder-foto{color:var(--gris-texto);font-size:13px;}
+  .foto-botones{display:flex;gap:8px;margin-top:8px;}
+  .btn-foto{
+    flex:1;
+    text-align:center;
+    padding:10px;
+    border:1px solid var(--gris-borde);
+    border-radius:6px;
+    background:#fff;
+    font-size:13px;
+    font-weight:600;
+    color:var(--negro);
+    cursor:pointer;
+  }
+  .btn-foto-quitar{
+    padding:10px 14px;
+    border:1px solid var(--rojo);
+    border-radius:6px;
+    background:#fff;
+    color:var(--rojo);
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+
   .participantes-header{
     display:flex;justify-content:space-between;align-items:center;
     padding:14px 16px 6px;
@@ -154,6 +192,7 @@
     color:var(--rojo);
     cursor:pointer;
   }
+
 
   .relator-final{
     margin:26px 16px 0;
@@ -306,6 +345,21 @@
     <textarea id="campoCompromisos"></textarea>
   </div>
 
+  <div class="seccion">
+    <label>Evidencia fotográfica (participantes presentes)</label>
+    <div id="cajaFoto" class="caja-foto">
+      <img id="previewFoto" style="display:none;">
+      <div id="placeholderFoto" class="placeholder-foto">
+        <span>Sin foto capturada</span>
+      </div>
+    </div>
+    <div class="foto-botones">
+      <label class="btn-foto" for="inputFoto">Capturar / subir foto</label>
+      <input type="file" id="inputFoto" accept="image/*" capture="environment" style="display:none;">
+      <button type="button" class="btn-foto-quitar" id="btnQuitarFoto" style="display:none;">Quitar foto</button>
+    </div>
+  </div>
+
   <div class="participantes-header">
     <h3>Participantes</h3>
     <div class="contador"><span id="contadorNum">0</span> / 20</div>
@@ -362,6 +416,7 @@ var grupoSeleccionado = "G1";
 var contadorParticipantes = 0;
 var canvasesFirma = {};
 var docPDFActual = null;
+var fotoEvidenciaDataUrl = null;
 
 /* ===================== SELECTORES TURNO / GRUPO ===================== */
 document.getElementById("grupoTurno").addEventListener("click", function(e){
@@ -443,6 +498,62 @@ document.addEventListener("click", function(e){
   var btn = e.target.closest(".link-limpiar");
   if(!btn) return;
   limpiarFirma(btn.dataset.limpiar);
+});
+
+/* ===================== EVIDENCIA FOTOGRAFICA ===================== */
+var inputFotoEl = document.getElementById("inputFoto");
+var previewFotoEl = document.getElementById("previewFoto");
+var placeholderFotoEl = document.getElementById("placeholderFoto");
+var btnQuitarFotoEl = document.getElementById("btnQuitarFoto");
+
+function comprimirImagen(archivo, callback){
+  var lector = new FileReader();
+  lector.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      var maxLado = 1200;
+      var ancho = img.width;
+      var alto = img.height;
+      if(ancho > maxLado || alto > maxLado){
+        if(ancho > alto){
+          alto = Math.round(alto * (maxLado / ancho));
+          ancho = maxLado;
+        } else {
+          ancho = Math.round(ancho * (maxLado / alto));
+          alto = maxLado;
+        }
+      }
+      var canvasTmp = document.createElement("canvas");
+      canvasTmp.width = ancho;
+      canvasTmp.height = alto;
+      var ctxTmp = canvasTmp.getContext("2d");
+      ctxTmp.drawImage(img, 0, 0, ancho, alto);
+      var dataUrlComprimido = canvasTmp.toDataURL("image/jpeg", 0.82);
+      callback(dataUrlComprimido);
+    };
+    img.src = e.target.result;
+  };
+  lector.readAsDataURL(archivo);
+}
+
+inputFotoEl.addEventListener("change", function(e){
+  var archivo = e.target.files[0];
+  if(!archivo) return;
+  comprimirImagen(archivo, function(dataUrlComprimido){
+    fotoEvidenciaDataUrl = dataUrlComprimido;
+    previewFotoEl.src = dataUrlComprimido;
+    previewFotoEl.style.display = "block";
+    placeholderFotoEl.style.display = "none";
+    btnQuitarFotoEl.style.display = "block";
+  });
+});
+
+btnQuitarFotoEl.addEventListener("click", function(){
+  fotoEvidenciaDataUrl = null;
+  inputFotoEl.value = "";
+  previewFotoEl.style.display = "none";
+  placeholderFotoEl.style.display = "flex";
+  btnQuitarFotoEl.style.display = "none";
 });
 
 /* ===================== PARTICIPANTES DINAMICOS ===================== */
@@ -584,6 +695,7 @@ function validarFormulario(){
     materias: document.getElementById("campoMaterias").value.trim(),
     decisiones: document.getElementById("campoDecisiones").value.trim(),
     compromisos: document.getElementById("campoCompromisos").value.trim(),
+    fotoEvidencia: fotoEvidenciaDataUrl,
     turno: turnoSeleccionado, grupo: grupoSeleccionado,
     participantes: participantes,
     nombreFirmaRelator: nombreFirmaRelator,
@@ -700,6 +812,22 @@ function construirPDF(datos, callback){
     y = textoParrafo(doc, datos.decisiones, y, anchoPagina);
     y = tituloSeccion(doc, "Compromisos", y, anchoPagina);
     y = textoParrafo(doc, datos.compromisos, y, anchoPagina);
+
+    if(datos.fotoEvidencia){
+      var altoFoto = 60;
+      if(y + altoFoto + 10 > margenInferior){
+        doc.addPage();
+        y = dibujarEncabezado(doc, qrDataUrl);
+      }
+      y = tituloSeccion(doc, "Evidencia fotográfica", y, anchoPagina);
+      try{
+        var anchoFoto = anchoPagina - 16;
+        doc.setDrawColor(210, 210, 208);
+        doc.rect(8, y, anchoFoto, altoFoto);
+        doc.addImage(datos.fotoEvidencia, "JPEG", 8, y, anchoFoto, altoFoto, undefined, "FAST");
+      }catch(err){}
+      y += altoFoto + 8;
+    }
 
     y += 2;
     y = tituloSeccion(doc, "Participantes", y, anchoPagina);
