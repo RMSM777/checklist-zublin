@@ -442,8 +442,10 @@ function construirPDF(p, regsValidos){
   y += 10;
 
   // Portada del informe
-  doc.setFontSize(17); doc.setFont(undefined,'bold');
-  doc.text(v('tituloInf').toUpperCase(), izq, y); y+=7;
+  doc.setFontSize(13); doc.setFont(undefined,'bold');
+  const lineasTit = doc.splitTextToSize(v('tituloInf').toUpperCase(), ancho - 28); // deja libre la zona del QR
+  lineasTit.forEach(l=>{ doc.text(l, izq, y); y+=6; });
+  y += 1;
   doc.setFontSize(10.5); doc.setTextColor(90,90,90);
   doc.text('D E P A R T A M E N T O   D E   C A L I D A D', izq, y); y+=9;
   doc.setTextColor(30,30,30); doc.setFontSize(9.5);
@@ -572,7 +574,7 @@ function construirPDF(p, regsValidos){
   // QR y pie en todas las paginas
   const total = doc.getNumberOfPages();
   const ahora = new Date();
-  const marca = 'Generado por: '+p[0].nombre+'  |  '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs  |  '+v('tituloInf').toUpperCase();
+  const marca = 'Generado por: '+p[0].nombre+'  |  '+ahora.toLocaleDateString('es-CL')+'  |  '+v('tituloInf').toUpperCase();
   let qrImg = null;
   try{
     const qr = new QRious({ value:['GCC-003', v('tituloInf').toUpperCase(), fecha, turno, p[0].nombre].join(' | '), size:200, level:'M' });
