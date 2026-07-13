@@ -11,12 +11,13 @@
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; margin:0; background:#e9e9e9; color:var(--texto); font-size:14px; }
   .wrap{ max-width:640px; margin:0 auto; background:#fff; min-height:100vh; }
-  header{ background:#fff; padding:12px 16px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:10; border-bottom:3px solid var(--rojo); }
-  header img{ height:38px; }
-  header .txt div:first-child{ font-weight:700; font-size:14px; }
-  header .sub{ font-size:12px; color:#777; }
+  .header-rojo{ background:var(--rojo); color:#fff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; position:sticky; top:0; z-index:10; }
+  .header-rojo .logo{ display:flex; align-items:center; }
+  .header-rojo .logo img{ height:24px; display:block; }
+  .placa-logo{ background:#fff; border-radius:6px; padding:5px 9px; display:flex; align-items:center; }
+  .header-rojo .codigo{ font-size:11px; text-align:right; line-height:1.4; }
+  .header-contrato{ background:#2a2a2a; color:#eee; font-size:11px; padding:8px 16px; line-height:1.5; }
   .titulo{ text-align:center; font-weight:700; font-size:14px; padding:10px; background:var(--rojo); color:#fff; }
-  .subtitulo{ text-align:center; font-size:11px; padding:6px 10px; background:#fbeaea; color:#8a1815; font-weight:600; }
   section{ padding:12px 14px; }
   .seccion-tit{ background:var(--rojo); color:#fff; font-weight:700; font-size:13px; padding:6px 10px; border-radius:5px; margin:16px 0 8px; }
   .campo{ margin-bottom:10px; }
@@ -57,12 +58,14 @@
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <img id="logoimg" src="" alt="Zublin">
-    <div class="txt"><div>Reporte de Actividades Diarias</div><div class="sub">Departamento de Calidad - GCC-003</div></div>
-  </header>
+  <div class="header-rojo">
+    <div class="logo"><span class="placa-logo"><img id="logoimg" src="" alt="Z&uuml;blin"></span></div>
+    <div class="codigo">C&Oacute;DIGO: INF-GOMS-CL-001 REV.0</div>
+  </div>
+  <div class="header-contrato">
+    Contrato N&deg; 4600031460 / GCC-003 &mdash; "Desarrollo y Construcci&oacute;n Nivel Superior e Inferior Mina Norte" &mdash; Divisi&oacute;n Chuquicamata &mdash; Empresa Contratista: Z&Uuml;BLIN
+  </div>
   <div class="titulo">REPORTE DE ACTIVIDADES DIARIAS</div>
-  <div class="subtitulo">CONTRATO N&deg; 4600031460 "DESARROLLO Y CONSTRUCCI&Oacute;N NIVEL SUPERIOR E INFERIOR MINA NORTE"</div>
 
   <section>
     <div class="seccion-tit">Datos del reporte</div>
@@ -191,8 +194,30 @@
 const LOGO = "data:image/png;base64,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";
 document.getElementById('logoimg').src = LOGO;
 
-const CONTRATO = 'CONTRATO N\u00B0 4600031460 "DESARROLLO Y CONSTRUCCION NIVEL SUPERIOR E INFERIOR MINA NORTE"';
-const CODIGO = 'CODIGO: INF-GOMS-CL-001 REV.0';
+const CONTRATO = 'Contrato N\u00b0 4600031460 / GCC-003 \u2014 "Desarrollo y Construcci\u00f3n Nivel Superior e Inferior Mina Norte" \u2014 Divisi\u00f3n Chuquicamata \u2014 Empresa Contratista: Z\u00dcBLIN';
+const CODIGO_DOC = 'INF-GOMS-CL-001 REV.0';
+
+function dibujarEncabezado(doc, tituloDoc, qrDataUrl){
+  const anchoPagina = doc.internal.pageSize.getWidth();
+  doc.setFillColor(215,38,34);
+  doc.rect(0,0,anchoPagina,14,'F');
+  doc.setFillColor(255,255,255);
+  doc.roundedRect(6,2.5,30,9,1.2,1.2,'F');
+  try{ doc.addImage(LOGO,'PNG',8,4,26,6); }catch(e){}
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(9); doc.setFont(undefined,'bold');
+  doc.text(tituloDoc, 40, 7);
+  doc.setFontSize(7.5); doc.setFont(undefined,'normal');
+  doc.text('C\u00d3DIGO: ' + CODIGO_DOC, anchoPagina-8, 9.5, {align:'right'});
+  doc.setFillColor(45,45,45);
+  doc.rect(0,14,anchoPagina,9,'F');
+  doc.setTextColor(230,230,230); doc.setFontSize(7);
+  const lineasContrato = doc.splitTextToSize(CONTRATO, anchoPagina-(qrDataUrl?30:16));
+  doc.text(lineasContrato, 8, 18.5);
+  if(qrDataUrl){ doc.addImage(qrDataUrl,'PNG',anchoPagina-20,2,12,12); }
+  doc.setTextColor(30,30,30);
+  return 30;
+}
 
 // --- Fecha y hora por defecto ---
 (function(){
@@ -426,25 +451,19 @@ function generarPDF(){
   function salto(min){ if(y > 297-min){ doc.addPage(); y = 15; } }
 
   // Encabezado
-  try{ doc.addImage(LOGO, 'PNG', izq, y, 32, 16); }catch(e){}
+  let qrUrl = null;
   try{
     const qrData = ['GCC-003', 'REPORTE DIARIO CALIDAD', fechaTxt, 'TURNO '+turno, gen].join(' | ');
     const qr = new QRious({ value: qrData, size: 200, level: 'M' });
-    doc.addImage(qr.toDataURL(), 'PNG', izq+ancho-25, y, 25, 25);
+    qrUrl = qr.toDataURL();
   }catch(e){}
-  doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(120,120,120);
-  doc.text(CODIGO, izq+ancho-28, y+2, {align:'right'});
-  doc.setFontSize(6.5);
-  doc.text(CONTRATO, izq+ancho-28, y+6, {align:'right', maxWidth:110});
-  doc.setTextColor(30,30,30);
+  dibujarEncabezado(doc, 'REPORTE DE ACTIVIDADES DIARIAS', qrUrl);
 
-  y = 32;
-  doc.setFontSize(14); doc.setFont(undefined,'bold');
-  doc.text('REPORTE DE ACTIVIDADES DIARIAS', izq, y); y+=6;
-  doc.setFontSize(10);
+  y = 36;
+  doc.setFontSize(10); doc.setFont(undefined,'bold');
   doc.setTextColor(215,38,34);
   doc.text('DEPARTAMENTO DE CALIDAD', izq, y); y+=4;
-  doc.setTextColor(30,30,30);
+  doc.setTextColor(30,30,30); doc.setFont(undefined,'normal');
   doc.setDrawColor(215,38,34); doc.setLineWidth(0.6); doc.line(izq, y, izq+ancho, y); y+=6;
 
   doc.setFontSize(9);
