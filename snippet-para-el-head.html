@@ -1,0 +1,16 @@
+<!-- Agrega estas líneas dentro de <head>...</head> en CADA una de tus 5 páginas -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#D72622">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Züblin GCC-003">
+
+<!-- Agrega esto antes de cerrar </body> en CADA página -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(console.error);
+  });
+}
+</script>
