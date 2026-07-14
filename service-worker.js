@@ -5,6 +5,7 @@ const CACHE_NAME = 'zublin-gcc003-v1'; // sube este número cuando publiques cam
 
 const ARCHIVOS_PROPIOS = [
   './',
+  './home.html',
   './index.html',
   './reporte-diario.html',
   './reporte-dt-index.html',

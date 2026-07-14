@@ -2,7 +2,7 @@
   "name": "Checklist Züblin GCC-003",
   "short_name": "Züblin GCC-003",
   "description": "Checklists y reportes de terreno - Contrato GCC-003 Züblin, Mina Chuquicamata",
-  "start_url": "./index.html",
+  "start_url": "./home.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
