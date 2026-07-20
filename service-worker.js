@@ -1,7 +1,7 @@
 // Service Worker - Checklist Züblin GCC-003
 // Cachea las páginas y librerías para que la app abra aunque no haya señal.
 
-const CACHE_NAME = 'zublin-gcc003-v1'; // sube este número cuando publiques cambios importantes
+const CACHE_NAME = 'zublin-gcc003-v2'; // sube este número cuando publiques cambios importantes
 
 const ARCHIVOS_PROPIOS = [
   './',
@@ -11,6 +11,7 @@ const ARCHIVOS_PROPIOS = [
   './reporte-dt-index.html',
   './informe-procesos-constructivos.html',
   './listado-firmas-digitales.html',
+  './reporte-programa-semanal.html',
   './manifest.json'
 ];
 
