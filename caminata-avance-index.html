@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Reporte Gerencial de Avance Constructivo - Zublin GCC-003</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; --verde:#2e7d32; --naranja:#F2A93B; --azul:#2b5fb8; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; margin:0; background:#e9e9e9; color:var(--texto); font-size:14px; }
+  .wrap{ max-width:720px; margin:0 auto; background:#fff; min-height:100vh; }
+  .header-rojo{ background:var(--rojo); color:#fff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; position:sticky; top:0; z-index:10; }
+  .header-rojo .logo{ display:flex; align-items:center; }
+  .header-rojo .logo img{ height:24px; display:block; }
+  .placa-logo{ background:#fff; border-radius:6px; padding:5px 9px; display:flex; align-items:center; }
+  .header-rojo .codigo{ font-size:11px; text-align:right; line-height:1.4; }
+  .header-contrato{ background:#2a2a2a; color:#eee; font-size:11px; padding:8px 16px; line-height:1.5; }
+  .titulo{ text-align:center; font-weight:700; font-size:14px; padding:10px; background:var(--rojo); color:#fff; }
+  .contrato{ text-align:center; font-size:12px; color:#555; padding:8px 14px; background:var(--gris); border-bottom:1px solid #ddd; line-height:1.5; }
+  .contrato b{ color:#333; }
+  section{ padding:12px 14px; }
+  .seccion-tit{ background:var(--rojo); color:#fff; font-weight:700; font-size:13px; padding:6px 10px; border-radius:5px; margin:16px 0 8px; }
+  .campo{ margin-bottom:10px; }
+  .campo label{ display:block; font-size:12px; color:#555; margin-bottom:3px; font-weight:600; }
+  input,select,textarea{ width:100%; padding:9px 10px; border:1px solid var(--borde); border-radius:6px; font-size:14px; background:#fff; font-family:inherit; }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--rojo); }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .leyenda{ font-size:11px; color:#666; background:var(--gris); padding:8px 10px; border-radius:6px; margin-bottom:8px; }
+  .acciones{ display:flex; gap:8px; margin-top:10px; }
+  .acciones button{ flex:1; padding:12px; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn-limpiar{ background:#eee; color:#555; }
+  .btn-generar{ background:var(--rojo); color:#fff; }
+  .btn-generar:disabled{ background:#e0a3a1; cursor:not-allowed; }
+  .nota{ font-size:12px; color:#888; text-align:center; margin-top:10px; padding:0 10px; }
+  footer{ text-align:center; padding:16px; font-size:11px; color:#999; }
+  canvas.firma{ width:100%; height:150px; border:1px solid var(--borde); border-radius:6px; background:#fafafa; touch-action:none; display:block; }
+
+  .toggle{ display:flex; gap:6px; }
+  .toggle button{ flex:1; padding:10px 6px; border:1px solid var(--borde); background:#fff; border-radius:6px; font-size:13px; font-weight:700; color:#666; cursor:pointer; }
+  .toggle button.act{ background:var(--rojo); color:#fff; border-color:var(--rojo); }
+  .toggle button.act-verde{ background:var(--verde); color:#fff; border-color:var(--verde); }
+  .toggle button.act-gris{ background:#757575; color:#fff; border-color:#757575; }
+
+  .dropzone{ border:2px dashed var(--borde); border-radius:10px; padding:22px 14px; text-align:center; color:#777; font-size:13px; cursor:pointer; transition:border-color .15s; }
+  .dropzone.ok{ border-color:var(--verde); background:#f2f9f2; color:var(--verde); font-weight:600; }
+  .dropzone input{ display:none; }
+  .estado-carga{ font-size:12px; margin-top:8px; text-align:center; color:#888; }
+  .estado-carga.err{ color:var(--rojo); font-weight:600; }
+  .estado-carga.ok{ color:var(--verde); font-weight:600; }
+
+  .kpis{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:8px 0; }
+  .kpi{ background:var(--gris); border-radius:8px; padding:10px 4px; text-align:center; border-top:3px solid #bbb; }
+  .kpi .num{ font-size:18px; font-weight:800; }
+  .kpi .lbl{ font-size:9px; color:#666; font-weight:600; margin-top:2px; letter-spacing:.2px; }
+  .kpi.total{ border-top-color:#444; }
+  .kpi.teorico{ border-top-color:var(--naranja); } .kpi.teorico .num{ color:#c07f10; }
+  .kpi.real{ border-top-color:var(--verde); } .kpi.real .num{ color:var(--verde); }
+  .kpi.cumpl{ border-top-color:var(--rojo); } .kpi.cumpl .num{ color:var(--rojo); }
+  .kpi.ton{ border-top-color:var(--azul); } .kpi.ton .num{ color:var(--azul); }
+
+  .grupo-cards{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+  @media (max-width:520px){ .grupo-cards{ grid-template-columns:1fr; } }
+  .gcard{ border:1px solid #e3e3e3; border-radius:10px; padding:10px 12px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  .gcard .gtit{ font-size:12.5px; font-weight:800; display:flex; align-items:center; gap:6px; }
+  .gcard .gdot{ width:9px; height:9px; border-radius:2px; display:inline-block; flex-shrink:0; }
+  .gcard .gsub{ font-size:9.5px; color:#999; margin:3px 0 8px; letter-spacing:.2px; text-transform:uppercase; }
+  .gcard .gkpis{ display:grid; grid-template-columns:repeat(3,1fr); gap:4px; }
+  .gcard .gk .glbl{ font-size:8.5px; color:#999; font-weight:700; letter-spacing:.4px; }
+  .gcard .gk .gnum{ font-size:17px; font-weight:800; }
+  .gcard .gk.real .gnum{ color:var(--verde); }
+  .gcard .gk.teo .gnum{ color:#c07f10; }
+
+  .punto{ border:1px solid #e3e3e3; border-radius:10px; padding:10px 12px; margin-bottom:14px; }
+  .punto-tit{ font-size:13px; font-weight:800; color:var(--rojo); margin:0 0 2px; }
+  .punto-sub{ font-size:11px; color:#888; margin:0 0 8px; }
+  .chartbox{ position:relative; width:100%; }
+  table.mini{ width:100%; border-collapse:collapse; font-size:11.5px; margin-top:8px; }
+  table.mini th{ background:var(--rojo); color:#fff; padding:5px 6px; text-align:left; font-size:10.5px; }
+  table.mini td{ padding:5px 6px; border-bottom:1px solid #eee; }
+  table.mini tr.tot td{ font-weight:800; background:var(--gris); }
+  table.mini td.num, table.mini th.num{ text-align:right; }
+  #zonaReporte{ display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header-rojo">
+    <div class="logo"><span class="placa-logo"><img id="logoImg" src="" alt="Z&uuml;blin"></span></div>
+    <div class="codigo">C&Oacute;DIGO: GCC-003 &middot; AVANCE GERENCIAL</div>
+  </div>
+  <div class="header-contrato">
+    Contrato N&deg; 4600031460 / GCC-003 &mdash; "Desarrollo y Construcci&oacute;n Nivel Superior e Inferior Mina Norte" &mdash; Divisi&oacute;n Chuquicamata &mdash; Empresa Contratista: Z&Uuml;BLIN
+  </div>
+  <div class="titulo">REPORTE GERENCIAL DE AVANCE CONSTRUCTIVO</div>
+  <div class="contrato">
+    Disciplina: Miner&iacute;a (MI) &middot; Control de tronaduras y mensuras
+  </div>
+
+  <section>
+    <div class="seccion-tit">1 - Datos del reporte</div>
+    <div class="grid2">
+      <div class="campo"><label>Obra / Faena</label><input id="obra" type="text" value="Mina Chuquicamata Subterr&aacute;nea - Mina Norte"></div>
+      <div class="campo"><label>Fecha del reporte</label><input id="fecha" type="date"></div>
+    </div>
+    <div class="campo">
+      <label>Turno</label>
+      <div class="toggle" id="turnoT">
+        <button data-v="TURNO DIA">TURNO D&Iacute;A</button>
+        <button data-v="TURNO NOCHE">TURNO NOCHE</button>
+      </div>
+    </div>
+    <div class="campo">
+      <label>&iquest;Se registraron tronaduras / mensuras en el per&iacute;odo?</label>
+      <div class="toggle" id="movT">
+        <button data-v="SI" data-cls="act-verde">S&Iacute;, HUBO AVANCE</button>
+        <button data-v="NO" data-cls="act-gris">SIN AVANCE</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="seccion-tit">2 - Carga de datos (export Caminata de Avance)</div>
+    <div class="leyenda">Cargue el archivo de <b>Caminata de Avance de Obra</b> (listado de tronaduras y mensuras, export tipo SIC3PRO / base de datos). Acepta .xls, .xlsx y .htm/.html. Los KPIs, porcentajes y gr&aacute;ficos se calculan autom&aacute;ticamente.</div>
+    <label class="dropzone" id="dz">
+      <span id="dzTxt">Tocar aqu&iacute; para seleccionar el archivo Excel</span>
+      <input type="file" id="archivo" accept=".xls,.xlsx,.htm,.html">
+    </label>
+    <div class="estado-carga" id="estadoCarga">A&uacute;n no se ha cargado ning&uacute;n archivo.</div>
+  </section>
+
+  <div id="zonaReporte">
+  <section>
+    <div class="seccion-tit">3 - Resultados del control</div>
+
+    <div class="punto">
+      <p class="punto-tit">Punto 1 &middot; Resumen general del contrato</p>
+      <p class="punto-sub">Avance real vs. te&oacute;rico acumulado &middot; Fuente: base de tronaduras (<span id="fechaDatos1">-</span>)</p>
+      <div class="kpis">
+        <div class="kpi total"><div class="num" id="kTotal">0</div><div class="lbl">TRONADURAS</div></div>
+        <div class="kpi teorico"><div class="num" id="kTeorico">0</div><div class="lbl">TE&Oacute;RICO (ML)</div></div>
+        <div class="kpi real"><div class="num" id="kReal">0</div><div class="lbl">REAL (ML)</div></div>
+        <div class="kpi cumpl"><div class="num" id="kCumpl">0%</div><div class="lbl">% CUMPLIM.</div></div>
+        <div class="kpi ton"><div class="num" id="kTon">0</div><div class="lbl">TON. QUEBR.</div></div>
+      </div>
+      <div class="chartbox" style="max-width:320px;margin:0 auto;"><canvas id="chGeneral"></canvas></div>
+    </div>
+
+    <div class="punto">
+      <p class="punto-tit">Punto 2 &middot; Avance por Nivel</p>
+      <p class="punto-sub">PD Producci&oacute;n &middot; HD Hundimiento &middot; INY Inyecci&oacute;n &middot; EXT Extracci&oacute;n &middot; ACA Acarreo</p>
+      <div class="chartbox"><canvas id="chNivel"></canvas></div>
+      <table class="mini" id="tbNivel"></table>
+    </div>
+
+    <div class="punto">
+      <p class="punto-tit">Punto 3 &middot; Avance agrupado (Nivel Superior / Inferior)</p>
+      <p class="punto-sub">Nivel Superior = Hundimiento + Producci&oacute;n &middot; Nivel Inferior = Inyecci&oacute;n + Extracci&oacute;n + Acarreo</p>
+      <div class="grupo-cards" id="cardsGrupo"></div>
+      <div class="chartbox"><canvas id="chGrupo"></canvas></div>
+      <table class="mini" id="tbGrupo"></table>
+    </div>
+
+    <div class="punto">
+      <p class="punto-tit">Punto 4 &middot; Avance por Manto/Bloque (MB)</p>
+      <p class="punto-sub">Totales de avance real y te&oacute;rico por MB (N51, N52, etc.)</p>
+      <div class="chartbox"><canvas id="chMB"></canvas></div>
+      <table class="mini" id="tbMB"></table>
+    </div>
+
+    <div class="punto">
+      <p class="punto-tit">Punto 5 &middot; Ranking de Frentes / Desarrollos</p>
+      <p class="punto-sub">Frentes con mayor avance real acumulado en el per&iacute;odo cargado</p>
+      <div class="chartbox"><canvas id="chFrentes"></canvas></div>
+      <table class="mini" id="tbFrentes"></table>
+    </div>
+
+    <div class="punto">
+      <p class="punto-tit">Punto 6 &middot; Tronaduras por semana</p>
+      <p class="punto-sub">Semana mi&eacute;rcoles a martes, seg&uacute;n Fecha Tronadura</p>
+      <div class="chartbox"><canvas id="chSemana"></canvas></div>
+    </div>
+
+    <div class="punto">
+      <p class="punto-tit">Punto 7 &middot; Avance diario acumulado</p>
+      <p class="punto-sub">Metros lineales reales por d&iacute;a (Fecha Tronadura) y curva acumulada</p>
+      <div class="chartbox"><canvas id="chDiario"></canvas></div>
+    </div>
+
+    <div class="punto">
+      <p class="punto-tit">Punto 8 &middot; Resumen mensual</p>
+      <p class="punto-sub">Avance real vs. te&oacute;rico por mes (columna Mes/A&ntilde;o)</p>
+      <div class="chartbox"><canvas id="chMensual"></canvas></div>
+      <table class="mini" id="tbMensual"></table>
+    </div>
+  </section>
+
+  <section>
+    <div class="seccion-tit">4 - Observaciones</div>
+    <textarea id="obs" rows="3" placeholder="Anotar comentarios del periodo, restricciones, atrasos por tronadura, etc."></textarea>
+  </section>
+
+  <section>
+    <div class="seccion-tit">5 - Realizado por (cierre del reporte)</div>
+    <div class="campo"><label>Nombre</label><input id="nombre" type="text"></div>
+    <div class="grid2">
+      <div class="campo"><label>RUT</label><input id="rut" type="text" placeholder="12.345.678-9"></div>
+      <div class="campo"><label>Cargo</label><input id="cargo" type="text" placeholder="Inspector de Terreno"></div>
+    </div>
+    <label style="font-size:12px;color:#555;font-weight:600;">Firma (cierra el reporte)</label>
+    <canvas id="firma1" class="firma"></canvas>
+    <div class="acciones">
+      <button class="btn-limpiar" onclick="limpiarFirma()">Limpiar firma</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="acciones">
+      <button class="btn-generar" id="btnPDF" onclick="generarPDF()">Cerrar y descargar PDF</button>
+    </div>
+    <p class="nota" id="nota">Al cerrar se genera el PDF con los totales, porcentajes, los 8 gr&aacute;ficos y tu firma, listo para descargar y compartir.</p>
+  </section>
+  </div>
+
+  <footer>Zublin - Caminata de Avance de Obra GCC-003</footer>
+</div>
+<script>
+const LOGO = "data:image/png;base64,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";
+document.getElementById('logoImg').src = LOGO;
+
+const CODIGO_DOC = 'GCC-003 \u00b7 AVANCE GERENCIAL';
+const TEXTO_CONTRATO = 'Contrato N\u00b0 4600031460 / GCC-003 \u2014 "Desarrollo y Construcci\u00f3n Nivel Superior e Inferior Mina Norte" \u2014 Divisi\u00f3n Chuquicamata \u2014 Empresa Contratista: Z\u00dcBLIN';
+
+function dibujarEncabezado(doc, tituloDoc, qrDataUrl){
+  const anchoPagina = doc.internal.pageSize.getWidth();
+  doc.setFillColor(215,38,34);
+  doc.rect(0,0,anchoPagina,14,'F');
+  doc.setFillColor(255,255,255);
+  doc.roundedRect(6,2.5,30,9,1.2,1.2,'F');
+  try{ doc.addImage(LOGO,'PNG',8,4,26,6); }catch(e){}
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(9); doc.setFont(undefined,'bold');
+  doc.text(tituloDoc, 40, 7);
+  doc.setFontSize(7.5); doc.setFont(undefined,'normal');
+  doc.text('C\u00d3DIGO: ' + CODIGO_DOC, anchoPagina-8, 9.5, {align:'right'});
+  doc.setFillColor(45,45,45);
+  doc.rect(0,14,anchoPagina,9,'F');
+  doc.setTextColor(230,230,230); doc.setFontSize(7);
+  const lineasContrato = doc.splitTextToSize(TEXTO_CONTRATO, anchoPagina-16);
+  doc.text(lineasContrato, 8, 18.5);
+  if(qrDataUrl){ doc.addImage(qrDataUrl,'PNG',anchoPagina-26,24,18,18); }
+  doc.setTextColor(30,30,30);
+  return 24;
+}
+document.getElementById('fecha').value = new Date().toISOString().slice(0,10);
+
+/* ================= Toggles (turno / movimientos) ================= */
+let turno = '', movimientos = '';
+function initToggle(id, cb){
+  const cont = document.getElementById(id);
+  cont.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      cont.querySelectorAll('button').forEach(b=>b.classList.remove('act','act-verde','act-gris'));
+      btn.classList.add(btn.dataset.cls || 'act');
+      cb(btn.dataset.v);
+    });
+  });
+}
+initToggle('turnoT', v=>turno=v);
+initToggle('movT', v=>{ movimientos=v; });
+
+/* ================= Utilidades ================= */
+function norm(s){
+  return String(s==null?'':s)
+    .replace(/\uFFFD/g,'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,' ')
+    .trim().toUpperCase();
+}
+function parseNumero(s){
+  if(s===null || s===undefined || s==='') return 0;
+  if(typeof s === 'number') return isNaN(s) ? 0 : s;
+  let t = String(s).trim();
+  if(t==='') return 0;
+  t = t.replace(/[^\d,.\-]/g,'');
+  if(/,/.test(t) && /\./.test(t)){
+    t = t.replace(/\./g,'').replace(',', '.');
+  } else if(/,/.test(t)){
+    t = t.replace(',', '.');
+  }
+  const n = parseFloat(t);
+  return isNaN(n) ? 0 : n;
+}
+function parseFecha(s){
+  if(!s) return null;
+  const m = String(s).trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if(!m) return null;
+  let a = parseInt(m[3],10); if(a<100) a += 2000;
+  const d = new Date(a, parseInt(m[2],10)-1, parseInt(m[1],10));
+  return isNaN(d) ? null : d;
+}
+function fmtFecha(d){
+  if(!d) return '';
+  return String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+d.getFullYear();
+}
+function fmtNum(n, dec){
+  dec = dec===undefined ? 1 : dec;
+  return n.toLocaleString('es-CL', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+}
+function pct(n, t){ return t>0 ? Math.round(n/t*1000)/10 : 0; }
+
+/* Clasificacion de Nivel */
+const NIVEL_INFO = {
+  PD:  {nombre:'Producci\u00f3n (PD)'},
+  HD:  {nombre:'Hundimiento (HD)'},
+  INY: {nombre:'Inyecci\u00f3n (INY)'},
+  EXT: {nombre:'Extracci\u00f3n (EXT)'},
+  ACA: {nombre:'Acarreo (ACA)'},
+  OTROS:{nombre:'Otros'}
+};
+const ORDEN_NIVELES = ['PD','HD','INY','EXT','ACA'];
+function clasificarNivel(v){
+  const t = norm(v);
+  if(['PD','HD','INY','EXT','ACA'].includes(t)) return t;
+  if(t.includes('PRODUCCION')) return 'PD';
+  if(t.includes('HUNDIMIENTO')) return 'HD';
+  if(t.includes('INYECCION')) return 'INY';
+  if(t.includes('EXTRACCION')) return 'EXT';
+  if(t.includes('ACARREO')) return 'ACA';
+  return 'OTROS';
+}
+const GRUPOS_DEF = {
+  SUPERIOR:{nombre:'Nivel Superior \u00b7 Hundimiento y Producci\u00f3n', color:'#2b5fb8'},
+  INFERIOR:{nombre:'Nivel Inferior \u00b7 Inyecci\u00f3n, Extracci\u00f3n y Acarreo', color:'#7a3fbf'},
+  OTROS:{nombre:'Otros', color:'#757575'}
+};
+function clasificarGrupo(nivel, colContratoNivel){
+  const g = norm(colContratoNivel||'');
+  if(g==='SUPERIOR'||g==='INFERIOR') return g;
+  if(['PD','HD'].includes(nivel)) return 'SUPERIOR';
+  if(['INY','EXT','ACA'].includes(nivel)) return 'INFERIOR';
+  return 'OTROS';
+}
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function labelMes(mesAno){
+  const m = String(mesAno||'').trim().match(/^(\d{1,2})[\/\-](\d{2,4})$/);
+  if(!m) return mesAno || '(sin mes)';
+  let mm = parseInt(m[1],10), yy = parseInt(m[2],10); if(yy<100) yy += 2000;
+  if(mm<1||mm>12) return mesAno;
+  return MESES[mm-1].slice(0,3)+' '+yy;
+}
+function claveMes(mesAno){
+  const m = String(mesAno||'').trim().match(/^(\d{1,2})[\/\-](\d{2,4})$/);
+  if(!m) return -1;
+  let mm = parseInt(m[1],10), yy = parseInt(m[2],10); if(yy<100) yy += 2000;
+  return yy*100+mm;
+}
+
+/* ================= Lectura del archivo ================= */
+let registros = [];
+let fechaDatos = '';
+let R = null;
+const charts = {};
+
+document.getElementById('archivo').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if(f) leerArchivo(f);
+});
+
+function setEstadoCarga(txt, cls){
+  const el = document.getElementById('estadoCarga');
+  el.textContent = txt; el.className = 'estado-carga '+(cls||'');
+}
+
+async function leerArchivo(file){
+  try{
+    setEstadoCarga('Leyendo archivo...','');
+    const buf = await file.arrayBuffer();
+    const bytes = new Uint8Array(buf.slice(0,512));
+    let filas = null;
+    const esZip = bytes[0]===0x50 && bytes[1]===0x4B;
+    const esOle = bytes[0]===0xD0 && bytes[1]===0xCF;
+    if(esZip || esOle){
+      const wb = XLSX.read(buf, {type:'array', codepage:1252});
+      let hoja = wb.SheetNames.find(n=>norm(n)==='BD') || wb.SheetNames[0];
+      const ws = wb.Sheets[hoja];
+      filas = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
+    } else {
+      const texto = new TextDecoder('windows-1252').decode(buf);
+      const m = texto.match(/Fecha\s*:\s*(\d{2}-\d{2}-\d{4})/);
+      if(m) fechaDatos = m[1];
+      const dom = new DOMParser().parseFromString(texto, 'text/html');
+      const tablas = dom.querySelectorAll('table');
+      let mejor = null;
+      tablas.forEach(t=>{ if(!mejor || t.rows.length > mejor.rows.length) mejor = t; });
+      if(!mejor) throw new Error('No se encontraron tablas en el archivo.');
+      filas = Array.from(mejor.rows).map(tr => Array.from(tr.cells).map(td => td.textContent.trim()));
+    }
+    procesarFilas(filas, file.name);
+  }catch(err){
+    console.error(err);
+    setEstadoCarga('No se pudo leer el archivo: '+err.message, 'err');
+  }
+}
+
+function procesarFilas(filas, nombreArchivo){
+  let hIdx = -1, headers = null;
+  for(let i=0;i<Math.min(filas.length,30);i++){
+    const fn = filas[i].map(norm);
+    if(fn.some(c=>c.includes('ID TRONADURA')) && fn.some(c=>c.includes('DELTA'))){ hIdx=i; headers=fn; break; }
+  }
+  if(hIdx<0){ setEstadoCarga('El archivo no tiene el formato esperado de Caminata de Avance (no se encontraron las columnas ID TRONADURA / DELTA).','err'); return; }
+
+  function colExact(name){ return headers.indexOf(name); }
+  function colInc(...claves){
+    for(const k of claves){
+      const i = headers.findIndex(h=>h.includes(k));
+      if(i>=0) return i;
+    }
+    return -1;
+  }
+  const C = {
+    mina: colExact('MINA'), contrato: colExact('CONTRATO'),
+    idTron: colInc('ID TRONADURA'), fTron: colExact('FECHA TRONADURA'), hora: colExact('HORA'),
+    nivel: colExact('NIVEL'), mb: colExact('MB'), desarrollo: colExact('DESARROLLO'), labor: colExact('LABOR'),
+    obs: colExact('OBSERVACIONES'), dtm: colInc('DTM'),
+    avanceTeo: colInc('AVANCE TEORICO'), fMensura: colExact('FECHA MENSURA'),
+    pkIni: colExact('PK INICIAL'), pkFrente: colExact('PK FRENTE'),
+    delta: colExact('DELTA'), acumulado: colExact('ACUMULADO'), seccion: colExact('SECCION'),
+    areaTeo: colInc('AREA TEORICA'), disparos: colExact('DISPAROS'),
+    tonTeo: colInc('TON TEORICA'), ptoCarguio: colInc('PTO CARGUIO'),
+    hhGanada: colInc('HH GANADA'), hh: colExact('HH'),
+    mesAno: colInc('MES/AN', 'MES/A\u00d1O'),
+    contratoNivel: colInc('CONTRATO_NIVEL')
+  };
+  if(C.delta<0 || C.nivel<0){ setEstadoCarga('No se pudieron ubicar las columnas NIVEL y DELTA en el archivo.','err'); return; }
+
+  registros = [];
+  for(let i=hIdx+1;i<filas.length;i++){
+    const f = filas[i];
+    if(!f || f.length<5) continue;
+    const idTron = f[C.idTron]!==undefined ? f[C.idTron] : '';
+    const nivelRaw = f[C.nivel];
+    if(!idTron && !nivelRaw) continue;
+    const nivel = clasificarNivel(nivelRaw);
+    registros.push({
+      idTron: idTron||'',
+      fTron: parseFecha(f[C.fTron]),
+      nivel, nivelRaw: nivelRaw||'',
+      mb: (f[C.mb]||'S/D').toString().trim() || 'S/D',
+      desarrollo: (f[C.desarrollo]||'').toString().trim(),
+      labor: (f[C.labor]||'').toString().trim(),
+      avanceTeo: parseNumero(f[C.avanceTeo]),
+      delta: parseNumero(f[C.delta]),
+      acumulado: parseNumero(f[C.acumulado]),
+      tonTeo: parseNumero(f[C.tonTeo]),
+      hh: parseNumero(f[C.hh]),
+      hhGanada: parseNumero(f[C.hhGanada]),
+      mesAno: (f[C.mesAno]||'').toString().trim(),
+      grupo: clasificarGrupo(nivel, f[C.contratoNivel])
+    });
+  }
+  if(!registros.length){ setEstadoCarga('El archivo se ley\u00f3 pero no se encontraron registros de tronaduras.','err'); return; }
+
+  document.getElementById('dz').classList.add('ok');
+  document.getElementById('dzTxt').textContent = nombreArchivo+' \u2014 '+registros.length+' registros cargados. Tocar para cambiar el archivo.';
+  setEstadoCarga('Archivo procesado correctamente: '+registros.length+' tronaduras'+(fechaDatos?' \u00b7 datos al '+fechaDatos:'')+'.','ok');
+  calcularYRenderizar();
+}
+
+/* ================= Calculos ================= */
+function resumen(regs){
+  const r = { total:regs.length, avanceTeo:0, avanceReal:0, tonTeo:0, hh:0, hhGanadaSum:0 };
+  regs.forEach(x=>{ r.avanceTeo+=x.avanceTeo; r.avanceReal+=x.delta; r.tonTeo+=x.tonTeo; r.hh+=x.hh; r.hhGanadaSum+=x.hhGanada; });
+  r.pctCumpl = pct(r.avanceReal, r.avanceTeo);
+  r.hhGanadaProm = r.total>0 ? r.hhGanadaSum/r.total : 0;
+  return r;
+}
+function agrupar(regs, keyFn){
+  const m = new Map();
+  regs.forEach(x=>{
+    const k = keyFn(x);
+    if(!m.has(k)) m.set(k, []);
+    m.get(k).push(x);
+  });
+  return m;
+}
+
+function calcularYRenderizar(){
+  const G = resumen(registros);
+  const porNivel = agrupar(registros, x=>x.nivel);
+  const porGrupo = agrupar(registros, x=>x.grupo);
+  const porMB = agrupar(registros, x=>x.mb);
+  const porFrente = agrupar(registros, x=>x.desarrollo || '(sin frente)');
+  const porMes = agrupar(registros, x=>x.mesAno || '(sin mes)');
+
+  const porSemana = new Map();
+  registros.forEach(x=>{
+    if(!x.fTron) return;
+    const d = new Date(x.fTron);
+    d.setDate(d.getDate() - ((d.getDay()-3+7)%7));
+    const k = d.getTime();
+    if(!porSemana.has(k)) porSemana.set(k, []);
+    porSemana.get(k).push(x);
+  });
+  const semanas = [...porSemana.keys()].sort((a,b)=>a-b).map(k=>{
+    const ini = new Date(k), fin = new Date(k); fin.setDate(fin.getDate()+6);
+    return { label: fmtFecha(ini).slice(0,5)+' al '+fmtFecha(fin).slice(0,5), ...resumen(porSemana.get(k)) };
+  });
+
+  const porDia = new Map();
+  registros.forEach(x=>{
+    if(x.fTron){
+      const k = x.fTron.getTime();
+      porDia.set(k, (porDia.get(k)||0)+x.delta);
+    }
+  });
+  let acum = 0;
+  const dias = [...porDia.keys()].sort((a,b)=>a-b).map(k=>{
+    acum += porDia.get(k);
+    return { label: fmtFecha(new Date(k)).slice(0,5), n: porDia.get(k), acum };
+  });
+
+  R = { G, porNivel, porGrupo, porMB, porFrente, porMes, semanas, dias };
+  renderTodo();
+}
+
+/* ================= Render UI ================= */
+Chart.defaults.animation = false;
+Chart.defaults.font.family = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif";
+Chart.defaults.font.size = 11;
+const COL_TEO = '#F2A93B', COL_REAL = '#2e7d32', COL_ROJO = '#D72622';
+const fondoBlanco = { id:'fondoBlanco', beforeDraw(c){ const x=c.ctx; x.save(); x.globalCompositeOperation='destination-over'; x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.restore(); } };
+
+function nuevoChart(id, cfg){
+  if(charts[id]) charts[id].destroy();
+  cfg.plugins = [fondoBlanco];
+  charts[id] = new Chart(document.getElementById(id), cfg);
+}
+function dsTeoReal(labels, rMap){
+  return [
+    {label:'Te\u00f3rico (ml)', data:labels.map(l=>rMap.get(l).avanceTeo), backgroundColor:COL_TEO},
+    {label:'Real (ml)', data:labels.map(l=>rMap.get(l).avanceReal), backgroundColor:COL_REAL}
+  ];
+}
+function tablaTeoReal(elId, titulo1, filas){
+  const el = document.getElementById(elId);
+  let h = '<tr><th>'+titulo1+'</th><th class="num">Te\u00f3rico (ml)</th><th class="num">Real (ml)</th><th class="num">% Cumpl.</th><th class="num">HH</th></tr>';
+  let T = {avanceTeo:0, avanceReal:0, hh:0};
+  filas.forEach(([nombre, r])=>{
+    h += '<tr><td>'+nombre+'</td><td class="num">'+fmtNum(r.avanceTeo)+'</td><td class="num">'+fmtNum(r.avanceReal)+'</td><td class="num">'+r.pctCumpl.toFixed(1)+'%</td><td class="num">'+fmtNum(r.hh)+'</td></tr>';
+    T.avanceTeo+=r.avanceTeo; T.avanceReal+=r.avanceReal; T.hh+=r.hh;
+  });
+  h += '<tr class="tot"><td>TOTAL</td><td class="num">'+fmtNum(T.avanceTeo)+'</td><td class="num">'+fmtNum(T.avanceReal)+'</td><td class="num">'+pct(T.avanceReal,T.avanceTeo).toFixed(1)+'%</td><td class="num">'+fmtNum(T.hh)+'</td></tr>';
+  el.innerHTML = h;
+}
+
+function renderTodo(){
+  document.getElementById('zonaReporte').style.display = 'block';
+  setTimeout(()=>{ if(!firma.hayFirma) firma.ajustar(); }, 150);
+  const {G} = R;
+  document.getElementById('fechaDatos1').textContent = fechaDatos || 'fecha no indicada en el export';
+  document.getElementById('kTotal').textContent = G.total;
+  document.getElementById('kTeorico').textContent = fmtNum(G.avanceTeo);
+  document.getElementById('kReal').textContent = fmtNum(G.avanceReal);
+  document.getElementById('kCumpl').textContent = G.pctCumpl.toFixed(1)+'%';
+  document.getElementById('kTon').textContent = fmtNum(G.tonTeo, 0);
+
+  // Punto 1
+  nuevoChart('chGeneral', { type:'bar',
+    data:{ labels:['Avance del contrato'], datasets:[
+      {label:'Te\u00f3rico (ml)', data:[G.avanceTeo], backgroundColor:COL_TEO},
+      {label:'Real (ml)', data:[G.avanceReal], backgroundColor:COL_REAL}
+    ]},
+    options:{ plugins:{ legend:{position:'bottom'}, title:{display:true,text:'Real vs Te\u00f3rico \u00b7 '+G.pctCumpl.toFixed(1)+'% cumplimiento'} } }
+  });
+
+  // Punto 2: Nivel
+  const nivs = ORDEN_NIVELES.filter(n=>R.porNivel.has(n)).concat(R.porNivel.has('OTROS')?['OTROS']:[]);
+  const rNiv = new Map(nivs.map(n=>[n, resumen(R.porNivel.get(n))]));
+  const labsNiv = nivs.map(n=>NIVEL_INFO[n].nombre);
+  const rNivPorLabel = new Map(labsNiv.map((l,i)=>[l, rNiv.get(nivs[i])]));
+  nuevoChart('chNivel', { type:'bar',
+    data:{ labels:labsNiv, datasets: dsTeoReal(labsNiv, rNivPorLabel) },
+    options:{ indexAxis:'y', plugins:{legend:{position:'bottom'}, title:{display:true,text:'Avance por Nivel'}} }
+  });
+  tablaTeoReal('tbNivel','Nivel', nivs.map(n=>[NIVEL_INFO[n].nombre, rNiv.get(n)]));
+
+  // Punto 3: Grupo Superior/Inferior
+  const grupos = ['SUPERIOR','INFERIOR','OTROS'].filter(g=>R.porGrupo.has(g));
+  const rGru = new Map(grupos.map(g=>[g, resumen(R.porGrupo.get(g))]));
+  document.getElementById('cardsGrupo').innerHTML = grupos.map(g=>{
+    const r = rGru.get(g), D = GRUPOS_DEF[g];
+    return '<div class="gcard">'
+      +'<div class="gtit"><span class="gdot" style="background:'+D.color+'"></span>'+D.nombre+'</div>'
+      +'<div class="gsub">'+r.total+' tronaduras</div>'
+      +'<div class="gkpis">'
+      +'<div class="gk teo"><div class="glbl">TE\u00d3RICO</div><div class="gnum">'+fmtNum(r.avanceTeo,0)+'</div></div>'
+      +'<div class="gk real"><div class="glbl">REAL</div><div class="gnum">'+fmtNum(r.avanceReal,0)+'</div></div>'
+      +'<div class="gk"><div class="glbl">% CUMPL.</div><div class="gnum">'+Math.round(r.pctCumpl)+'%</div></div>'
+      +'</div></div>';
+  }).join('');
+  const labsGru = grupos.map(g=>GRUPOS_DEF[g].nombre);
+  const rGruPorLabel = new Map(labsGru.map((l,i)=>[l, rGru.get(grupos[i])]));
+  nuevoChart('chGrupo', { type:'bar',
+    data:{ labels:labsGru, datasets: dsTeoReal(labsGru, rGruPorLabel) },
+    options:{ plugins:{legend:{position:'bottom'}, title:{display:true,text:'Nivel Superior vs Nivel Inferior'}} }
+  });
+  tablaTeoReal('tbGrupo','Grupo de Niveles', grupos.map(g=>[GRUPOS_DEF[g].nombre, rGru.get(g)]));
+
+  // Punto 4: MB
+  const mbs = [...R.porMB.keys()].sort();
+  const rMB = new Map(mbs.map(m=>[m, resumen(R.porMB.get(m))]));
+  const rMBPorLabel = new Map(mbs.map(l=>[l, rMB.get(l)]));
+  nuevoChart('chMB', { type:'bar',
+    data:{ labels:mbs, datasets: dsTeoReal(mbs, rMBPorLabel) },
+    options:{ plugins:{legend:{position:'bottom'}, title:{display:true,text:'Avance por Manto/Bloque (MB)'}} }
+  });
+  tablaTeoReal('tbMB','MB', mbs.map(m=>[m, rMB.get(m)]));
+
+  // Punto 5: Ranking de Frentes
+  const frentes = [...R.porFrente.keys()].map(f=>[f, resumen(R.porFrente.get(f))])
+    .sort((a,b)=>b[1].avanceReal-a[1].avanceReal).slice(0,10);
+  nuevoChart('chFrentes', { type:'bar',
+    data:{ labels:frentes.map(x=>x[0].length>28 ? x[0].slice(0,26)+'\u2026' : x[0]),
+      datasets:[{label:'Avance real (ml)', data:frentes.map(x=>x[1].avanceReal), backgroundColor:COL_REAL}] },
+    options:{ indexAxis:'y', plugins:{legend:{position:'bottom'}, title:{display:true,text:'Top 10 Frentes por avance real'}} }
+  });
+  {
+    const el = document.getElementById('tbFrentes');
+    let h = '<tr><th>Frente / Desarrollo</th><th class="num">Tronaduras</th><th class="num">Te\u00f3rico (ml)</th><th class="num">Real (ml)</th><th class="num">% Cumpl.</th></tr>';
+    frentes.forEach(([f,r])=>{ h += '<tr><td>'+f+'</td><td class="num">'+r.total+'</td><td class="num">'+fmtNum(r.avanceTeo)+'</td><td class="num">'+fmtNum(r.avanceReal)+'</td><td class="num">'+r.pctCumpl.toFixed(1)+'%</td></tr>'; });
+    el.innerHTML = h;
+  }
+
+  // Punto 6: Semanas
+  nuevoChart('chSemana', { type:'bar',
+    data:{ labels:R.semanas.map(s=>s.label), datasets:[
+      {label:'Te\u00f3rico (ml)', data:R.semanas.map(s=>s.avanceTeo), backgroundColor:COL_TEO},
+      {label:'Real (ml)', data:R.semanas.map(s=>s.avanceReal), backgroundColor:COL_REAL}
+    ]},
+    options:{ plugins:{legend:{position:'bottom'}, title:{display:true,text:'Tronaduras por semana (mi\u00e9 a mar)'}} }
+  });
+
+  // Punto 7: Diario acumulado
+  nuevoChart('chDiario', { type:'bar',
+    data:{ labels:R.dias.map(d=>d.label), datasets:[
+      {type:'line', label:'Acumulado (ml)', data:R.dias.map(d=>d.acum), borderColor:COL_ROJO, backgroundColor:'rgba(215,38,34,.10)', fill:true, tension:.25, pointRadius:2, yAxisID:'y1'},
+      {label:'Avance del d\u00eda (ml)', data:R.dias.map(d=>d.n), backgroundColor:COL_REAL}
+    ]},
+    options:{ scales:{ y:{position:'left', title:{display:true,text:'ml/d\u00eda'}}, y1:{position:'right', grid:{drawOnChartArea:false}, title:{display:true,text:'Acumulado (ml)'}} },
+      plugins:{legend:{position:'bottom'}, title:{display:true,text:'Avance real por d\u00eda y acumulado'}} }
+  });
+
+  // Punto 8: Mensual
+  const meses = [...R.porMes.keys()].filter(m=>m!=='(sin mes)').sort((a,b)=>claveMes(a)-claveMes(b));
+  const rMes = new Map(meses.map(m=>[m, resumen(R.porMes.get(m))]));
+  const labsMes = meses.map(labelMes);
+  const rMesPorLabel = new Map(labsMes.map((l,i)=>[l, rMes.get(meses[i])]));
+  nuevoChart('chMensual', { type:'bar',
+    data:{ labels:labsMes, datasets: dsTeoReal(labsMes, rMesPorLabel) },
+    options:{ plugins:{legend:{position:'bottom'}, title:{display:true,text:'Avance real vs te\u00f3rico por mes'}} }
+  });
+  tablaTeoReal('tbMensual','Mes', meses.map(m=>[labelMes(m), rMes.get(m)]));
+}
+
+/* ================= Firma ================= */
+function crearFirma(id){
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  const obj = { canvas, ctx, hayFirma:false };
+  function ajustar(){
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    ctx.scale(ratio, ratio);
+    ctx.strokeStyle = '#111'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  }
+  setTimeout(ajustar, 100);
+  obj.ajustar = ajustar;
+  let dib=false, ux=0, uy=0;
+  function coord(e){ const r=canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return [t.clientX-r.left, t.clientY-r.top]; }
+  function ini(e){ if(canvas.width===0) ajustar(); dib=true; [ux,uy]=coord(e); e.preventDefault(); }
+  function mov(e){ if(!dib)return; const [x,y]=coord(e); ctx.beginPath(); ctx.moveTo(ux,uy); ctx.lineTo(x,y); ctx.stroke(); [ux,uy]=[x,y]; obj.hayFirma=true; e.preventDefault(); }
+  function fin(){ dib=false; }
+  canvas.addEventListener('mousedown',ini); canvas.addEventListener('mousemove',mov); window.addEventListener('mouseup',fin);
+  canvas.addEventListener('touchstart',ini,{passive:false}); canvas.addEventListener('touchmove',mov,{passive:false}); canvas.addEventListener('touchend',fin);
+  obj.limpiar = function(){ ctx.clearRect(0,0,canvas.width,canvas.height); obj.hayFirma=false; };
+  return obj;
+}
+const firma = crearFirma('firma1');
+function limpiarFirma(){ firma.limpiar(); }
+
+function v(id){ return document.getElementById(id).value; }
+
+/* ================= PDF ================= */
+function chartImg(id){ return charts[id] ? charts[id].toBase64Image('image/png', 1) : null; }
+function addChart(doc, id, y, alto){
+  const img = chartImg(id);
+  if(!img) return y;
+  const izq=12, ancho=186;
+  if(y + alto > 280){ doc.addPage(); y = 14; }
+  const c = charts[id].canvas;
+  let w = ancho, h = w * c.height / c.width;
+  if(h > alto){ h = alto; w = h * c.width / c.height; }
+  doc.addImage(img, 'PNG', izq + (ancho-w)/2, y, w, h);
+  return y + h + 4;
+}
+function addTablaPDF(doc, y, head, body, foot){
+  doc.autoTable({
+    startY:y, head:[head], body, foot: foot?[foot]:undefined,
+    theme:'grid', margin:{left:12, right:12},
+    styles:{fontSize:7.5, cellPadding:1.4, textColor:[40,40,40], lineColor:[210,210,210], lineWidth:.15},
+    headStyles:{fillColor:[215,38,34], textColor:255, fontStyle:'bold'},
+    footStyles:{fillColor:[240,240,240], textColor:[30,30,30], fontStyle:'bold'}
+  });
+  return doc.lastAutoTable.finalY + 5;
+}
+function puntoTitulo(doc, y, txt){
+  if(y > 258){ doc.addPage(); y = 14; }
+  doc.setFontSize(10.5); doc.setFont(undefined,'bold'); doc.setTextColor(215,38,34);
+  doc.text(txt, 12, y);
+  doc.setDrawColor(215,38,34); doc.setLineWidth(0.4); doc.line(12, y+1.5, 198, y+1.5);
+  doc.setTextColor(30,30,30);
+  return y + 6;
+}
+function filaTablaTR(nombre, r){
+  return [nombre, fmtNum(r.avanceTeo), fmtNum(r.avanceReal), r.pctCumpl.toFixed(1)+'%', fmtNum(r.hh)];
+}
+
+function generarPDF(){
+  if(!R){ alert('Primero cargue el archivo de Caminata de Avance (secci\u00f3n 2).'); return; }
+  if(!turno){ alert('Seleccione el turno (D\u00cdA o NOCHE).'); return; }
+  const nombre = v('nombre');
+  if(!nombre){ alert('Ingrese el nombre de quien realiza el reporte (secci\u00f3n 5).'); return; }
+  if(!firma.hayFirma){ alert('Debe firmar para cerrar el reporte (secci\u00f3n 5).'); return; }
+
+  const fecha = v('fecha') || new Date().toISOString().slice(0,10);
+  const {G} = R;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'a4'});
+  const izq=12, ancho=186;
+  let y = 10;
+
+  let qrUrl = null;
+  try{
+    const qrData = ['GCC-003','AVANCE GERENCIAL', fecha, turno, 'REAL:'+fmtNum(G.avanceReal), 'CUMPL:'+G.pctCumpl.toFixed(1)+'%', nombre].join(' | ');
+    const qr = new QRious({ value: qrData, size: 200, level:'M' });
+    qrUrl = qr.toDataURL();
+  }catch(e){}
+  dibujarEncabezado(doc, 'REPORTE GERENCIAL DE AVANCE CONSTRUCTIVO', qrUrl);
+  doc.setFontSize(8.5); doc.setFont(undefined,'normal'); doc.setTextColor(80,80,80);
+  doc.text('Disciplina: Mineria (MI) - Control de tronaduras y mensuras', izq, 34);
+  doc.setTextColor(30,30,30);
+  y = 40;
+  doc.setDrawColor(215,38,34); doc.setLineWidth(0.5); doc.line(izq, y-3, izq+ancho, y-3);
+
+  doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.text('Datos del reporte', izq, y+2); y+=7;
+  doc.setFontSize(8.5);
+  const datos = [
+    ['Obra/Faena', v('obra')], ['Fecha reporte', fecha],
+    ['Turno', turno], ['Datos al', fechaDatos||'-'],
+    ['Tronaduras', String(G.total)], ['Avance periodo', movimientos==='NO' ? 'SIN AVANCE' : (movimientos==='SI'?'SI, HUBO AVANCE':'-')]
+  ];
+  for(let i=0;i<datos.length;i+=2){
+    doc.setFont(undefined,'bold'); doc.text(datos[i][0]+':', izq, y);
+    doc.setFont(undefined,'normal'); doc.text(String(datos[i][1]||''), izq+34, y);
+    if(datos[i+1]){
+      doc.setFont(undefined,'bold'); doc.text(datos[i+1][0]+':', izq+96, y);
+      doc.setFont(undefined,'normal'); doc.text(String(datos[i+1][1]||''), izq+130, y);
+    }
+    y+=5;
+  }
+  if(movimientos==='NO'){
+    doc.setFont(undefined,'italic'); doc.setTextColor(100,100,100); doc.setFontSize(8);
+    doc.text('Periodo sin avance: no se registraron tronaduras ni mensuras nuevas. Se reportan los mismos', izq, y);
+    doc.text('totales del corte anterior como constancia del control.', izq, y+4); y+=9;
+    doc.setTextColor(30,30,30); doc.setFont(undefined,'normal');
+  }
+  y+=2;
+
+  y = puntoTitulo(doc, y, 'Punto 1 - Resumen general del contrato');
+  const kp = [['TRONADURAS', G.total], ['TEORICO (ML)', fmtNum(G.avanceTeo)], ['REAL (ML)', fmtNum(G.avanceReal)], ['% CUMPL.', G.pctCumpl.toFixed(1)+'%'], ['TON. QUEBR.', fmtNum(G.tonTeo,0)]];
+  const anchoK = ancho/5;
+  kp.forEach((k,i)=>{
+    const x = izq + i*anchoK;
+    doc.setFillColor(244,244,244); doc.roundedRect(x+1, y, anchoK-2, 14, 1.5, 1.5, 'F');
+    doc.setFontSize(9.5); doc.setFont(undefined,'bold'); doc.text(String(k[1]), x+anchoK/2, y+6.5, {align:'center'});
+    doc.setFontSize(6.2); doc.setFont(undefined,'normal'); doc.setTextColor(100,100,100);
+    doc.text(k[0], x+anchoK/2, y+11.5, {align:'center'}); doc.setTextColor(30,30,30);
+  });
+  y += 18;
+  y = addChart(doc, 'chGeneral', y, 55);
+
+  const nivs = ORDEN_NIVELES.filter(n=>R.porNivel.has(n)).concat(R.porNivel.has('OTROS')?['OTROS']:[]);
+  y = puntoTitulo(doc, y, 'Punto 2 - Avance por Nivel');
+  y = addChart(doc, 'chNivel', y, 60);
+  {
+    const body = nivs.map(n=>filaTablaTR(NIVEL_INFO[n].nombre, resumen(R.porNivel.get(n))));
+    let T={avanceTeo:0,avanceReal:0,hh:0};
+    nivs.forEach(n=>{ const r=resumen(R.porNivel.get(n)); T.avanceTeo+=r.avanceTeo; T.avanceReal+=r.avanceReal; T.hh+=r.hh; });
+    y = addTablaPDF(doc, y, ['Nivel','Teorico (ml)','Real (ml)','% Cumpl.','HH'], body,
+      ['TOTAL', fmtNum(T.avanceTeo), fmtNum(T.avanceReal), pct(T.avanceReal,T.avanceTeo).toFixed(1)+'%', fmtNum(T.hh)]);
+  }
+
+  const grupos = ['SUPERIOR','INFERIOR','OTROS'].filter(g=>R.porGrupo.has(g));
+  y = puntoTitulo(doc, y, 'Punto 3 - Avance agrupado (Nivel Superior / Inferior)');
+  y = addChart(doc, 'chGrupo', y, 55);
+  {
+    const body = grupos.map(g=>filaTablaTR(GRUPOS_DEF[g].nombre.replace(/\u00b7/g,'-'), resumen(R.porGrupo.get(g))));
+    let T={avanceTeo:0,avanceReal:0,hh:0};
+    grupos.forEach(g=>{ const r=resumen(R.porGrupo.get(g)); T.avanceTeo+=r.avanceTeo; T.avanceReal+=r.avanceReal; T.hh+=r.hh; });
+    y = addTablaPDF(doc, y, ['Grupo de Niveles','Teorico (ml)','Real (ml)','% Cumpl.','HH'], body,
+      ['TOTAL', fmtNum(T.avanceTeo), fmtNum(T.avanceReal), pct(T.avanceReal,T.avanceTeo).toFixed(1)+'%', fmtNum(T.hh)]);
+  }
+
+  const mbs = [...R.porMB.keys()].sort();
+  y = puntoTitulo(doc, y, 'Punto 4 - Avance por Manto/Bloque (MB)');
+  y = addChart(doc, 'chMB', y, 55);
+  {
+    const body = mbs.map(m=>filaTablaTR(m, resumen(R.porMB.get(m))));
+    let T={avanceTeo:0,avanceReal:0,hh:0};
+    mbs.forEach(m=>{ const r=resumen(R.porMB.get(m)); T.avanceTeo+=r.avanceTeo; T.avanceReal+=r.avanceReal; T.hh+=r.hh; });
+    y = addTablaPDF(doc, y, ['MB','Teorico (ml)','Real (ml)','% Cumpl.','HH'], body,
+      ['TOTAL', fmtNum(T.avanceTeo), fmtNum(T.avanceReal), pct(T.avanceReal,T.avanceTeo).toFixed(1)+'%', fmtNum(T.hh)]);
+  }
+
+  y = puntoTitulo(doc, y, 'Punto 5 - Ranking de Frentes / Desarrollos');
+  y = addChart(doc, 'chFrentes', y, 60);
+  {
+    const frentes = [...R.porFrente.keys()].map(f=>[f, resumen(R.porFrente.get(f))]).sort((a,b)=>b[1].avanceReal-a[1].avanceReal).slice(0,10);
+    const body = frentes.map(([f,r])=>[f, r.total, fmtNum(r.avanceTeo), fmtNum(r.avanceReal), r.pctCumpl.toFixed(1)+'%']);
+    y = addTablaPDF(doc, y, ['Frente/Desarrollo','Tronaduras','Teorico (ml)','Real (ml)','% Cumpl.'], body);
+  }
+
+  y = puntoTitulo(doc, y, 'Punto 6 - Tronaduras por semana');
+  y = addChart(doc, 'chSemana', y, 60);
+
+  y = puntoTitulo(doc, y, 'Punto 7 - Avance diario acumulado');
+  y = addChart(doc, 'chDiario', y, 60);
+
+  const meses = [...R.porMes.keys()].filter(m=>m!=='(sin mes)').sort((a,b)=>claveMes(a)-claveMes(b));
+  y = puntoTitulo(doc, y, 'Punto 8 - Resumen mensual');
+  y = addChart(doc, 'chMensual', y, 55);
+  {
+    const body = meses.map(m=>filaTablaTR(labelMes(m), resumen(R.porMes.get(m))));
+    y = addTablaPDF(doc, y, ['Mes','Teorico (ml)','Real (ml)','% Cumpl.','HH'], body);
+  }
+
+  if(v('obs')){
+    y = puntoTitulo(doc, y, 'Observaciones');
+    doc.setFontSize(8.5); doc.setFont(undefined,'normal');
+    const lineas = doc.splitTextToSize(v('obs'), ancho);
+    if(y + lineas.length*4 > 280){ doc.addPage(); y=14; }
+    doc.text(lineas, izq, y); y += lineas.length*4 + 4;
+  }
+
+  if(y > 235){ doc.addPage(); y=14; }
+  y = puntoTitulo(doc, y, 'Cierre del reporte - Realizado por');
+  doc.setFontSize(8.5); doc.setFont(undefined,'normal');
+  doc.text('Nombre: '+nombre, izq, y);
+  doc.text('RUT: '+(v('rut')||'-'), izq+100, y); y+=5;
+  doc.text('Cargo: '+(v('cargo')||'-'), izq, y);
+  doc.text('Turno: '+turno, izq+100, y); y+=6;
+  doc.setFont(undefined,'bold'); doc.text('Firma:', izq, y); y+=2;
+  doc.addImage(firma.canvas.toDataURL('image/png'), 'PNG', izq, y, 60, 22);
+  y+=24; doc.setDrawColor(30,30,30); doc.setLineWidth(0.2); doc.line(izq, y, izq+60, y);
+
+  const totalPag = doc.getNumberOfPages();
+  const ahora = new Date();
+  const diasSem = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+  const marca = 'Generado por: '+nombre+'  |  '+diasSem[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs  |  Fuente: Caminata de Avance'+(fechaDatos?' ('+fechaDatos+')':'');
+  for(let p=1;p<=totalPag;p++){
+    doc.setPage(p);
+    doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(130,130,130);
+    doc.setDrawColor(200,200,200); doc.setLineWidth(0.2); doc.line(izq, 287, izq+ancho, 287);
+    doc.text(marca, izq, 291);
+    doc.text('Pagina '+p+' de '+totalPag, izq+ancho, 291, {align:'right'});
+  }
+  doc.setTextColor(30,30,30);
+
+  const nombreArch = 'ReporteGerencialAvance_GCC003_'+fecha+'_'+turno.replace(/\s+/g,'')+'.pdf';
+  doc.save(nombreArch);
+  const nota = document.getElementById('nota');
+  nota.innerHTML = 'PDF generado y descargado ('+nombreArch+'). Revisa tus descargas para compartirlo.';
+  nota.style.color = '#2e7d32';
+}
+</script>
+</body>
+</html>
