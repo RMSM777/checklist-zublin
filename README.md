@@ -1,1 +1,1 @@
-# checklist-zublin
+# checklist/zublin
