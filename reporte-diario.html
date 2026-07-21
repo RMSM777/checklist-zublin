@@ -271,7 +271,8 @@ function agregarFrente(){
         <select class="f-proceso">${PROCESOS.map(p=>`<option>${p}</option>`).join('')}</select>
       </div>
       <div class="campo"><label>ID (si aplica)</label><input class="f-id" type="text" placeholder="Ej: 0148"></div>
-    </div>`;
+    </div>
+    <div class="campo"><label>Observaciones</label><input class="f-obs" type="text" placeholder="Ej: pendiente lechado, acceso restringido, etc."></div>`;
   document.getElementById('frentes').appendChild(div);
   renumerar('frentes','Frente');
 }
@@ -333,7 +334,8 @@ function agregarEnsayo(){
     <div class="grid2">
       <div class="campo"><label>Cantidad</label><input class="e-cant" type="number" inputmode="numeric" placeholder="Ej: 1"></div>
       <div class="campo"><label>Frente / Ubicaci\u00F3n</label><input class="e-frente" type="text" placeholder="Ej: C-41-W NH MB 52"></div>
-    </div>`;
+    </div>
+    <div class="campo"><label>Observaciones</label><input class="e-obs" type="text" placeholder="Ej: muestra rechazada, repetir ensayo, etc."></div>`;
   div.querySelector('.e-tipo').addEventListener('change', ev=>{
     div.querySelector('.e-otro-campo').style.display = ev.target.value===OPCION_OTRO ? 'block' : 'none';
   });
@@ -498,13 +500,13 @@ function generarPDF(){
   // B - Frentes
   tituloSeccion('B.- REVISION FRENTES / PROTOCOLIZACION');
   const frentes = Array.from(document.querySelectorAll('#frentes .fila-dyn')).map(f=>({
-    labor:f.querySelector('.f-labor').value, proceso:f.querySelector('.f-proceso').value, id:f.querySelector('.f-id').value
+    labor:f.querySelector('.f-labor').value, proceso:f.querySelector('.f-proceso').value, id:f.querySelector('.f-id').value, obs:f.querySelector('.f-obs').value
   })).filter(f=>f.labor.trim()!=='');
   doc.setFontSize(9); doc.setFont(undefined,'normal');
   if(frentes.length===0){ doc.text('Sin registros en el turno.', izq+3, y); y+=5; }
   frentes.forEach((f,i)=>{
     salto(10);
-    let linea = (i+1)+'. '+f.labor+': '+f.proceso + (f.id.trim()!==''?' (ID:'+f.id+')':'');
+    let linea = (i+1)+'. '+f.labor+': '+f.proceso + (f.id.trim()!==''?' (ID:'+f.id+')':'') + (f.obs.trim()!==''?' \u2014 Obs: '+f.obs:'');
     const ls = doc.splitTextToSize(linea, ancho-6);
     doc.text(ls, izq+3, y); y += ls.length*4.5;
   });
@@ -515,13 +517,13 @@ function generarPDF(){
   const ensayos = Array.from(document.querySelectorAll('#ensayos .fila-dyn')).map(f=>{
     let tipo = f.querySelector('.e-tipo').value;
     if(tipo===OPCION_OTRO){ tipo = f.querySelector('.e-otro').value.trim() || 'Otro'; }
-    return { tipo, cant:f.querySelector('.e-cant').value, frente:f.querySelector('.e-frente').value };
+    return { tipo, cant:f.querySelector('.e-cant').value, frente:f.querySelector('.e-frente').value, obs:f.querySelector('.e-obs').value };
   }).filter(f=>f.frente.trim()!=='' || f.cant.trim()!=='');
   doc.setFontSize(9); doc.setFont(undefined,'normal');
   if(ensayos.length===0){ doc.text('Sin ensayos en el turno.', izq+3, y); y+=5; }
   ensayos.forEach(f=>{
     salto(10);
-    let linea = '- Se realiza(n) '+(f.cant||'-')+' ensayo(s): '+f.tipo+' / '+(f.frente||'-')+'.';
+    let linea = '- Se realiza(n) '+(f.cant||'-')+' ensayo(s): '+f.tipo+' / '+(f.frente||'-')+'.' + (f.obs.trim()!==''?' Obs: '+f.obs:'');
     const ls = doc.splitTextToSize(linea, ancho-6);
     doc.text(ls, izq+3, y); y += ls.length*4.5;
   });

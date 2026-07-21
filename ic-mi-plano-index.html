@@ -480,14 +480,13 @@ function renderTodo(){
     });
 
     const elT = document.getElementById('tbNivel'+n.code);
-    let h = '<tr><th>Desarrollo</th><th class="num">PK inicio</th><th class="num">PK fin</th><th class="num">M caminados</th><th class="num">% caminado</th><th>Correlativo IC</th></tr>';
+    let h = '<tr><th>Desarrollo</th><th class="num">PK inicio</th><th class="num">PK fin</th><th class="num">M caminados</th><th class="num">M desarrollados</th><th class="num">% caminado</th><th>Correlativo IC</th></tr>';
     n.items.forEach(i=>{
       const marca = i.aviso ? ' *' : '';
-      h += '<tr><td>'+i.desarrollo+'</td><td class="num">'+fmtNum(i.pki)+'</td><td class="num">'+fmtNum(i.pkf)+'</td><td class="num">'+fmtNum(i.mCaminados)+'</td><td class="num">'+i.pctCaminado.toFixed(1)+'%'+marca+'</td><td>'+i.correlativo+'</td></tr>';
+      h += '<tr><td>'+i.desarrollo+'</td><td class="num">'+fmtNum(i.pki)+'</td><td class="num">'+fmtNum(i.pkf)+'</td><td class="num">'+fmtNum(i.mCaminados)+'</td><td class="num">'+fmtNum(i.mDesarrollado)+'</td><td class="num">'+i.pctCaminado.toFixed(1)+'%'+marca+'</td><td>'+i.correlativo+'</td></tr>';
     });
-    h += '<tr class="tot"><td colspan="3">TOTAL NIVEL '+n.code+'</td><td class="num">'+fmtNum(n.mCaminadosTot)+'</td><td colspan="2"></td></tr>';
-    h += '<tr class="tot"><td colspan="3">M desarrollados '+n.code+' (m\u00e1ximo entre te\u00f3rico y real)</td><td class="num">'+fmtNum(n.mDesTot)+'</td><td colspan="2"></td></tr>';
-    h += '<tr class="tot"><td colspan="3">% caminado nivel '+n.code+'</td><td class="num">'+n.pctNivel.toFixed(1)+'%</td><td colspan="2"></td></tr>';
+    h += '<tr class="tot"><td colspan="3">TOTAL NIVEL '+n.code+'</td><td class="num">'+fmtNum(n.mCaminadosTot)+'</td><td class="num">'+fmtNum(n.mDesTot)+'</td><td colspan="2"></td></tr>';
+    h += '<tr class="tot"><td colspan="5">% caminado nivel '+n.code+'</td><td class="num">'+n.pctNivel.toFixed(1)+'%</td><td></td></tr>';
     const avisos = n.items.filter(i=>i.aviso);
     if(avisos.length){
       h += '<tr><td colspan="6" style="font-size:9.5px;color:#888;font-style:italic;">* '+avisos.length+' frente(s) sin Avance Te\u00f3rico suficiente en la Caminata: se us\u00f3 el propio avance real caminado como referencia (100%). Revisar: '+avisos.map(i=>i.desarrollo).join(', ')+'</td></tr>';
@@ -608,11 +607,10 @@ function generarPDF(){
 
     doc.addPage('a4','landscape');
     yy = encabezadoPagina('DETALLE CAMINADO - SOLO NIVEL DE '+n.nombre+(n.mbs.length?' MB-'+n.mbs.join('/MB-'):'')+' (tramos fusionados, sin doble conteo)');
-    const body = n.items.map(i=>[i.desarrollo, fmtNum(i.pki), fmtNum(i.pkf), fmtNum(i.mCaminados), i.pctCaminado.toFixed(1)+'%'+(i.aviso?' *':''), i.correlativo]);
-    yy = addTablaPDF(doc, yy, ['Desarrollo','PK inicio','PK fin','M caminados','% caminado','Correlativo IC'], body,
-      ['TOTAL NIVEL '+n.code, '', '', fmtNum(n.mCaminadosTot), '', '']);
+    const body = n.items.map(i=>[i.desarrollo, fmtNum(i.pki), fmtNum(i.pkf), fmtNum(i.mCaminados), fmtNum(i.mDesarrollado), i.pctCaminado.toFixed(1)+'%'+(i.aviso?' *':''), i.correlativo]);
+    yy = addTablaPDF(doc, yy, ['Desarrollo','PK inicio','PK fin','M caminados','M desarrollados','% caminado','Correlativo IC'], body,
+      ['TOTAL NIVEL '+n.code, '', '', fmtNum(n.mCaminadosTot), fmtNum(n.mDesTot), '', '']);
     doc.setFontSize(8); doc.setFont(undefined,'bold');
-    doc.text('M desarrollados '+n.code+' (m\u00e1ximo entre te\u00f3rico Caminata y avance real): '+fmtNum(n.mDesTot), izq, yy); yy+=5;
     doc.text('% caminado nivel '+n.code+': '+n.pctNivel.toFixed(1)+'%', izq, yy); yy+=6;
     const avisosPdf = n.items.filter(i=>i.aviso);
     if(avisosPdf.length){
