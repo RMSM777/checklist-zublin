@@ -44,6 +44,16 @@
   .comp-fila button.b.act{ background:#2e7d32; color:#fff; border-color:#2e7d32; }
   .comp-fila button.m.act{ background:#c62828; color:#fff; border-color:#c62828; }
   .comp-fila button.n.act{ background:#757575; color:#fff; border-color:#757575; }
+  .fatiga-fila{ padding:10px 0; border-bottom:1px solid #eee; }
+  .fatiga-fila .fatiga-num{ font-size:12px; font-weight:700; color:var(--rojo); }
+  .fatiga-fila .fatiga-txt{ font-size:12.5px; display:block; margin:2px 0 8px; }
+  .fatiga-btns{ display:flex; gap:5px; margin-bottom:8px; }
+  .fatiga-btns button{ flex:1; padding:9px 4px; border:1px solid var(--borde); background:#fff; border-radius:5px; font-size:12px; font-weight:700; color:#666; cursor:pointer; }
+  .fatiga-btns button.si.act{ background:#2e7d32; color:#fff; border-color:#2e7d32; }
+  .fatiga-btns button.no.act{ background:#c62828; color:#fff; border-color:#c62828; }
+  .fatiga-btns button.na.act{ background:#757575; color:#fff; border-color:#757575; }
+  .fatiga-obs{ font-size:13px; }
+  .nota-alerta{ font-size:11.5px; color:#c62828; font-weight:700; background:#fdeceb; padding:8px 10px; border-radius:6px; margin-top:10px; line-height:1.4; }
   canvas{ width:100%; height:150px; border:1px solid var(--borde); border-radius:6px; background:#fafafa; touch-action:none; display:block; }
   .acciones{ display:flex; gap:8px; margin-top:10px; }
   .acciones button{ flex:1; padding:12px; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
@@ -90,12 +100,19 @@
   </section>
 
   <section>
-    <div class="seccion-tit">3 - Observaciones</div>
+    <div class="seccion-tit">3 - Control de fatiga y somnolencia</div>
+    <div class="leyenda">Indicar SI, NO o N/A segun corresponda. Puede agregar una observacion en cada punto si lo estima necesario.</div>
+    <div id="fatiga"></div>
+    <div class="nota-alerta">Respuesta SI en los puntos 1 a 4, o respuesta NO en el punto 5: el trabajador debe informar a su jefatura utilizando la herramienta Tarjeta Verde.</div>
+  </section>
+
+  <section>
+    <div class="seccion-tit">4 - Observaciones</div>
     <textarea id="obs" rows="3" placeholder="Anotar cualquier detalle o anomalia..."></textarea>
   </section>
 
   <section>
-    <div class="seccion-tit">4 - Realizado por</div>
+    <div class="seccion-tit">5 - Realizado por</div>
     <div class="campo"><label>Nombre</label><input id="nombre" type="text"></div>
     <div class="grid2">
       <div class="campo"><label>RUT</label><input id="rut" type="text" placeholder="12.345.678-9"></div>
@@ -110,7 +127,7 @@
   </section>
 
   <section>
-    <div class="seccion-tit">5 - Revisado por (supervisor / jefe directo)</div>
+    <div class="seccion-tit">6 - Revisado por (supervisor / jefe directo)</div>
     <div class="campo"><label>Nombre</label><input id="nombre2" type="text"></div>
     <div class="grid2">
       <div class="campo"><label>RUT</label><input id="rut2" type="text" placeholder="12.345.678-9"></div>
@@ -198,6 +215,42 @@ cont.querySelectorAll('button').forEach(btn=>{
     btn.classList.add('act');
     estados[btn.dataset.k].valor = btn.dataset.v;
   });
+});
+
+// Control de fatiga y somnolencia
+// Para agregar mas puntos, solo suma nuevos textos a este listado.
+const FATIGA_ITEMS = [
+  "Tengo algun problema que disminuya mi estado de alerta y el conducir en forma segura",
+  "Estoy tomando algun medicamento que induzca sueno",
+  "Dormi menos de 6 horas, o desperte mas de 4 veces, antes de comenzar la conduccion",
+  "Existe alguna razon especial para sentir fatiga, cansancio o sueno durante el trabajo (paso mala noche, enfermedad, preocupacion especial o participo hasta tarde en una actividad social)",
+  "Conozco la ruta, velocidades permitidas y las acciones de recuperacion en caso de fatiga y somnolencia que se deben tomar"
+];
+const fatigaEstado = {};
+const fatigaCont = document.getElementById('fatiga');
+FATIGA_ITEMS.forEach((it,i)=>{
+  fatigaEstado[i] = {idx:i+1, item:it, valor:'', obs:''};
+  const fila = document.createElement('div');
+  fila.className = 'fatiga-fila';
+  fila.innerHTML = `<span class="fatiga-num">${i+1}</span><span class="fatiga-txt">${it}</span>
+    <div class="fatiga-btns">
+      <button class="si" data-k="${i}" data-v="SI">SI</button>
+      <button class="no" data-k="${i}" data-v="NO">NO</button>
+      <button class="na" data-k="${i}" data-v="NA">N/A</button>
+    </div>
+    <input class="fatiga-obs" data-k="${i}" type="text" placeholder="Observaciones">`;
+  fatigaCont.appendChild(fila);
+});
+fatigaCont.querySelectorAll('button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const grupo = btn.parentElement;
+    grupo.querySelectorAll('button').forEach(b=>b.classList.remove('act'));
+    btn.classList.add('act');
+    fatigaEstado[btn.dataset.k].valor = btn.dataset.v;
+  });
+});
+fatigaCont.querySelectorAll('.fatiga-obs').forEach(inp=>{
+  inp.addEventListener('input', ()=>{ fatigaEstado[inp.dataset.k].obs = inp.value; });
 });
 
 // Firmas (doble panel: conductor y revisor)
@@ -314,6 +367,31 @@ function generarPDF(){
     y += linea.length*3.8 + 1;
   });
   y+=3;
+
+  // Fatiga y somnolencia
+  if(y>255){ doc.addPage(); y=15; }
+  doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.text('Control de fatiga y somnolencia', izq, y); y+=5;
+  doc.setFontSize(7.8);
+  Object.values(fatigaEstado).forEach(f=>{
+    if(y>270){ doc.addPage(); y=15; }
+    doc.setFont(undefined,'normal');
+    const linea = doc.splitTextToSize(f.idx+'. '+f.item, 148);
+    doc.text(linea, izq+3, y);
+    doc.setFont(undefined,'bold');
+    doc.text('['+(f.valor||' ')+']', izq+168, y);
+    y += linea.length*3.8 + 1;
+    if(f.obs && f.obs.trim()!==''){
+      doc.setFont(undefined,'italic'); doc.setFontSize(7);
+      const obsLinea = doc.splitTextToSize('Obs: '+f.obs, 165);
+      doc.text(obsLinea, izq+6, y); y += obsLinea.length*3.5;
+      doc.setFontSize(7.8);
+    }
+  });
+  y+=1;
+  doc.setFont(undefined,'italic'); doc.setFontSize(7.5); doc.setTextColor(198,40,40);
+  const notaFatiga = doc.splitTextToSize('Respuesta SI en los puntos 1 a 4, o respuesta NO en el punto 5: el trabajador debe informar a su jefatura utilizando la herramienta Tarjeta Verde.', ancho);
+  doc.text(notaFatiga, izq, y); y += notaFatiga.length*3.6 + 3;
+  doc.setTextColor(30,30,30); doc.setFont(undefined,'normal');
 
   // Observaciones
   if(y>250){ doc.addPage(); y=15; }
