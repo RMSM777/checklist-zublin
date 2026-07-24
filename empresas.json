@@ -1,0 +1,23 @@
+{
+  "activa": "zublin",
+  "empresas": {
+    "zublin": {
+      "id": "zublin",
+      "nombre": "ZÜBLIN",
+      "nombreCorto": "Züblin",
+      "colorPrimario": "#D72622",
+      "colorPrimarioRGB": [215, 38, 34],
+      "logoArchivo": "logo-zublin.txt",
+      "contrato": {
+        "numero": "4600031460",
+        "codigoProyecto": "GCC-003",
+        "textoCompleto": "Contrato N° 4600031460 / GCC-003 — \"Desarrollo y Construcción Nivel Superior e Inferior Mina Norte\" — División Chuquicamata — Empresa Contratista: ZÜBLIN",
+        "obra": "Mina Chuquicamata Subterránea - Mina Norte",
+        "division": "Chuquicamata"
+      }
+    }
+  },
+  "pendientes": {
+    "_nota": "Empresas listadas aquí NO deben cargarse en el selector ni usarse en producción hasta tener autorización de marca explícita (logo, colores) confirmada por escrito. Placeholder de estructura únicamente."
+  }
+}
