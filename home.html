@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Zublin GCC-003 - Menu</title>
+<title>QC Digital - Menu</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D72622">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Zublin GCC-003">
+<meta name="apple-mobile-web-app-title" content="QC Digital">
+<script src="marca.js"></script>
 <style>
   :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -18,6 +19,7 @@
   .header-rojo{ background:var(--rojo); color:#fff; padding:18px 16px; text-align:center; }
   .header-rojo h1{ margin:0; font-size:17px; font-weight:700; }
   .header-rojo p{ margin:4px 0 0; font-size:12px; opacity:.9; }
+  #selectorEmpresa{ padding:6px 16px; background:#2a2a2a; }
   .menu{ padding:16px; display:flex; flex-direction:column; gap:12px; }
   .tarjeta{ display:flex; align-items:center; gap:14px; padding:16px; border:1px solid #eee; border-radius:12px; text-decoration:none; color:var(--texto); background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.06); }
   .tarjeta:active{ background:var(--gris); }
@@ -32,9 +34,10 @@
 <body>
 <div class="wrap">
   <div class="header-rojo">
-    <h1>Zublin GCC-003</h1>
-    <p>Contrato N&deg; 4600031460 &mdash; Mina Norte, Chuquicamata</p>
+    <h1 id="empresaTitulo">Zublin GCC-003</h1>
+    <p class="header-contrato">Contrato N&deg; 4600031460 &mdash; Mina Norte, Chuquicamata</p>
   </div>
+  <div id="selectorEmpresa"></div>
   <div class="menu">
     <a class="tarjeta" href="index.html">
       <div class="icono">&#128663;</div>
@@ -101,9 +104,45 @@
       <div class="flecha">&#8250;</div>
     </a>
   </div>
-  <footer>Zublin &middot; GCC-003</footer>
+  <footer id="footerTxt">QC Digital &middot; GCC-003</footer>
 </div>
 <script>
+// Blindaje: si marca.js no cargo, se usa marca Zublin por defecto para no romper la pagina.
+if (typeof MARCA === 'undefined') {
+  console.error('marca.js no se pudo cargar: usando marca Zublin por defecto.');
+  window.MARCA = {
+    empresa: { id:'zublin', nombre:'Z\u00dcBLIN', nombreCorto:'Z\u00fcblin', colorPrimario:'#D72622', colorPrimarioRGB:[215,38,34],
+      contrato: { textoCompleto: 'Contrato N\u00b0 4600031460 \u2014 Mina Norte, Chuquicamata', codigoProyecto:'GCC-003' } },
+    logoDataUrl: null,
+    iniciar(){ return Promise.resolve(this); },
+    aplicarCSS(){},
+    pintarHeaderHTML(){},
+    crearSelector(id){ const el=document.getElementById(id); if(el) el.style.display='none'; },
+    colorRGB(){ return this.empresa.colorPrimarioRGB; },
+    textoContrato(){ return this.empresa.contrato.textoCompleto; }
+  };
+}
+
+MARCA.iniciar().then(() => {
+  MARCA.aplicarCSS();
+  MARCA.crearSelector('selectorEmpresa');
+
+  // Titulo dinamico en el header rojo
+  const titEl = document.getElementById('empresaTitulo');
+  const empresa = MARCA.empresa || {};
+  const nombre = empresa.nombreCorto || empresa.nombre || 'QC Digital';
+  const codigo = empresa.contrato && empresa.contrato.codigoProyecto ? empresa.contrato.codigoProyecto : '';
+  if (titEl) titEl.textContent = codigo ? (nombre + ' ' + codigo) : nombre;
+
+  // Texto de contrato dinamico
+  const contratoEl = document.querySelector('.header-contrato');
+  if(contratoEl) contratoEl.textContent = MARCA.textoContrato();
+
+  // Footer
+  const footerEl = document.getElementById('footerTxt');
+  if(footerEl) footerEl.textContent = 'QC Digital \u00b7 ' + (codigo || nombre);
+}).catch(e => console.error('MARCA.iniciar() fallo:', e));
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('service-worker.js').catch(console.error);
