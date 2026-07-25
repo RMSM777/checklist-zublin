@@ -1,7 +1,7 @@
 // Service Worker - Checklist Züblin GCC-003
 // Cachea las páginas y librerías para que la app abra aunque no haya señal.
 
-const CACHE_NAME = 'zublin-gcc003-v2'; // sube este número cuando publiques cambios importantes
+const CACHE_NAME = 'zublin-gcc003-v3'; // sube este número cuando publiques cambios importantes
 
 const ARCHIVOS_PROPIOS = [
   './',
@@ -12,6 +12,11 @@ const ARCHIVOS_PROPIOS = [
   './informe-procesos-constructivos.html',
   './listado-firmas-digitales.html',
   './reporte-programa-semanal.html',
+  './caminata-avance-index.html',
+  './ic-mi-plano-index.html',
+  './cambio-turno-general.html',
+  './marca.js',
+  './empresas.json',
   './manifest.json'
 ];
 
@@ -35,7 +40,8 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: intenta red primero (para tener datos frescos); si falla, usa caché
+// Fetch: intenta red primero (para tener datos frescos); si falla, usa caché.
+// Si tampoco está en caché, responde con un error controlado (nunca null).
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
@@ -46,6 +52,13 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copia));
         return respuesta;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() =>
+        caches.match(event.request).then((cacheada) =>
+          cacheada || new Response('Sin conexion y pagina no disponible en cache. Intenta de nuevo con senal.', {
+            status: 503,
+            headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+          })
+        )
+      )
   );
 });
