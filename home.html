@@ -5,121 +5,138 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>QC Digital - Menu</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#D72622">
+<meta name="theme-color" content="#0d1526">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="QC Digital">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <script src="marca.js"></script>
 <style>
-  :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; }
-  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; margin:0; background:#e9e9e9; color:var(--texto); font-size:14px; }
-  .wrap{ max-width:640px; margin:0 auto; background:#fff; min-height:100vh; }
-  .header-rojo{ background:var(--rojo); color:#fff; padding:18px 16px; text-align:center; }
-  .header-rojo h1{ margin:0; font-size:17px; font-weight:700; }
-  .header-rojo p{ margin:4px 0 0; font-size:12px; opacity:.9; }
-  #selectorEmpresa{ padding:6px 16px; background:#2a2a2a; }
-  .menu{ padding:16px; display:flex; flex-direction:column; gap:12px; }
-  .tarjeta{ display:flex; align-items:center; gap:14px; padding:16px; border:1px solid #eee; border-radius:12px; text-decoration:none; color:var(--texto); background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-  .tarjeta:active{ background:var(--gris); }
-  .icono{ width:44px; height:44px; border-radius:10px; background:var(--rojo); color:#fff; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
-  .info{ flex:1; }
-  .info .tit{ font-weight:700; font-size:14px; margin:0 0 2px; }
-  .info .sub{ font-size:12px; color:#777; margin:0; }
-  .flecha{ color:#bbb; font-size:18px; }
-  footer{ text-align:center; padding:16px; font-size:11px; color:#999; }
+  :root{
+    --navy-950:#0a0f1c; --navy-900:#0d1526; --navy-800:#141d33; --navy-700:#1b2740; --navy-600:#263556;
+    --orange:#f5851f; --orange-lt:#ffb066; --fog:#9aa5ba; --fog-lt:#c4cbdb; --white:#f5f7fa;
+    /* Estas 2 las sobreescribe MARCA.aplicarCSS() segun la empresa activa */
+    --color-header:#0d1526; --color-primario:#f5851f;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; margin:0; padding:0; }
+  body{ font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--navy-950); color:var(--white); font-size:14px; }
+  h1,.disp{ font-family:'Space Grotesk',sans-serif; }
+  .wrap{ max-width:640px; margin:0 auto; min-height:100vh; }
+
+  .top{ padding:22px 20px 20px; background:linear-gradient(180deg, var(--color-header), var(--navy-950)); border-bottom:1px solid var(--navy-700); }
+  .brand-row{ display:flex; align-items:center; gap:10px; }
+  .brand-row .seal svg{ display:block; }
+  .brand-row span{ font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.2em; color:var(--fog-lt); }
+  .brand-row b{ color:var(--orange); }
+  #taglineTxt{ font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.18em; color:var(--fog); margin-top:2px; text-transform:uppercase; }
+  h1#empresaTitulo{ margin-top:12px; font-size:19px; font-weight:700; }
+  p.header-contrato{ margin-top:5px; font-size:12px; color:var(--fog); line-height:1.4; }
+
+  #selectorEmpresa{ margin-top:14px; }
+  #selectorEmpresa select{ width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--navy-600); background:var(--navy-800); color:var(--white); font-size:13px; font-family:'Inter',sans-serif; }
+  #selectorEmpresa label{ color:var(--fog) !important; }
+
+  .menu{ padding:18px 16px 8px; display:flex; flex-direction:column; gap:11px; }
+  .tarjeta{ display:flex; align-items:center; gap:14px; padding:15px 16px; border:1px solid var(--navy-700); border-radius:13px; text-decoration:none; color:var(--white); background:var(--navy-800); transition:border-color .15s ease, transform .1s ease; }
+  .tarjeta:active{ background:var(--navy-700); transform:scale(.99); }
+  .icono{ width:42px; height:42px; border-radius:10px; flex-shrink:0; background:linear-gradient(145deg, var(--orange), #d96c0e); display:flex; align-items:center; justify-content:center; font-size:19px; }
+  .info{ flex:1; min-width:0; }
+  .info .tit{ font-weight:600; font-size:14px; margin:0 0 2px; }
+  .info .sub{ font-size:12px; color:var(--fog); margin:0; }
+  .num{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--orange-lt); }
+  .flecha{ color:var(--fog); font-size:18px; flex-shrink:0; }
+
+  footer{ text-align:center; padding:24px 16px 30px; font-size:11px; color:var(--fog); }
+  footer .seal{ display:block; margin-bottom:8px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="header-rojo">
+  <div class="top">
+    <div class="brand-row">
+      <span class="seal">
+        <svg width="22" height="22" viewBox="0 0 100 100">
+          <polygon points="50,4 93,27 93,73 50,96 7,73 7,27" fill="none" stroke="#f5851f" stroke-width="5"/>
+          <polygon points="50,20 79,35 79,65 50,80 21,65 21,35" fill="none" stroke="#f5f7fa" stroke-width="5"/>
+        </svg>
+      </span>
+      <span>QC <b>DIGITAL</b></span>
+    </div>
+    <div id="taglineTxt"></div>
     <h1 id="empresaTitulo">Zublin GCC-003</h1>
     <p class="header-contrato">Contrato N&deg; 4600031460 &mdash; Mina Norte, Chuquicamata</p>
+    <div id="selectorEmpresa"></div>
   </div>
-  <div id="selectorEmpresa"></div>
+
   <div class="menu">
     <a class="tarjeta" href="index.html">
       <div class="icono">&#128663;</div>
-      <div class="info">
-        <p class="tit">Checklist camioneta</p>
-        <p class="sub">Inicio de turno</p>
-      </div>
+      <div class="info"><p class="num">01</p><p class="tit">Checklist camioneta</p><p class="sub">Inicio de turno</p></div>
       <div class="flecha">&#8250;</div>
     </a>
     <a class="tarjeta" href="reporte-diario.html">
       <div class="icono">&#128203;</div>
-      <div class="info">
-        <p class="tit">Reporte diario</p>
-        <p class="sub">Registro de actividades del dia</p>
-      </div>
+      <div class="info"><p class="num">02</p><p class="tit">Reporte diario</p><p class="sub">Registro de actividades del dia</p></div>
       <div class="flecha">&#8250;</div>
     </a>
     <a class="tarjeta" href="reporte-dt-index.html">
       <div class="icono">&#128196;</div>
-      <div class="info">
-        <p class="tit">Reporte DT</p>
-        <p class="sub">Informe de materiales / turno</p>
-      </div>
+      <div class="info"><p class="num">03</p><p class="tit">Reporte DT</p><p class="sub">Informe de materiales / turno</p></div>
       <div class="flecha">&#8250;</div>
     </a>
     <a class="tarjeta" href="informe-procesos-constructivos.html">
       <div class="icono">&#127959;</div>
-      <div class="info">
-        <p class="tit">Informe procesos constructivos</p>
-        <p class="sub">Seguimiento de obra</p>
-      </div>
+      <div class="info"><p class="num">04</p><p class="tit">Informe procesos constructivos</p><p class="sub">Seguimiento de obra</p></div>
       <div class="flecha">&#8250;</div>
     </a>
     <a class="tarjeta" href="listado-firmas-digitales.html">
       <div class="icono">&#9997;</div>
-      <div class="info">
-        <p class="tit">Listado de firmas digitales</p>
-        <p class="sub">Registro de charla / reunion</p>
-      </div>
+      <div class="info"><p class="num">05</p><p class="tit">Listado de firmas digitales</p><p class="sub">Registro de charla / reunion</p></div>
       <div class="flecha">&#8250;</div>
     </a>
     <a class="tarjeta" href="reporte-programa-semanal.html">
       <div class="icono">&#128200;</div>
-      <div class="info">
-        <p class="tit">Adherencia programa semanal DT</p>
-        <p class="sub">Cumplimiento y adherencia al programa de Operaciones</p>
-      </div>
+      <div class="info"><p class="num">06</p><p class="tit">Adherencia programa semanal DT</p><p class="sub">Cumplimiento y adherencia al programa de Operaciones</p></div>
       <div class="flecha">&#8250;</div>
     </a>
     <a class="tarjeta" href="caminata-avance-index.html">
       <div class="icono">&#128506;</div>
-      <div class="info">
-        <p class="tit">Reporte gerencial de avance</p>
-        <p class="sub">Caminata de avance (tronaduras / mensuras)</p>
-      </div>
+      <div class="info"><p class="num">07</p><p class="tit">Reporte gerencial de avance</p><p class="sub">Caminata de avance (tronaduras / mensuras)</p></div>
       <div class="flecha">&#8250;</div>
     </a>
     <a class="tarjeta" href="ic-mi-plano-index.html">
       <div class="icono">&#128207;</div>
-      <div class="info">
-        <p class="tit">Avance caminado IC Mineria</p>
-        <p class="sub">Reporte de avance sobre plano</p>
-      </div>
+      <div class="info"><p class="num">08</p><p class="tit">Avance caminado IC Mineria</p><p class="sub">Reporte de avance sobre plano</p></div>
       <div class="flecha">&#8250;</div>
     </a>
     <a class="tarjeta" href="cambio-turno-general.html">
-  <div class="icono">&#128260;</div>
-  <div class="info">
-    <p class="tit">Cambio de turno general</p>
-    <p class="sub">Resumen de ciclo 10 dias, DT y protocolizacion</p>
+      <div class="icono">&#128260;</div>
+      <div class="info"><p class="num">09</p><p class="tit">Cambio de turno general</p><p class="sub">Resumen de ciclo 10 dias, DT y protocolizacion</p></div>
+      <div class="flecha">&#8250;</div>
+    </a>
   </div>
-  <div class="flecha">&#8250;</div>
-</a>
-  </div>
-  <footer id="footerTxt">QC Digital &middot; GCC-003</footer>
+
+  <footer>
+    <span class="seal">
+      <svg width="18" height="18" viewBox="0 0 100 100" style="margin:0 auto;display:block;">
+        <polygon points="50,4 93,27 93,73 50,96 7,73 7,27" fill="none" stroke="#f5851f" stroke-width="5"/>
+        <polygon points="50,20 79,35 79,65 50,80 21,65 21,35" fill="none" stroke="#9aa5ba" stroke-width="5"/>
+      </svg>
+    </span>
+    <span id="footerTxt">QC Digital &middot; GCC-003</span>
+  </footer>
 </div>
 <script>
-// Blindaje: si marca.js no cargo, se usa marca Zublin por defecto para no romper la pagina.
+/* Blindaje: si marca.js no cargo, se usa marca Zublin por defecto para no romper la pagina. */
 if (typeof MARCA === 'undefined') {
   console.error('marca.js no se pudo cargar: usando marca Zublin por defecto.');
   window.MARCA = {
-    empresa: { id:'zublin', nombre:'Z\u00dcBLIN', nombreCorto:'Z\u00fcblin', colorPrimario:'#D72622', colorPrimarioRGB:[215,38,34],
+    empresa: { id:'zublin', nombre:'Z\u00dcBLIN', nombreCorto:'Z\u00fcblin', tagline:'',
+      colorPrimario:'#D72622', colorPrimarioRGB:[215,38,34],
+      colorFondoHeader:'#D72622', colorFondoHeaderRGB:[215,38,34], esPlantilla:false,
       contrato: { textoCompleto: 'Contrato N\u00b0 4600031460 \u2014 Mina Norte, Chuquicamata', codigoProyecto:'GCC-003' } },
     logoDataUrl: null,
     iniciar(){ return Promise.resolve(this); },
@@ -127,26 +144,29 @@ if (typeof MARCA === 'undefined') {
     pintarHeaderHTML(){},
     crearSelector(id){ const el=document.getElementById(id); if(el) el.style.display='none'; },
     colorRGB(){ return this.empresa.colorPrimarioRGB; },
+    colorHeaderRGB(){ return this.empresa.colorFondoHeaderRGB; },
+    esPlantilla(){ return false; },
     textoContrato(){ return this.empresa.contrato.textoCompleto; }
   };
 }
 
 MARCA.iniciar().then(() => {
   MARCA.aplicarCSS();
+  MARCA.pintarHeaderHTML('logoImg');
   MARCA.crearSelector('selectorEmpresa');
 
-  // Titulo dinamico en el header rojo
   const titEl = document.getElementById('empresaTitulo');
   const empresa = MARCA.empresa || {};
   const nombre = empresa.nombreCorto || empresa.nombre || 'QC Digital';
   const codigo = empresa.contrato && empresa.contrato.codigoProyecto ? empresa.contrato.codigoProyecto : '';
   if (titEl) titEl.textContent = codigo ? (nombre + ' ' + codigo) : nombre;
 
-  // Texto de contrato dinamico
   const contratoEl = document.querySelector('.header-contrato');
   if(contratoEl) contratoEl.textContent = MARCA.textoContrato();
 
-  // Footer
+  const taglineEl = document.getElementById('taglineTxt');
+  if(taglineEl) taglineEl.textContent = empresa.tagline || '';
+
   const footerEl = document.getElementById('footerTxt');
   if(footerEl) footerEl.textContent = 'QC Digital \u00b7 ' + (codigo || nombre);
 }).catch(e => console.error('MARCA.iniciar() fallo:', e));

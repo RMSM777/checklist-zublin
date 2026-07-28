@@ -1,0 +1,8 @@
+<svg width="600" height="120" viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="600" height="120" rx="18" fill="#0d1526"/>
+  <polygon points="60,30.3 85.7,45.2 85.7,74.8 60,89.7 34.3,74.8 34.3,45.2" fill="none" stroke="#f5851f" stroke-width="2.3"/>
+  <polygon points="60,36.6 80.3,48.3 80.3,71.7 60,83.4 39.7,71.7 39.7,48.3" fill="none" stroke="#f5851f" stroke-width="4.1"/>
+  <path d="M48.3,60.65 L56.1,68.47 L73.0,50.23" fill="none" stroke="#f5851f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="130" y="58" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="600" fill="#ffffff">QC Digital</text>
+  <text x="130" y="80" font-family="Arial, Helvetica, sans-serif" font-size="13" letter-spacing="1.5" fill="#94a3b8">INDUSTRY QUALITY SUITE</text>
+</svg>
