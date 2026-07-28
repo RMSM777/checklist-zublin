@@ -779,7 +779,7 @@ function dibujarEncabezado(doc, qrDataUrl){
   doc.text(lineasContrato, 8, 18.5);
 
   if(qrDataUrl){
-    doc.addImage(qrDataUrl, "PNG", anchoPagina - 20, 2, 12, 12);
+    doc.addImage(qrDataUrl, "PNG", anchoPagina - 19, 14.6, 8, 8);
   }
   doc.setTextColor(0, 0, 0);
   return 30;
