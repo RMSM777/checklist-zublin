@@ -606,7 +606,8 @@ function construirPDF(p, regsValidos){
   // QR y pie en todas las paginas
   const total = doc.getNumberOfPages();
   const ahora = new Date();
-  const marca = 'Generado por: '+p[0].nombre+'  |  '+ahora.toLocaleDateString('es-CL')+'  |  '+v('tituloInf').toUpperCase();
+  const corr = MARCA.correlativo(p[0].nombre, 'PROCESOS');
+  const marca = 'Generado por: '+p[0].nombre+'  |  '+ahora.toLocaleDateString('es-CL')+'  |  '+v('tituloInf').toUpperCase()+'  |  N° '+corr;
   let qrImg = null;
   try{
     const qr = new QRious({ value:['GCC-003', v('tituloInf').toUpperCase(), fecha, turno, p[0].nombre].join(' | '), size:200, level:'M' });

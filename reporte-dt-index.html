@@ -929,7 +929,8 @@ function generarPDF(){
   const totalPag = doc.getNumberOfPages();
   const ahora = new Date();
   const diasSem = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
-  const marca = 'Generado por: '+nombre+'  |  '+diasSem[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs  |  Fuente: SIC3PRO'+(fechaDatos?' ('+fechaDatos+')':'');
+  const corr = MARCA.correlativo(nombre, 'DT');
+  const marca = 'Generado por: '+nombre+'  |  '+diasSem[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs  |  Fuente: SIC3PRO'+(fechaDatos?' ('+fechaDatos+')':'')+'  |  N° '+corr;
   for(let p=1;p<=totalPag;p++){
     doc.setPage(p);
     doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(130,130,130);
@@ -1081,7 +1082,8 @@ function construirPDFListado(modo, cargadoPor){
   // Pie de pagina en todas las hojas (mismo formato que el resto de tus documentos, sin hora)
   const totalPag = doc.getNumberOfPages();
   const ahora = new Date();
-  const marca = 'Generado por: '+cargadoPor+'  |  '+ahora.toLocaleDateString('es-CL')+'  |  '+tituloDoc;
+  const corr2 = MARCA.correlativo(cargadoPor, 'DT-LISTADO');
+  const marca = 'Generado por: '+cargadoPor+'  |  '+ahora.toLocaleDateString('es-CL')+'  |  '+tituloDoc+'  |  N° '+corr2;
   for(let p=1;p<=totalPag;p++){
     doc.setPage(p);
     doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(130,130,130);

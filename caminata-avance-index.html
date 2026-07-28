@@ -886,7 +886,8 @@ function generarPDF(){
   const totalPag = doc.getNumberOfPages();
   const ahora = new Date();
   const diasSem = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
-  const marca = 'Generado por: '+nombre+'  |  '+diasSem[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs  |  Fuente: Caminata de Avance'+(fechaDatos?' ('+fechaDatos+')':'');
+  const corr = MARCA.correlativo(nombre, 'CAMINATA');
+  const marca = 'Generado por: '+nombre+'  |  '+diasSem[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs  |  Fuente: Caminata de Avance'+(fechaDatos?' ('+fechaDatos+')':'')+'  |  N° '+corr;
   for(let p=1;p<=totalPag;p++){
     doc.setPage(p);
     doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(130,130,130);

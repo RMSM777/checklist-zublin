@@ -785,14 +785,14 @@ function dibujarEncabezado(doc, qrDataUrl){
   return 30;
 }
 
-function dibujarPiePagina(doc, nombreGenerador, fechaGen, numPagina, totalPaginas){
+function dibujarPiePagina(doc, nombreGenerador, fechaGen, numPagina, totalPaginas, corr){
   var anchoPagina = doc.internal.pageSize.getWidth();
   var altoPagina = doc.internal.pageSize.getHeight();
   doc.setDrawColor(200, 200, 200);
   doc.line(8, altoPagina - 12, anchoPagina - 8, altoPagina - 12);
   doc.setFontSize(7.5);
   doc.setTextColor(90, 90, 90);
-  doc.text("Generado por: " + nombreGenerador + " | " + fechaGen + " | " + TITULO_DOC, 8, altoPagina - 7);
+  doc.text("Generado por: " + nombreGenerador + " | " + fechaGen + " | " + TITULO_DOC + (corr ? " | N° " + corr : ""), 8, altoPagina - 7);
   doc.text("Página " + numPagina + " de " + totalPaginas, anchoPagina - 8, altoPagina - 7, { align: "right" });
   doc.setTextColor(0, 0, 0);
 }
@@ -941,9 +941,10 @@ function construirPDF(datos, callback){
     }catch(err){}
 
     var totalPaginas = doc.internal.getNumberOfPages();
+    var corrFirmas = MARCA.correlativo(datos.nombreFirmaRelator, "FIRMAS"); // se calcula UNA sola vez, no por pagina
     for(var pg = 1; pg <= totalPaginas; pg++){
       doc.setPage(pg);
-      dibujarPiePagina(doc, datos.nombreFirmaRelator, fechaGen, pg, totalPaginas);
+      dibujarPiePagina(doc, datos.nombreFirmaRelator, fechaGen, pg, totalPaginas, corrFirmas);
     }
 
     callback(doc);

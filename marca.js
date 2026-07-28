@@ -102,7 +102,10 @@
     async _cargarLogo(archivo){
       if(!archivo) return null;
       try{
-        const resp = await fetch(archivo, { cache: 'force-cache' });
+        /* 'reload': siempre va a la red, nunca reutiliza una respuesta vieja
+           guardada en el navegador (ej. un 404 de antes de que el logo
+           existiera). Los logos son pequeños, no hay costo real en esto. */
+        const resp = await fetch(archivo, { cache: 'reload' });
         if(!resp.ok) throw new Error('logo respondio ' + resp.status);
         const texto = (await resp.text()).trim();
         if(!texto.startsWith('data:image')) throw new Error('archivo de logo con formato inesperado');

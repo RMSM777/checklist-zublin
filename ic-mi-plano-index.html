@@ -654,7 +654,8 @@ function generarPDF(){
   const totalPag = doc.getNumberOfPages();
   const ahora = new Date();
   const diasSem=['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
-  const marca = 'Generado por: '+nombre+'  |  '+diasSem[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs  |  Fuente: IC MI + Listado DT + Caminata';
+  const corr = MARCA.correlativo(nombre, 'ICPLANO');
+  const marca = 'Generado por: '+nombre+'  |  '+diasSem[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs  |  Fuente: IC MI + Listado DT + Caminata'+'  |  N° '+corr;
   for(let p=1;p<=totalPag;p++){
     doc.setPage(p);
     const anchoP = doc.internal.pageSize.getWidth();

@@ -753,7 +753,8 @@ function generarPDF(){
   const totalPag = doc.getNumberOfPages();
   const ahora = new Date();
   const diasSem = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
-  const marca = 'Generado por: '+nombre+'  |  '+diasSem[ahora.getDay()]+' '+fmtFecha(ahora)+'  |  Fuente: SIC3PRO'+(fechaDatos?' ('+fechaDatos+')':'');
+  const corr = MARCA.correlativo(nombre, 'PROGSEM');
+  const marca = 'Generado por: '+nombre+'  |  '+diasSem[ahora.getDay()]+' '+fmtFecha(ahora)+'  |  Fuente: SIC3PRO'+(fechaDatos?' ('+fechaDatos+')':'')+'  |  N° '+corr;
   for(let p=1;p<=totalPag;p++){
     doc.setPage(p);
     doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(130,130,130);

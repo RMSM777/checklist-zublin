@@ -738,7 +738,8 @@ function generarVistaPrevia(){
   const dias = ['Domingo','Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado'];
   const genNombres = personalActual();
   const gen = genNombres[0] ? genNombres[0].nombre : 'Inspector de Calidad';
-  const marca = 'Generado por: '+gen+'  |  '+dias[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+'  |  Cambio de Turno';
+  const corr = MARCA.correlativo(gen, 'TURNO');
+  const marca = 'Generado por: '+gen+'  |  '+dias[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+'  |  Cambio de Turno'+'  |  N° '+corr;
   for(let p=1; p<=totalPag; p++){
     doc.setPage(p);
     doc.setFontSize(7); doc.setTextColor(120,120,120);
