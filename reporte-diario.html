@@ -660,7 +660,9 @@ function generarPDF(previo){
   const totalPag = doc.getNumberOfPages();
   const ahora = new Date();
   const dias = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
-  const marca = 'Generado por: '+gen+'  |  '+dias[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+'  |  Turno '+(turno==='DIA'?'D\u00EDa':'Noche');
+  let corr = '';
+  if(!previo){ corr = MARCA.correlativo(gen, 'DIARIO'); }
+  const marca = 'Generado por: '+gen+'  |  '+dias[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+'  |  Turno '+(turno==='DIA'?'D\u00EDa':'Noche')+(corr ? '  |  N\u00b0 '+corr : '');
   for(let pg=1; pg<=totalPag; pg++){
     doc.setPage(pg);
     doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(130,130,130);

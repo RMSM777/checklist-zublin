@@ -173,6 +173,30 @@
       return (this.empresa.contrato && this.empresa.contrato.textoCompleto) || '';
     },
 
+    /* Correlativo interno por usuario + tipo de documento.
+       Cada combinacion (iniciales del generador + tipo de documento) lleva
+       su propio contador, guardado en localStorage del dispositivo.
+       IMPORTANTE: cada pagina que llama a esto SUMA el contador. Los
+       reportes deben llamarlo solo al cerrar turno / descargar el PDF
+       final (nunca en "PDF previo"), para no gastar numeros en pruebas.
+       Devuelve algo como "RM-2026-0007". */
+    correlativo(nombreGenerador, tipoDoc){
+      var iniciales = (nombreGenerador || '').trim().split(/\s+/)
+        .map(function(p){ return p.charAt(0).toUpperCase(); })
+        .join('').slice(0,3) || 'NN';
+      var anio = new Date().getFullYear();
+      var key = 'qcd_corr_' + iniciales + '_' + (tipoDoc || 'DOC');
+      var n = 1;
+      try{
+        var guardado = parseInt(localStorage.getItem(key) || '0', 10);
+        n = (isNaN(guardado) ? 0 : guardado) + 1;
+        localStorage.setItem(key, String(n));
+      }catch(e){ console.warn('MARCA.correlativo: no se pudo leer/guardar localStorage', e); }
+      var nStr = String(n);
+      while(nStr.length < 4) nStr = '0' + nStr;
+      return iniciales + '-' + anio + '-' + nStr;
+    },
+
     /* Inyecta el <select> de empresa. SIEMPRE visible (QC Digital es "la
        app", el selector es su cara visible). Las empresas con
        estado:"pendiente" (Acciona, OSSA) aparecen listadas para mostrar
