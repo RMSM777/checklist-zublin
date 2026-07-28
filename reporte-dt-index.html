@@ -246,7 +246,7 @@
       </div>
     </div>
     <div class="acciones">
-      <button class="btn-generar" onclick="generarVistaPreviaListado()">Vista previa del listado</button>
+      <button class="btn-generar" id="btnListadoPreview" onclick="generarVistaPreviaListado()" disabled>Vista previa del listado</button>
     </div>
     <p class="nota" id="notaListado">Se abre una vista previa del PDF antes de descargar.</p>
   </section>
@@ -257,7 +257,7 @@
       <button class="btn-borrador" onclick="guardarBorrador(true)">Guardar borrador</button>
     </div>
     <div class="acciones">
-      <button class="btn-generar" id="btnPDF" onclick="generarPDF()">Cerrar y descargar PDF</button>
+      <button class="btn-generar" id="btnPDF" onclick="generarPDF()" disabled>Cerrar y descargar PDF</button>
     </div>
     <p class="nota" id="nota">Al cerrar se genera el PDF con los totales, porcentajes, los 7 gr&aacute;ficos y tu firma, listo para descargar y compartir.</p>
   </section>
@@ -559,6 +559,8 @@ function calcularYRenderizar(){
   });
 
   R = {G, porDisc, porNivel, porGrupo, porSub, semanas, dias};
+  document.getElementById('btnPDF').disabled = false;
+  const btnLP = document.getElementById('btnListadoPreview'); if(btnLP) btnLP.disabled = false;
   renderTodo();
 }
 

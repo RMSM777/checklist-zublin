@@ -222,7 +222,7 @@
 
   <section>
     <div class="acciones">
-      <button class="btn-generar" id="btnPDF" onclick="generarPDF()">Cerrar y descargar PDF</button>
+      <button class="btn-generar" id="btnPDF" onclick="generarPDF()" disabled>Cerrar y descargar PDF</button>
     </div>
     <p class="nota" id="nota">Al cerrar se genera el PDF con los totales, porcentajes, los 8 gr&aacute;ficos y tu firma, listo para descargar y compartir.</p>
   </section>
@@ -538,6 +538,7 @@ function calcularYRenderizar(){
   });
 
   R = { G, porNivel, porGrupo, porMB, porFrente, porMes, semanas, dias };
+  document.getElementById('btnPDF').disabled = false;
   renderTodo();
 }
 

@@ -213,7 +213,7 @@
 
   <section>
     <div class="acciones">
-      <button class="btn-generar" id="btnPDF" onclick="generarPDF()">Cerrar y descargar PDF</button>
+      <button class="btn-generar" id="btnPDF" onclick="generarPDF()" disabled>Cerrar y descargar PDF</button>
     </div>
     <p class="nota">Al cerrar se genera el PDF con los KPI, el gr&aacute;fico hist&oacute;rico, el detalle del programa y tu firma.</p>
   </section>
@@ -496,7 +496,8 @@ function calcular(){
     detalleProgramados, fueraPrograma
   };
   document.getElementById('estadoPrograma').className='estado-carga ok';
-  document.getElementById('estadoPrograma').textContent = programados.length+' N\u00b0 de Punch programados procesados.';
+  document.getElementById('estadoPrograma').textContent = programados.length+' N\u00b0 de Punch programados procesados. Ya puedes generar el PDF.';
+  document.getElementById('btnPDF').disabled = false;
   document.getElementById('zonaReporte').style.display='block';
   renderizar();
 }

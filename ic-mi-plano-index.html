@@ -154,7 +154,7 @@
   </section>
 
   <section>
-    <div class="acciones"><button class="btn-generar" id="btnPDF" onclick="generarPDF()">Cerrar y descargar PDF</button></div>
+    <div class="acciones"><button class="btn-generar" id="btnPDF" onclick="generarPDF()" disabled>Cerrar y descargar PDF</button></div>
     <p class="nota" id="nota">Genera un PDF con portada + 2 p&aacute;ginas por nivel (gr&aacute;fico y detalle), m&iacute;nimo 11 p&aacute;ginas.</p>
   </section>
   </div>
@@ -439,6 +439,7 @@ function procesarTodo(){
   const totDes = Math.max(totDesTeo, totCam);
 
   R = { resumenNiveles, duplicados, totFrentes, totCam, totDes, pctGlobal: totDes>0 ? Math.min(100, Math.round(totCam/totDes*1000)/10) : 0 };
+  document.getElementById('btnPDF').disabled = false;
   renderTodo();
 }
 
