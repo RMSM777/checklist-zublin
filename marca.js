@@ -156,9 +156,16 @@
 
     pintarHeaderHTML(idImgLogo){
       const img = document.getElementById(idImgLogo || 'logoImg');
-      if(img && this.logoDataUrl){
+      if(!img) return;
+      if(this.logoDataUrl){
         img.src = this.logoDataUrl;
         img.alt = this.empresa.nombreCorto || this.empresa.nombre;
+      } else {
+        /* Sin logo cargado (ej. logo-qcdigital.txt aun no subido, o
+           empresa sin logoArchivo): se limpia para no dejar pegado el
+           logo de la empresa anterior. */
+        img.removeAttribute('src');
+        img.alt = this.empresa.nombreCorto || this.empresa.nombre || '';
       }
     },
 
