@@ -233,6 +233,8 @@ MARCA.iniciar().then(() => {
   LOGO = MARCA.logoDataUrl;
   const contratoEl = document.querySelector('.header-contrato');
   if(contratoEl) contratoEl.textContent = MARCA.textoContrato();
+  const footerEl = document.querySelector('footer');
+  if(footerEl) footerEl.textContent = (MARCA.empresa.nombreCorto || 'QC Digital') + ' - Reporte de Actividades Diarias - Departamento de Calidad';
 });
 
 const CODIGO_DOC = 'INF-GOMS-CL-001 REV.0'; // codigo de TIPO de documento, no de empresa: no se toca en Fase 2

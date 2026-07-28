@@ -290,6 +290,11 @@ MARCA.iniciar().then(() => {
   LOGO = MARCA.logoDataUrl;
   const contratoEl = document.querySelector('.header-contrato');
   if(contratoEl) contratoEl.textContent = MARCA.textoContrato();
+  const footerEl = document.querySelector('footer');
+  if(footerEl){
+    const codigo = MARCA.empresa.contrato && MARCA.empresa.contrato.codigoProyecto;
+    footerEl.textContent = (MARCA.empresa.nombreCorto || 'QC Digital') + ' - Reporte Detalles de Terminaci\u00f3n' + (codigo ? ' ' + codigo : '');
+  }
 });
 
 const CODIGO_DOC = 'GCC-003 \u00b7 REPORTE DT'; // codigo de TIPO de documento, no de empresa: no se toca en Fase 2
