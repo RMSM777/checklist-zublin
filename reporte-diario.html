@@ -241,7 +241,7 @@ const CODIGO_DOC = 'INF-GOMS-CL-001 REV.0'; // codigo de TIPO de documento, no d
 
 function dibujarEncabezado(doc, tituloDoc, qrDataUrl){
   const anchoPagina = doc.internal.pageSize.getWidth();
-  doc.setFillColor(...MARCA.colorRGB());
+  doc.setFillColor(...MARCA.colorHeaderRGB());
   doc.rect(0,0,anchoPagina,14,'F');
   doc.setFillColor(255,255,255);
   doc.roundedRect(6,2.5,30,9,1.2,1.2,'F');

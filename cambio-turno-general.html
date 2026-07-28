@@ -626,7 +626,7 @@ function generarVistaPrevia(){
   let y = 10;
 
   function encabezado(){
-    doc.setFillColor(...MARCA.colorRGB()); doc.rect(0,0,anchoPag,18,'F');
+    doc.setFillColor(...MARCA.colorHeaderRGB()); doc.rect(0,0,anchoPag,18,'F');
     try{ doc.addImage(LOGO,'PNG',izq,4.3,13,6.1); }catch(e){}
     doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont(undefined,'bold');
     doc.text(CODIGO_DOC, der, 8, {align:'right'});

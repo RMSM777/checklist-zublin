@@ -7,36 +7,52 @@
       "nombreCorto": "QC Digital",
       "tagline": "INDUSTRY QUALITY SUITE",
       "colorPrimario": "#f5851f",
-      "colorPrimarioRGB": [245, 133, 31],
-      "colorFondoHeader": "#0d1526",
-      "colorFondoHeaderRGB": [13, 21, 38],
+      "colorPrimarioRGB": [
+        245,
+        133,
+        31
+      ],
+      "colorFondoHeader": "#16213a",
+      "colorFondoHeaderRGB": [
+        22,
+        33,
+        58
+      ],
       "logoArchivo": "logo-qcdigital.txt",
       "esPlantilla": true,
       "contrato": {
         "numero": "",
         "codigoProyecto": "",
-        "textoCompleto": "QC Digital \u00b7 Industry Quality Suite \u2014 Seleccione una empresa en el selector para cargar los datos del contrato.",
+        "textoCompleto": "QC Digital · Industry Quality Suite — Seleccione una empresa en el selector para cargar los datos del contrato.",
         "obra": "",
         "division": ""
       }
     },
     "zublin": {
       "id": "zublin",
-      "nombre": "Z\u00dcBLIN",
-      "nombreCorto": "Z\u00fcblin",
+      "nombre": "ZÜBLIN",
+      "nombreCorto": "Züblin",
       "tagline": "",
       "colorPrimario": "#D72622",
-      "colorPrimarioRGB": [215, 38, 34],
+      "colorPrimarioRGB": [
+        215,
+        38,
+        34
+      ],
       "colorFondoHeader": "#D72622",
-      "colorFondoHeaderRGB": [215, 38, 34],
+      "colorFondoHeaderRGB": [
+        215,
+        38,
+        34
+      ],
       "logoArchivo": "logo-zublin.txt",
       "esPlantilla": false,
       "estado": "activa",
       "contrato": {
         "numero": "4600031460",
         "codigoProyecto": "GCC-003",
-        "textoCompleto": "Contrato N\u00b0 4600031460 / GCC-003 \u2014 \"Desarrollo y Construcci\u00f3n Nivel Superior e Inferior Mina Norte\" \u2014 Divisi\u00f3n Chuquicamata \u2014 Empresa Contratista: Z\u00dcBLIN",
-        "obra": "Mina Chuquicamata Subterr\u00e1nea - Mina Norte",
+        "textoCompleto": "Contrato N° 4600031460 / GCC-003 — \"Desarrollo y Construcción Nivel Superior e Inferior Mina Norte\" — División Chuquicamata — Empresa Contratista: ZÜBLIN",
+        "obra": "Mina Chuquicamata Subterránea - Mina Norte",
         "division": "Chuquicamata"
       }
     },
@@ -46,16 +62,24 @@
       "nombreCorto": "Acciona",
       "tagline": "",
       "colorPrimario": "#6b7280",
-      "colorPrimarioRGB": [107, 114, 128],
+      "colorPrimarioRGB": [
+        107,
+        114,
+        128
+      ],
       "colorFondoHeader": "#6b7280",
-      "colorFondoHeaderRGB": [107, 114, 128],
+      "colorFondoHeaderRGB": [
+        107,
+        114,
+        128
+      ],
       "logoArchivo": null,
       "esPlantilla": false,
       "estado": "pendiente",
       "contrato": {
         "numero": "",
         "codigoProyecto": "",
-        "textoCompleto": "Sin contrato asignado actualmente en Divisi\u00f3n Chuquicamata Subterr\u00e1nea.",
+        "textoCompleto": "Sin contrato asignado actualmente en División Chuquicamata Subterránea.",
         "obra": "",
         "division": ""
       }
@@ -66,22 +90,30 @@
       "nombreCorto": "OSSA",
       "tagline": "",
       "colorPrimario": "#6b7280",
-      "colorPrimarioRGB": [107, 114, 128],
+      "colorPrimarioRGB": [
+        107,
+        114,
+        128
+      ],
       "colorFondoHeader": "#6b7280",
-      "colorFondoHeaderRGB": [107, 114, 128],
+      "colorFondoHeaderRGB": [
+        107,
+        114,
+        128
+      ],
       "logoArchivo": null,
       "esPlantilla": false,
       "estado": "pendiente",
       "contrato": {
         "numero": "",
         "codigoProyecto": "",
-        "textoCompleto": "Sin contrato asignado actualmente en Divisi\u00f3n Chuquicamata Subterr\u00e1nea.",
+        "textoCompleto": "Sin contrato asignado actualmente en División Chuquicamata Subterránea.",
         "obra": "",
         "division": ""
       }
     }
   },
   "pendientes": {
-    "_nota": "Acciona y OSSA quedan visibles en el selector (roadmap) pero con estado:'pendiente' y deshabilitadas hasta tener contrato real y autorizaci\u00f3n de marca (logo, colores oficiales) por escrito. Sus colores actuales son un placeholder gris temporal."
+    "_nota": "Acciona y OSSA quedan visibles en el selector (roadmap) pero con estado:'pendiente' y deshabilitadas hasta tener contrato real y autorización de marca (logo, colores oficiales) por escrito. Sus colores actuales son un placeholder gris temporal."
   }
 }
