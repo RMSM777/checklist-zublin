@@ -13,6 +13,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <script src="marca.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="drive-integration.js?v=2"></script>
 <style>
   :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; --verde:#2e7d32; --naranja:#e08a00; --azul:#2b5fb8; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -409,6 +411,24 @@ function descargarPDF(){
   const nota = document.getElementById('nota');
   nota.textContent = 'PDF generado y descargado ('+nombreArch+'). Listo para compartir.';
   nota.style.color = '#2e7d32';
+
+  // Guardado en Google Drive + repositorio (no bloquea la descarga local si falla).
+  if(window.QCD_DRIVE){
+    nota.innerHTML = nota.textContent + '<br><span style="color:#888;">Subiendo a Google Drive...</span>';
+    QCD_DRIVE.subir({
+      blob: docActual.output('blob'),
+      nombreArchivo: nombreArch,
+      tipoReporte: 'Informe procesos constructivos',
+      correlativo: docActual._qcdCorrelativo,
+      empresa: MARCA.empresa.nombreCorto,
+      generadoPor: docActual._qcdGeneradoPor
+    }).then(function(res){
+      nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>');
+    }).catch(function(err){
+      console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
+      nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<span style="color:#c0392b;">No se pudo subir a Drive (el PDF local se genero igual).</span>');
+    });
+  }
 }
 
 function construirPDF(p, regsValidos){
@@ -622,6 +642,8 @@ function construirPDF(p, regsValidos){
     doc.text('Pagina '+pg+' de '+total, izq+ancho, 291, {align:'right'});
   }
 
+  doc._qcdCorrelativo = corr;
+  doc._qcdGeneradoPor = p[0].nombre;
   return doc;
 }
 
