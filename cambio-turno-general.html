@@ -13,6 +13,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <script src="marca.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="drive-integration.js?v=2"></script>
 <style>
   :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -748,6 +750,8 @@ function generarVistaPrevia(){
   }
 
   window._pdfDocGenerado = doc;
+  doc._qcdCorrelativo = corr;
+  doc._qcdGeneradoPor = gen;
   document.getElementById('framePrev').src = doc.output('bloburl');
   document.getElementById('modalPrev').style.display = 'flex';
 }
@@ -756,9 +760,36 @@ function descargarPDF(){
   if(!window._pdfDocGenerado) return;
   const fi = document.getElementById('fechaInicio').value.replace(/-/g,'');
   const ft = document.getElementById('fechaTermino').value.replace(/-/g,'');
-  window._pdfDocGenerado.save('CambioTurno_'+fi+'_'+ft+'.pdf');
+  const nombreArch = 'CambioTurno_'+fi+'_'+ft+'.pdf';
+  window._pdfDocGenerado.save(nombreArch);
   borrarBorrador();
   cerrarVista();
+
+  // Guardado en Google Drive + repositorio (no bloquea la descarga local si falla).
+  if(window.QCD_DRIVE){
+    const docRef = window._pdfDocGenerado;
+    let notaEl = document.getElementById('notaDrive');
+    if(!notaEl){
+      notaEl = document.createElement('div');
+      notaEl.id = 'notaDrive';
+      notaEl.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;background:#fff;border:1px solid #ccc;border-radius:8px;padding:8px 12px;font-size:12px;z-index:9999;';
+      document.body.appendChild(notaEl);
+    }
+    notaEl.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
+    QCD_DRIVE.subir({
+      blob: docRef.output('blob'),
+      nombreArchivo: nombreArch,
+      tipoReporte: 'Cambio de turno general',
+      correlativo: docRef._qcdCorrelativo,
+      empresa: MARCA.empresa.nombreCorto,
+      generadoPor: docRef._qcdGeneradoPor
+    }).then(function(res){
+      notaEl.innerHTML = '<a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>';
+    }).catch(function(err){
+      console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
+      notaEl.innerHTML = '<span style="color:#c0392b;">No se pudo subir a Drive (el PDF local se genero igual).</span>';
+    });
+  }
 }
 
 /* ============ Inicializacion por defecto (al final, ya declaradas todas las variables) ============ */
