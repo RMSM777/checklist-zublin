@@ -562,6 +562,7 @@ function actualizarFirmantes(){
 let guardarTimeout = null;
 function recolectarEstado(){
   return {
+    guardadoEn: new Date().toISOString(),
     fechaInicio: document.getElementById('fechaInicio').value,
     fechaTermino: document.getElementById('fechaTermino').value,
     hora: document.getElementById('hora').value,

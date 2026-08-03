@@ -39,6 +39,15 @@
   #selectorEmpresa select{ width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--navy-600); background:var(--navy-800); color:var(--white); font-size:13px; font-family:'Inter',sans-serif; }
   #selectorEmpresa label{ color:var(--fog) !important; }
 
+  .hub-borradores{ padding:16px 16px 4px; }
+  .hub-tit{ font-size:12px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--orange); margin-bottom:8px; }
+  .borrador-card{ display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px; border:1px solid var(--navy-600); border-radius:11px; background:var(--navy-800); text-decoration:none; color:var(--white); }
+  .borrador-card:active{ background:var(--navy-700); }
+  .borrador-info{ flex:1; min-width:0; }
+  .borrador-info .tit{ font-weight:600; font-size:13.5px; margin:0 0 2px; }
+  .borrador-info .sub{ font-size:11.5px; color:var(--fog); margin:0; }
+  .borrador-badge{ font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--orange-lt); background:rgba(245,133,31,0.12); padding:2px 7px; border-radius:20px; white-space:nowrap; }
+
   .menu{ padding:18px 16px 8px; display:flex; flex-direction:column; gap:11px; }
   .tarjeta{ display:flex; align-items:center; gap:14px; padding:15px 16px; border:1px solid var(--navy-700); border-radius:13px; text-decoration:none; color:var(--white); background:var(--navy-800); transition:border-color .15s ease, transform .1s ease; }
   .tarjeta:active{ background:var(--navy-700); transform:scale(.99); }
@@ -70,6 +79,8 @@
     <p class="header-contrato">Contrato N&deg; 4600031460 &mdash; Mina Norte, Chuquicamata</p>
     <div id="selectorEmpresa"></div>
   </div>
+
+  <div id="hubBorradores" style="display:none;"></div>
 
   <div class="menu">
     <a class="tarjeta" href="checklist-camioneta.html">
@@ -176,6 +187,107 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js').catch(console.error);
   });
 }
+
+/* ============================================================
+   HUB DE BORRADORES PENDIENTES
+   Revisa localStorage de los reportes que tienen autoguardado y
+   muestra tarjetas de acceso rapido para continuar donde quedaron.
+   Si un reporte agrega su propio sistema de borrador a futuro,
+   solo hay que sumarlo a este arreglo REPORTES_CON_BORRADOR.
+   ============================================================ */
+const REPORTES_CON_BORRADOR = [
+  {
+    key: 'qcd_borrador_checklist_camioneta',
+    url: 'checklist-camioneta.html',
+    titulo: 'Checklist camioneta',
+    extraer(estado){ return { generador: estado.nombre || '-', detalle: estado.fecha || '' }; }
+  },
+  {
+    key: 'qcd_borrador_reporte_diario',
+    url: 'reporte-diario.html',
+    titulo: 'Reporte diario',
+    extraer(estado){
+      const gen = (estado.personas && estado.personas[0] && estado.personas[0].nombre) || '-';
+      return { generador: gen, detalle: estado.fecha || '' };
+    }
+  },
+  {
+    key: 'qcd_borrador_reporte_dt',
+    url: 'reporte-dt-index.html',
+    titulo: 'Reporte DT',
+    extraer(estado){ return { generador: estado.nombre || estado.cargadoPor || '-', detalle: estado.fecha || '' }; }
+  },
+  {
+    key: 'zublin_cambioTurno_borrador',
+    url: 'cambio-turno-general.html',
+    titulo: 'Cambio de turno general',
+    extraer(estado){
+      const gen = (estado.personal && estado.personal[0] && estado.personal[0].nombre) || '-';
+      const detalle = (estado.fechaInicio || '-') + (estado.fechaTermino ? ' al ' + estado.fechaTermino : '');
+      return { generador: gen, detalle };
+    }
+  }
+];
+
+function tiempoRelativo(fechaIso){
+  if(!fechaIso) return '';
+  const ms = Date.now() - new Date(fechaIso).getTime();
+  const min = Math.round(ms / 60000);
+  if(min < 1) return 'hace instantes';
+  if(min < 60) return 'hace ' + min + ' min';
+  const horas = Math.round(min / 60);
+  if(horas < 24) return 'hace ' + horas + ' h';
+  const dias = Math.round(horas / 24);
+  return 'hace ' + dias + ' d\u00eda' + (dias===1?'':'s');
+}
+
+function renderHubBorradores(){
+  const cont = document.getElementById('hubBorradores');
+  if(!cont) return;
+  const pendientes = [];
+  REPORTES_CON_BORRADOR.forEach(rep => {
+    let raw = null;
+    try{ raw = localStorage.getItem(rep.key); }catch(e){}
+    if(!raw) return;
+    let estado = null;
+    try{ estado = JSON.parse(raw); }catch(e){ return; }
+    const info = rep.extraer(estado) || {};
+    pendientes.push({
+      url: rep.url,
+      titulo: rep.titulo,
+      generador: info.generador || '-',
+      detalle: info.detalle || '',
+      guardadoEn: estado.guardadoEn || null
+    });
+  });
+
+  if(pendientes.length === 0){
+    cont.style.display = 'none';
+    cont.innerHTML = '';
+    return;
+  }
+
+  pendientes.sort((a,b) => new Date(b.guardadoEn||0) - new Date(a.guardadoEn||0));
+
+  const tarjetas = pendientes.map(p => `
+    <a class="borrador-card" href="${p.url}">
+      <div class="borrador-info">
+        <p class="tit">${p.titulo}</p>
+        <p class="sub">${p.generador}${p.detalle ? ' &middot; ' + p.detalle : ''}</p>
+      </div>
+      <span class="borrador-badge">${tiempoRelativo(p.guardadoEn)}</span>
+    </a>
+  `).join('');
+
+  cont.innerHTML = `<div class="hub-borradores">
+    <div class="hub-tit">Borradores pendientes (${pendientes.length})</div>
+    ${tarjetas}
+  </div>`;
+  cont.style.display = '';
+}
+
+renderHubBorradores();
+window.addEventListener('pageshow', renderHubBorradores);
 </script>
 </body>
 </html>
