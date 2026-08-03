@@ -137,6 +137,8 @@
     return id;
   }
 
+  const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
   function leerCacheCarpetas(){
     try{ return JSON.parse(localStorage.getItem(LS_CARPETAS) || '{}'); }catch(e){ return {}; }
   }
@@ -144,17 +146,35 @@
     try{ localStorage.setItem(LS_CARPETAS, JSON.stringify(cache)); }catch(e){}
   }
 
+  /* Estructura en Drive: QC Digital (raiz, compartida con el equipo)
+       > <Tipo de reporte>   ej: "Reporte diario"
+         > <Año>             ej: "2026"
+           > <Mes>           ej: "Agosto"
+     La carpeta raiz se busca SIN restringir por dueño: si el usuario
+     autenticado tiene una carpeta "QC Digital" compartida con el (por
+     ejemplo, compartida por el administrador de QC Digital), la
+     encuentra y reutiliza esa misma carpeta centralizada en vez de
+     crear una nueva en su propio Drive. */
   async function obtenerCarpetaReporte(tipoReporte){
+    const ahora = new Date();
+    const anio = String(ahora.getFullYear());
+    const mes = MESES[ahora.getMonth()];
+    const claveRuta = tipoReporte + '|' + anio + '|' + mes;
+
     const cache = leerCacheCarpetas();
-    if(cache.raizId && cache.subcarpetas && cache.subcarpetas[tipoReporte]){
-      return { raizId: cache.raizId, subId: cache.subcarpetas[tipoReporte] };
+    if(cache.raizId && cache.rutas && cache.rutas[claveRuta]){
+      return { raizId: cache.raizId, subId: cache.rutas[claveRuta] };
     }
+
     const raizId = cache.raizId || await obtenerOCrearCarpeta(CARPETA_RAIZ, null);
-    const subId = await obtenerOCrearCarpeta(tipoReporte, raizId);
-    const nuevaSub = Object.assign({}, cache.subcarpetas || {});
-    nuevaSub[tipoReporte] = subId;
-    guardarCacheCarpetas({ raizId, subcarpetas: nuevaSub });
-    return { raizId, subId };
+    const tipoId = await obtenerOCrearCarpeta(tipoReporte, raizId);
+    const anioId = await obtenerOCrearCarpeta(anio, tipoId);
+    const mesId = await obtenerOCrearCarpeta(mes, anioId);
+
+    const nuevasRutas = Object.assign({}, cache.rutas || {});
+    nuevasRutas[claveRuta] = mesId;
+    guardarCacheCarpetas({ raizId, rutas: nuevasRutas });
+    return { raizId, subId: mesId };
   }
 
   // --- Subir PDF ---
