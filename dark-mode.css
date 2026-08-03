@@ -1,0 +1,126 @@
+/* ============================================================
+   DARK-MODE.CSS - Modo oscuro compartido para QC Digital
+   Se activa agregando la clase "dark" al <html> (la pone
+   dark-mode.js segun la preferencia guardada del usuario).
+
+   Estrategia: los reportes ya usan variables CSS (--gris,
+   --borde, --texto) en su :root. Al re-declarar esas mismas
+   variables dentro de html.dark, todo lo que ya usa var(--gris)
+   etc. cambia de color automaticamente sin tocar cada selector.
+   Los colores de marca (--rojo, --color-primario, --color-header)
+   NO se tocan aqui: la identidad de empresa se mantiene igual.
+
+   Ademas se sobreescriben algunos fondos que estan escritos
+   directo en hexadecimal (no como variable) en los reportes:
+   body, .wrap, inputs, botones neutros, etc.
+   ============================================================ */
+
+html.dark{
+  --gris:#1b2740;
+  --borde:#38445e;
+  --texto:#e7ecf5;
+  color-scheme: dark;
+}
+
+html.dark body{
+  background:#0a0f1c;
+  color:#e7ecf5;
+}
+
+html.dark .wrap{
+  background:#101a2e;
+}
+
+html.dark section{
+  color:#e7ecf5;
+}
+
+html.dark .campo label,
+html.dark label{
+  color:#a8b2c7 !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea{
+  background:#141d33;
+  color:#e7ecf5;
+  border-color:#38445e;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder{
+  color:#647096;
+}
+
+html.dark .turno button,
+html.dark button:not(.act):not(.borrador-card):not(.tarjeta){
+  background:#141d33;
+  color:#c4cbdb;
+  border-color:#38445e;
+}
+
+html.dark .btn-limpiar{
+  background:#263556;
+  color:#c4cbdb;
+}
+
+html.dark .fila-dyn{
+  border-color:#334066;
+}
+
+html.dark .kpi-res div,
+html.dark .foto-item{
+  background:#141d33;
+  border-color:#334066;
+}
+
+html.dark .kpi-res span,
+html.dark .nota,
+html.dark footer{
+  color:#8b96b3;
+}
+
+html.dark canvas.firma{
+  background:#141d33;
+  border-color:#38445e;
+}
+
+html.dark .header-contrato{
+  background:#080c15;
+  color:#c4cbdb;
+}
+
+html.dark a{
+  color:#ffb066;
+}
+
+html.dark ::-webkit-scrollbar{ width:10px; height:10px; }
+html.dark ::-webkit-scrollbar-track{ background:#0a0f1c; }
+html.dark ::-webkit-scrollbar-thumb{ background:#334066; border-radius:6px; }
+
+/* Boton flotante sol/luna, inyectado por dark-mode.js */
+.qcd-theme-toggle{
+  position:fixed;
+  bottom:16px;
+  right:16px;
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  border:1px solid rgba(0,0,0,0.12);
+  background:#fff;
+  color:#333;
+  font-size:20px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  box-shadow:0 2px 10px rgba(0,0,0,0.18);
+  z-index:9998;
+  -webkit-tap-highlight-color:transparent;
+}
+html.dark .qcd-theme-toggle{
+  background:#141d33;
+  color:#ffb066;
+  border-color:#38445e;
+}
