@@ -903,28 +903,29 @@ async function generarPDF(){
   doc.setTextColor(30,30,30);
 
   const nombreArch = 'ReporteGerencialAvance_GCC003_'+fecha+'_'+turno.replace(/\s+/g,'')+'.pdf';
-  doc.save(nombreArch);
   const nota = document.getElementById('nota');
-  nota.innerHTML = 'PDF generado y descargado ('+nombreArch+'). Revisa tus descargas para compartirlo.';
-  nota.style.color = '#2e7d32';
-
-  // Guardado en Google Drive + repositorio (no bloquea la descarga local si falla).
+  let driveHtml = '';
   if(window.QCD_DRIVE){
-    nota.innerHTML += '<br><span style="color:#888;">Subiendo a Google Drive...</span>';
-    QCD_DRIVE.subir({
-      blob: doc.output('blob'),
-      nombreArchivo: nombreArch,
-      tipoReporte: 'Reporte gerencial de avance',
-      correlativo: corr,
-      empresa: MARCA.empresa.nombreCorto,
-      generadoPor: nombre
-    }).then(function(res){
-      nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>');
-    }).catch(function(err){
+    nota.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
+    nota.style.color = '';
+    try{
+      const res = await QCD_DRIVE.subir({
+        blob: doc.output('blob'),
+        nombreArchivo: nombreArch,
+        tipoReporte: 'Reporte gerencial de avance',
+        correlativo: corr,
+        empresa: MARCA.empresa.nombreCorto,
+        generadoPor: nombre
+      });
+      driveHtml = '<br><a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>';
+    }catch(err){
       console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
-      nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>');
-    });
+      driveHtml = '<br><span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>';
+    }
   }
+  doc.save(nombreArch);
+  nota.innerHTML = 'PDF generado y descargado ('+nombreArch+'). Revisa tus descargas para compartirlo.' + driveHtml;
+  nota.style.color = '#2e7d32';
   }catch(err){
     console.error(err);
     alert('Error al generar el PDF (Reporte gerencial de avance): ' + (err && err.message ? err.message : err));

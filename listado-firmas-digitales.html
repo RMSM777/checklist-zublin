@@ -985,27 +985,28 @@ document.getElementById("btnDescargarPDF").addEventListener("click", async funct
   if(!docPDFActual) return;
   var fechaCampo = document.getElementById("campoFecha").value || "sin-fecha";
   var nombreArch = "Listado-Firmas-" + fechaCampo + "-" + grupoSeleccionado + ".pdf";
-  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
-    docPDFActual.save(nombreArch);
 
   var notaEl = document.getElementById("notaDrive");
-  if(notaEl){ notaEl.innerHTML = 'PDF descargado. <span style="color:#888;">Subiendo a Google Drive...</span>'; }
-
+  var driveHtml = '';
   if(window.QCD_DRIVE){
-    QCD_DRIVE.subir({
-      blob: docPDFActual.output('blob'),
-      nombreArchivo: nombreArch,
-      tipoReporte: 'Listado de firmas digitales',
-      correlativo: docPDFActual._qcdCorrelativo || '-',
-      empresa: MARCA.empresa.nombreCorto,
-      generadoPor: ultimoGeneradoPor
-    }).then(function(res){
-      if(notaEl){ notaEl.innerHTML = '<a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>'; }
-    }).catch(function(err){
+    if(notaEl){ notaEl.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>'; }
+    try{
+      var res = await QCD_DRIVE.subir({
+        blob: docPDFActual.output('blob'),
+        nombreArchivo: nombreArch,
+        tipoReporte: 'Listado de firmas digitales',
+        correlativo: docPDFActual._qcdCorrelativo || '-',
+        empresa: MARCA.empresa.nombreCorto,
+        generadoPor: ultimoGeneradoPor
+      });
+      driveHtml = '<a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>';
+    }catch(err){
       console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
-      if(notaEl){ notaEl.innerHTML = '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>'; }
-    });
+      driveHtml = '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>';
+    }
   }
+  docPDFActual.save(nombreArch);
+  if(notaEl){ notaEl.innerHTML = 'PDF descargado. ' + driveHtml; }
   }catch(err){
     console.error(err);
     alert('Error al generar el PDF (Listado de firmas digitales - descarga): ' + (err && err.message ? err.message : err));

@@ -698,38 +698,40 @@ async function generarPDF(previo){
   }
 
   const nombreArch = (previo ? 'BORRADOR_' : '') + 'ReporteDiario_'+fechaTxt+'_'+turno+'.pdf';
-  doc.save(nombreArch);
 
   if(previo){
+    doc.save(nombreArch);
     document.getElementById('nota').innerHTML = 'PDF previo generado (marca de agua BORRADOR): '+nombreArch+'. El turno sigue abierto.';
     document.getElementById('nota').style.color = '#555';
     return;
   }
 
-  document.getElementById('nota').innerHTML = 'PDF generado y descargado: '+nombreArch;
-  document.getElementById('nota').style.color = '#2e7d32';
+  const notaEl = document.getElementById('nota');
+  let driveHtml = '';
+  if(window.QCD_DRIVE){
+    notaEl.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
+    notaEl.style.color = '';
+    try{
+      const res = await QCD_DRIVE.subir({
+        blob: doc.output('blob'),
+        nombreArchivo: nombreArch,
+        tipoReporte: 'Reporte diario',
+        correlativo: corr,
+        empresa: MARCA.empresa.nombreCorto,
+        generadoPor: gen
+      });
+      driveHtml = '<br><a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>';
+    }catch(err){
+      console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
+      driveHtml = '<br><span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>';
+    }
+  }
+  doc.save(nombreArch);
+  notaEl.innerHTML = 'PDF generado y descargado: '+nombreArch + driveHtml;
+  notaEl.style.color = '#2e7d32';
 
   // Turno cerrado: se bloquea edicion futura de este borrador y se limpia el guardado local.
   borrarBorrador();
-
-  // Guardado en Google Drive + repositorio (no bloquea la descarga local si falla).
-  if(window.QCD_DRIVE){
-    const notaEl = document.getElementById('nota');
-    notaEl.innerHTML += '<br><span style="color:#888;">Subiendo a Google Drive...</span>';
-    QCD_DRIVE.subir({
-      blob: doc.output('blob'),
-      nombreArchivo: nombreArch,
-      tipoReporte: 'Reporte diario',
-      correlativo: corr,
-      empresa: MARCA.empresa.nombreCorto,
-      generadoPor: gen
-    }).then(function(res){
-      notaEl.innerHTML = notaEl.innerHTML.replace('Subiendo a Google Drive...', '<a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>');
-    }).catch(function(err){
-      console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
-      notaEl.innerHTML = notaEl.innerHTML.replace('Subiendo a Google Drive...', '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>');
-    });
-  }
   }catch(err){
     console.error(err);
     alert('Error al generar el PDF (Reporte diario): ' + (err && err.message ? err.message : err));

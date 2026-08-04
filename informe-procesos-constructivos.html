@@ -408,34 +408,35 @@ async function generarVistaPrevia(){
 function cerrarVista(){
   document.getElementById('modalPrev').style.display = 'none';
 }
-function descargarPDF(){
+async function descargarPDF(){
   try{
   if(!docActual) return;
   const p = nombresPersonal();
   const nombreArch = 'Informe_'+v('tituloInf').replace(/\s+/g,'_')+'_'+(v('fecha')||'')+'_'+grupo.replace(/\s+/g,'')+'_'+turno.replace(/\s+/g,'')+'.pdf';
-  docActual.save(nombreArch);
   cerrarVista();
   const nota = document.getElementById('nota');
-  nota.textContent = 'PDF generado y descargado ('+nombreArch+'). Listo para compartir.';
-  nota.style.color = '#2e7d32';
-
-  // Guardado en Google Drive + repositorio (no bloquea la descarga local si falla).
+  let driveHtml = '';
   if(window.QCD_DRIVE){
-    nota.innerHTML = nota.textContent + '<br><span style="color:#888;">Subiendo a Google Drive...</span>';
-    QCD_DRIVE.subir({
-      blob: docActual.output('blob'),
-      nombreArchivo: nombreArch,
-      tipoReporte: 'Informe procesos constructivos',
-      correlativo: docActual._qcdCorrelativo,
-      empresa: MARCA.empresa.nombreCorto,
-      generadoPor: docActual._qcdGeneradoPor
-    }).then(function(res){
-      nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>');
-    }).catch(function(err){
+    nota.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
+    nota.style.color = '';
+    try{
+      const res = await QCD_DRIVE.subir({
+        blob: docActual.output('blob'),
+        nombreArchivo: nombreArch,
+        tipoReporte: 'Informe procesos constructivos',
+        correlativo: docActual._qcdCorrelativo,
+        empresa: MARCA.empresa.nombreCorto,
+        generadoPor: docActual._qcdGeneradoPor
+      });
+      driveHtml = '<br><a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>';
+    }catch(err){
       console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
-      nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>');
-    });
+      driveHtml = '<br><span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>';
+    }
   }
+  docActual.save(nombreArch);
+  nota.innerHTML = 'PDF generado y descargado ('+nombreArch+'). Listo para compartir.' + driveHtml;
+  nota.style.color = '#2e7d32';
   }catch(err){
     console.error(err);
     alert('Error al generar el PDF (Informe procesos constructivos - descarga): ' + (err && err.message ? err.message : err));
