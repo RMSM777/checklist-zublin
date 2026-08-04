@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#D72622">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Zublin GCC-003">
+<title>Listado de Firmas Digitales - Züblin GCC-003</title>
+<style>
+  :root{
+    --rojo:#D72622;
+    --rojo-oscuro:#a91d1a;
+    --gris-fondo:#f2f2f0;
+    --gris-borde:#d8d8d5;
+    --gris-texto:#555;
+    --negro:#1a1a1a;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    background:var(--gris-fondo);
+    color:var(--negro);
+    padding-bottom:40px;
+  }
+  .contenedor{max-width:760px;margin:0 auto;background:#fff;min-height:100vh;}
+
+  /* ---------- Encabezado ---------- */
+  .header-rojo{
+    background:var(--rojo);
+    color:#fff;
+    padding:12px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .header-rojo .logo{display:flex;align-items:center;}
+  .header-rojo .logo img{height:26px;display:block;}
+  .placa-logo{
+    background:#fff;
+    border-radius:6px;
+    padding:6px 10px;
+    display:flex;
+    align-items:center;
+  }
+  .header-rojo .codigo{font-size:11px;text-align:right;line-height:1.4;}
+  .header-contrato{
+    background:#2a2a2a;
+    color:#eee;
+    font-size:11px;
+    padding:8px 16px;
+    line-height:1.5;
+  }
+  .titulo-doc{
+    text-align:center;
+    font-size:16px;
+    font-weight:600;
+    padding:16px 16px 8px;
+  }
+  .banner-estado{
+    background:#2f6b3a;
+    color:#fff;
+    font-size:12px;
+    font-weight:600;
+    text-align:center;
+    padding:7px 12px;
+    margin:0 16px 4px;
+    border-radius:6px;
+  }
+  .titulo-seccion{
+    border-left:3px solid var(--rojo);
+    padding-left:8px;
+    font-size:13px;
+    font-weight:700;
+    margin-bottom:6px;
+  }
+
+  /* ---------- Secciones ---------- */
+  .seccion{padding:10px 16px;}
+  .seccion label{
+    display:block;
+    font-size:12px;
+    color:var(--gris-texto);
+    margin-bottom:4px;
+    font-weight:600;
+  }
+  .fila-2{display:flex;gap:10px;}
+  .fila-2 > div{flex:1;}
+  input[type=text], input[type=date], input[type=time], textarea{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--gris-borde);
+    border-radius:6px;
+    font-size:14px;
+    font-family:inherit;
+    background:#fafafa;
+  }
+  textarea{resize:vertical;min-height:54px;}
+  input:focus, textarea:focus{outline:none;border-color:var(--rojo);background:#fff;}
+
+  /* ---------- Selectores tipo botón ---------- */
+  .grupo-botones{display:flex;gap:8px;margin-bottom:10px;}
+  .grupo-botones.turno{padding:0 16px;}
+  .grupo-botones.grupo{padding:0 16px 6px;}
+  .btn-selector{
+    flex:1;
+    padding:11px 4px;
+    border:1px solid var(--gris-borde);
+    border-radius:6px;
+    background:#fff;
+    font-size:14px;
+    font-weight:600;
+    color:var(--negro);
+    cursor:pointer;
+  }
+  .btn-selector.activo{background:var(--rojo);color:#fff;border-color:var(--rojo);}
+
+  /* ---------- Participantes ---------- */
+  /* ---------- Evidencia fotográfica ---------- */
+  .caja-foto{
+    width:100%;
+    min-height:140px;
+    border:1px dashed var(--gris-borde);
+    border-radius:8px;
+    background:#fafafa;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .caja-foto img{width:100%;max-height:280px;object-fit:contain;display:block;}
+  .placeholder-foto{color:var(--gris-texto);font-size:13px;}
+  .foto-botones{display:flex;gap:8px;margin-top:8px;}
+  .btn-foto{
+    flex:1;
+    text-align:center;
+    padding:10px;
+    border:1px solid var(--gris-borde);
+    border-radius:6px;
+    background:#fff;
+    font-size:13px;
+    font-weight:600;
+    color:var(--negro);
+    cursor:pointer;
+  }
+  .btn-foto-quitar{
+    padding:10px 14px;
+    border:1px solid var(--rojo);
+    border-radius:6px;
+    background:#fff;
+    color:var(--rojo);
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+
+  .participantes-header{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 16px 6px;
+  }
+  .participantes-header h3{margin:0;}
+  .contador{font-size:12px;color:var(--gris-texto);}
+  #listaParticipantes{padding:0 16px;display:flex;flex-direction:column;gap:12px;}
+  .tarjeta-participante{
+    border:1px solid var(--gris-borde);
+    border-radius:10px;
+    padding:12px;
+    background:#fbfbfa;
+  }
+  .tarjeta-header{
+    display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;
+  }
+  .tarjeta-header .num{font-size:13px;font-weight:600;}
+  .tarjeta-acciones{display:flex;gap:4px;}
+  .icono-btn{
+    border:1px solid var(--gris-borde);
+    background:#fff;
+    border-radius:6px;
+    width:30px;height:30px;
+    font-size:14px;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .icono-btn.borrar{color:var(--rojo);}
+  .canvas-firma{
+    width:100%;
+    height:80px;
+    border:1px solid var(--gris-borde);
+    border-radius:6px;
+    background:#fff;
+    touch-action:none;
+    display:block;
+  }
+  .firma-acciones{display:flex;justify-content:flex-end;margin-top:4px;}
+  .link-limpiar{
+    font-size:11px;color:var(--rojo);background:none;border:none;
+    cursor:pointer;padding:2px 4px;
+  }
+
+  .btn-agregar{
+    width:calc(100% - 32px);
+    margin:14px 16px 0;
+    padding:12px;
+    border:1px dashed var(--gris-borde);
+    background:#fff;
+    border-radius:8px;
+    font-size:14px;
+    font-weight:600;
+    color:var(--rojo);
+    cursor:pointer;
+  }
+
+
+  .relator-final{
+    margin:26px 16px 0;
+    padding-top:16px;
+    border-top:1px solid var(--gris-borde);
+  }
+  .relator-final h3{margin:0 0 10px;}
+
+  .btn-pdf{
+    width:calc(100% - 32px);
+    margin:20px 16px 24px;
+    padding:14px;
+    background:var(--rojo);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    font-size:15px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .btn-pdf:active{background:var(--rojo-oscuro);}
+
+  .mensaje-error{
+    margin:0 16px 12px;
+    padding:10px 12px;
+    background:#fdecea;
+    border:1px solid var(--rojo);
+    color:var(--rojo-oscuro);
+    border-radius:6px;
+    font-size:13px;
+    display:none;
+  }
+
+  /* ---------- Modal vista previa ---------- */
+  .modal-fondo{
+    display:none;
+    position:fixed;top:0;left:0;right:0;bottom:0;
+    background:rgba(0,0,0,.6);
+    z-index:999;
+    align-items:center;justify-content:center;
+    padding:12px;
+  }
+  .modal-fondo.activo{display:flex;}
+  .modal-caja{
+    background:#fff;
+    border-radius:10px;
+    width:100%;
+    max-width:640px;
+    max-height:92vh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .modal-titulo{
+    padding:12px 16px;
+    background:var(--rojo);
+    color:#fff;
+    font-weight:600;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .modal-titulo button{
+    background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;
+  }
+  .modal-cuerpo{flex:1;overflow:auto;background:#525659;}
+  .modal-cuerpo iframe{width:100%;height:70vh;border:none;background:#fff;}
+  .modal-pie{
+    padding:12px 16px;
+    display:flex;gap:10px;
+    border-top:1px solid var(--gris-borde);
+  }
+  .modal-pie button{
+    flex:1;padding:12px;border-radius:8px;font-size:14px;font-weight:600;border:1px solid var(--gris-borde);cursor:pointer;
+  }
+  .modal-pie .descargar{background:var(--rojo);color:#fff;border-color:var(--rojo);}
+  .modal-pie .cerrar{background:#fff;}
+
+  #qrOculto{position:absolute;left:-9999px;top:-9999px;}
+
+  @media (max-width:480px){
+    .header-rojo .logo{font-size:17px;}
+    .titulo-doc{font-size:14px;}
+    .fila-2{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+<div style="background:#2a2a2a;color:#fff;padding:7px 14px;font-size:12px;"><a href="home.html" style="color:#fff;text-decoration:none;">&#8249; Menu principal</a></div>
+
+<div class="contenedor">
+
+  <div class="header-rojo">
+    <div class="logo"><span class="placa-logo"><img id="logoImg" src="" alt="Züblin"></span></div>
+    <div class="codigo">CÓDIGO: INF-GOMS-CL-003 REV.0</div>
+  </div>
+  <div id="selectorEmpresa" style="padding:6px 16px;background:#2a2a2a;"></div>
+  <div class="header-contrato">
+    Contrato N° 4600031460 / GCC-003 — "Desarrollo y Construcción Nivel Superior e Inferior Mina Norte" — División Chuquicamata — Empresa Contratista: ZÜBLIN
+  </div>
+
+  <div class="titulo-doc">Registro de charla / reunión — Listado de firmas digitales</div>
+  <div class="banner-estado" id="bannerEstado">Listado conforme — 0 participantes registrados</div>
+
+  <div class="grupo-botones turno" id="grupoTurno">
+    <button type="button" class="btn-selector activo" data-valor="Día">Turno día</button>
+    <button type="button" class="btn-selector" data-valor="Noche">Turno noche</button>
+  </div>
+  <div class="grupo-botones grupo" id="grupoGrupo">
+    <button type="button" class="btn-selector activo" data-valor="G1">G1</button>
+    <button type="button" class="btn-selector" data-valor="G2">G2</button>
+    <button type="button" class="btn-selector" data-valor="G3">G3</button>
+    <button type="button" class="btn-selector" data-valor="G4">G4</button>
+  </div>
+
+  <div class="seccion fila-2">
+    <div>
+      <label for="campoRelator">Relator(es)</label>
+      <input type="text" id="campoRelator" placeholder="Nombre del relator">
+    </div>
+    <div>
+      <label for="campoSector">Sector de la charla</label>
+      <input type="text" id="campoSector" placeholder="Ej: Oficina POD OIM">
+    </div>
+  </div>
+  <div class="seccion fila-2">
+    <div>
+      <label for="campoFecha">Fecha</label>
+      <input type="date" id="campoFecha">
+    </div>
+    <div>
+      <label for="campoHoraInicio">Hora inicio</label>
+      <input type="time" id="campoHoraInicio">
+    </div>
+    <div>
+      <label for="campoHoraTermino">Hora término</label>
+      <input type="time" id="campoHoraTermino">
+    </div>
+  </div>
+
+  <div class="seccion">
+    <label for="campoObjetivos" class="titulo-seccion">Objetivos</label>
+    <textarea id="campoObjetivos" placeholder="Objetivo de la charla"></textarea>
+  </div>
+  <div class="seccion">
+    <label for="campoMaterias" class="titulo-seccion">Materias tratadas</label>
+    <textarea id="campoMaterias"></textarea>
+  </div>
+  <div class="seccion">
+    <label for="campoDecisiones" class="titulo-seccion">Decisiones tomadas</label>
+    <textarea id="campoDecisiones"></textarea>
+  </div>
+  <div class="seccion">
+    <label for="campoCompromisos" class="titulo-seccion">Compromisos</label>
+    <textarea id="campoCompromisos"></textarea>
+  </div>
+
+  <div class="seccion">
+    <label class="titulo-seccion">Evidencia fotográfica (participantes presentes)</label>
+    <div id="cajaFoto" class="caja-foto">
+      <img id="previewFoto" style="display:none;">
+      <div id="placeholderFoto" class="placeholder-foto">
+        <span>Sin foto capturada</span>
+      </div>
+    </div>
+    <div class="foto-botones">
+      <label class="btn-foto" for="inputFoto">Capturar / subir foto</label>
+      <input type="file" id="inputFoto" accept="image/*" capture="environment" style="display:none;">
+      <button type="button" class="btn-foto-quitar" id="btnQuitarFoto" style="display:none;">Quitar foto</button>
+    </div>
+  </div>
+
+  <div class="participantes-header">
+    <h3 class="titulo-seccion" style="margin:0;">Participantes</h3>
+    <div class="contador"><span id="contadorNum">0</span> / 20</div>
+  </div>
+  <div id="listaParticipantes"></div>
+  <button type="button" class="btn-agregar" id="btnAgregarParticipante">+ Agregar participante</button>
+
+  <div class="relator-final">
+    <h3 class="titulo-seccion" style="margin:0 0 10px;">Firma del relator</h3>
+    <input type="text" id="campoNombreRelatorFirma" placeholder="Nombre del relator" style="margin-bottom:8px;">
+    <label style="font-size:11px;color:var(--gris-texto);display:block;margin-bottom:4px;">Firma</label>
+    <canvas id="canvasFirmaRelator" class="canvas-firma"></canvas>
+    <div class="firma-acciones">
+      <button type="button" class="link-limpiar" data-limpiar="canvasFirmaRelator">Limpiar firma</button>
+    </div>
+  </div>
+
+  <div class="mensaje-error" id="mensajeError"></div>
+  <button type="button" class="btn-pdf" id="btnGenerarPDF">Vista previa PDF</button>
+
+</div>
+
+<div class="modal-fondo" id="modalFondo">
+  <div class="modal-caja">
+    <div class="modal-titulo">
+      <span>Vista previa del PDF</span>
+      <button type="button" id="btnCerrarModal">&times;</button>
+    </div>
+    <div class="modal-cuerpo">
+      <iframe id="iframePreview" title="Vista previa PDF"></iframe>
+    </div>
+    <div class="modal-pie">
+      <button type="button" class="cerrar" id="btnSeguirEditando">Seguir editando</button>
+      <button type="button" class="descargar" id="btnDescargarPDF">Descargar PDF</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="qrOculto" width="240" height="240"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="marca.js"></script>
+<script>
+/* ===================== ESTADO Y CONSTANTES ===================== */
+/* MARCA: logo/colores/contrato de la empresa activa (Fase 2). */
+var LOGO_ZUBLIN_DATAURL = null; // se completa cuando MARCA.iniciar() resuelve
+
+MARCA.iniciar().then(function(){
+  MARCA.aplicarCSS();
+  MARCA.pintarHeaderHTML('logoImg');
+  MARCA.crearSelector('selectorEmpresa');
+  LOGO_ZUBLIN_DATAURL = MARCA.logoDataUrl;
+  var contratoEl = document.querySelector('.header-contrato');
+  if(contratoEl) contratoEl.textContent = MARCA.textoContrato();
+});
+
+var CODIGO_DOC = "INF-GOMS-CL-003 REV.0"; // codigo de TIPO de documento, no de empresa: no se toca en Fase 2
+var TITULO_DOC = "Registro de charla / reunion - Listado de firmas digitales";
+var MAX_PARTICIPANTES = 20;
+
+var turnoSeleccionado = "Día";
+var grupoSeleccionado = "G1";
+var contadorParticipantes = 0;
+var canvasesFirma = {};
+var docPDFActual = null;
+var fotoEvidenciaDataUrl = null;
+
+/* ===================== SELECTORES TURNO / GRUPO ===================== */
+document.getElementById("grupoTurno").addEventListener("click", function(e){
+  var btn = e.target.closest(".btn-selector");
+  if(!btn) return;
+  this.querySelectorAll(".btn-selector").forEach(function(b){ b.classList.remove("activo"); });
+  btn.classList.add("activo");
+  turnoSeleccionado = btn.dataset.valor;
+});
+document.getElementById("grupoGrupo").addEventListener("click", function(e){
+  var btn = e.target.closest(".btn-selector");
+  if(!btn) return;
+  this.querySelectorAll(".btn-selector").forEach(function(b){ b.classList.remove("activo"); });
+  btn.classList.add("activo");
+  grupoSeleccionado = btn.dataset.valor;
+});
+
+/* ===================== FIRMA TACTIL (CANVAS) ===================== */
+function inicializarFirma(canvas){
+  var id = canvas.id;
+  function ajustarTamano(){
+    var ratio = window.devicePixelRatio || 1;
+    var rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    var ctx = canvas.getContext("2d");
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#1a1a1a";
+  }
+  ajustarTamano();
+
+  var dibujando = false;
+  var ctx = canvas.getContext("2d");
+
+  function obtenerPos(e){
+    var rect = canvas.getBoundingClientRect();
+    var cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    var cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    return { x: cx, y: cy };
+  }
+  function iniciar(e){
+    dibujando = true;
+    var p = obtenerPos(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    canvasesFirma[id].tieneTrazo = true;
+    e.preventDefault();
+  }
+  function mover(e){
+    if(!dibujando) return;
+    var p = obtenerPos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    e.preventDefault();
+  }
+  function terminar(){ dibujando = false; }
+
+  canvas.addEventListener("mousedown", iniciar);
+  canvas.addEventListener("mousemove", mover);
+  window.addEventListener("mouseup", terminar);
+  canvas.addEventListener("touchstart", iniciar, { passive: false });
+  canvas.addEventListener("touchmove", mover, { passive: false });
+  canvas.addEventListener("touchend", terminar);
+
+  canvasesFirma[id] = { canvas: canvas, tieneTrazo: false };
+}
+
+function limpiarFirma(id){
+  var entrada = canvasesFirma[id];
+  if(!entrada) return;
+  var ctx = entrada.canvas.getContext("2d");
+  ctx.clearRect(0, 0, entrada.canvas.width, entrada.canvas.height);
+  entrada.tieneTrazo = false;
+}
+
+document.addEventListener("click", function(e){
+  var btn = e.target.closest(".link-limpiar");
+  if(!btn) return;
+  limpiarFirma(btn.dataset.limpiar);
+});
+
+/* ===================== EVIDENCIA FOTOGRAFICA ===================== */
+var inputFotoEl = document.getElementById("inputFoto");
+var previewFotoEl = document.getElementById("previewFoto");
+var placeholderFotoEl = document.getElementById("placeholderFoto");
+var btnQuitarFotoEl = document.getElementById("btnQuitarFoto");
+
+function comprimirImagen(archivo, callback){
+  var lector = new FileReader();
+  lector.onload = function(e){
+    var img = new Image();
+    img.onload = function(){
+      var maxLado = 1200;
+      var ancho = img.width;
+      var alto = img.height;
+      if(ancho > maxLado || alto > maxLado){
+        if(ancho > alto){
+          alto = Math.round(alto * (maxLado / ancho));
+          ancho = maxLado;
+        } else {
+          ancho = Math.round(ancho * (maxLado / alto));
+          alto = maxLado;
+        }
+      }
+      var canvasTmp = document.createElement("canvas");
+      canvasTmp.width = ancho;
+      canvasTmp.height = alto;
+      var ctxTmp = canvasTmp.getContext("2d");
+      ctxTmp.drawImage(img, 0, 0, ancho, alto);
+      var dataUrlComprimido = canvasTmp.toDataURL("image/jpeg", 0.82);
+      callback(dataUrlComprimido);
+    };
+    img.src = e.target.result;
+  };
+  lector.readAsDataURL(archivo);
+}
+
+inputFotoEl.addEventListener("change", function(e){
+  var archivo = e.target.files[0];
+  if(!archivo) return;
+  comprimirImagen(archivo, function(dataUrlComprimido){
+    fotoEvidenciaDataUrl = dataUrlComprimido;
+    previewFotoEl.src = dataUrlComprimido;
+    previewFotoEl.style.display = "block";
+    placeholderFotoEl.style.display = "none";
+    btnQuitarFotoEl.style.display = "block";
+  });
+});
+
+btnQuitarFotoEl.addEventListener("click", function(){
+  fotoEvidenciaDataUrl = null;
+  inputFotoEl.value = "";
+  previewFotoEl.style.display = "none";
+  placeholderFotoEl.style.display = "flex";
+  btnQuitarFotoEl.style.display = "none";
+});
+
+/* ===================== PARTICIPANTES DINAMICOS ===================== */
+var listaParticipantesEl = document.getElementById("listaParticipantes");
+var contadorNumEl = document.getElementById("contadorNum");
+
+function crearTarjetaParticipante(){
+  contadorParticipantes++;
+  var idUnico = "participante-" + contadorParticipantes;
+  var idCanvas = "canvasFirma-" + idUnico;
+
+  var tarjeta = document.createElement("div");
+  tarjeta.className = "tarjeta-participante";
+  tarjeta.dataset.id = idUnico;
+  tarjeta.innerHTML =
+    '<div class="tarjeta-header">' +
+      '<span class="num">Participante</span>' +
+      '<div class="tarjeta-acciones">' +
+        '<button type="button" class="icono-btn subir" title="Subir">&uarr;</button>' +
+        '<button type="button" class="icono-btn bajar" title="Bajar">&darr;</button>' +
+        '<button type="button" class="icono-btn borrar" title="Eliminar">&times;</button>' +
+      '</div>' +
+    '</div>' +
+    '<label>Nombre y apellido</label>' +
+    '<input type="text" class="campo-nombre" placeholder="Nombre completo" style="margin-bottom:8px;">' +
+    '<div class="fila-2" style="margin-bottom:8px;">' +
+      '<div><label>RUT</label><input type="text" class="campo-rut" placeholder="11.111.111-1"></div>' +
+      '<div><label>Área</label><input type="text" class="campo-area" placeholder="Ej: Minería"></div>' +
+    '</div>' +
+    '<label>Firma</label>' +
+    '<canvas class="canvas-firma" id="' + idCanvas + '"></canvas>' +
+    '<div class="firma-acciones"><button type="button" class="link-limpiar" data-limpiar="' + idCanvas + '">Limpiar firma</button></div>';
+
+  listaParticipantesEl.appendChild(tarjeta);
+  inicializarFirma(document.getElementById(idCanvas));
+  renumerarParticipantes();
+}
+
+function renumerarParticipantes(){
+  var tarjetas = listaParticipantesEl.querySelectorAll(".tarjeta-participante");
+  tarjetas.forEach(function(t, i){
+    t.querySelector(".num").textContent = "Participante " + (i + 1);
+  });
+  contadorNumEl.textContent = tarjetas.length;
+  document.getElementById("btnAgregarParticipante").style.display =
+    tarjetas.length >= MAX_PARTICIPANTES ? "none" : "block";
+  var bannerEl = document.getElementById("bannerEstado");
+  if(bannerEl){
+    bannerEl.textContent = "Listado conforme — " + tarjetas.length + " participante" + (tarjetas.length === 1 ? "" : "s") + " registrado" + (tarjetas.length === 1 ? "" : "s");
+  }
+}
+
+document.getElementById("btnAgregarParticipante").addEventListener("click", function(){
+  if(listaParticipantesEl.querySelectorAll(".tarjeta-participante").length >= MAX_PARTICIPANTES) return;
+  crearTarjetaParticipante();
+});
+
+listaParticipantesEl.addEventListener("click", function(e){
+  var tarjeta = e.target.closest(".tarjeta-participante");
+  if(!tarjeta) return;
+  if(e.target.closest(".borrar")){
+    delete canvasesFirma["canvasFirma-" + tarjeta.dataset.id];
+    tarjeta.remove();
+    renumerarParticipantes();
+  } else if(e.target.closest(".subir")){
+    var anterior = tarjeta.previousElementSibling;
+    if(anterior) listaParticipantesEl.insertBefore(tarjeta, anterior);
+    renumerarParticipantes();
+  } else if(e.target.closest(".bajar")){
+    var siguiente = tarjeta.nextElementSibling;
+    if(siguiente) listaParticipantesEl.insertBefore(siguiente, tarjeta);
+    renumerarParticipantes();
+  }
+});
+
+/* Firma del relator (fija) se inicializa al cargar */
+inicializarFirma(document.getElementById("canvasFirmaRelator"));
+
+/* Participantes iniciales */
+for(var i = 0; i < 3; i++){ crearTarjetaParticipante(); }
+
+/* ===================== VALIDACION ===================== */
+function mostrarError(msg){
+  var el = document.getElementById("mensajeError");
+  el.textContent = msg;
+  el.style.display = "block";
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+function ocultarError(){
+  document.getElementById("mensajeError").style.display = "none";
+}
+
+function recolectarParticipantes(){
+  var tarjetas = listaParticipantesEl.querySelectorAll(".tarjeta-participante");
+  var lista = [];
+  for(var i = 0; i < tarjetas.length; i++){
+    var t = tarjetas[i];
+    var nombre = t.querySelector(".campo-nombre").value.trim();
+    var rut = t.querySelector(".campo-rut").value.trim();
+    var area = t.querySelector(".campo-area").value.trim();
+    var canvas = t.querySelector(".canvas-firma");
+    var firmaOk = canvasesFirma[canvas.id] && canvasesFirma[canvas.id].tieneTrazo;
+    lista.push({ nombre: nombre, rut: rut, area: area, canvas: canvas, firmaOk: firmaOk });
+  }
+  return lista;
+}
+
+function validarFormulario(){
+  ocultarError();
+  var relator = document.getElementById("campoRelator").value.trim();
+  var sector = document.getElementById("campoSector").value.trim();
+  var fecha = document.getElementById("campoFecha").value;
+  var horaInicio = document.getElementById("campoHoraInicio").value;
+  var horaTermino = document.getElementById("campoHoraTermino").value;
+  var nombreFirmaRelator = document.getElementById("campoNombreRelatorFirma").value.trim();
+  var firmaRelatorOk = canvasesFirma["canvasFirmaRelator"] && canvasesFirma["canvasFirmaRelator"].tieneTrazo;
+
+  if(!relator){ mostrarError("Falta indicar el Relator(es)."); return null; }
+  if(!sector){ mostrarError("Falta indicar el Sector de la charla."); return null; }
+  if(!fecha){ mostrarError("Falta indicar la Fecha."); return null; }
+  if(!horaInicio || !horaTermino){ mostrarError("Falta indicar la Hora de inicio o término."); return null; }
+
+  var participantes = recolectarParticipantes();
+  if(participantes.length === 0){ mostrarError("Debes agregar al menos un participante."); return null; }
+  for(var i = 0; i < participantes.length; i++){
+    var p = participantes[i];
+    if(!p.nombre || !p.rut){
+      mostrarError("Completa nombre y RUT del participante " + (i + 1) + ".");
+      return null;
+    }
+    if(!p.firmaOk){
+      mostrarError("Falta la firma del participante " + (i + 1) + " (" + p.nombre + ").");
+      return null;
+    }
+  }
+  if(!nombreFirmaRelator){ mostrarError("Falta el nombre del relator en la firma final."); return null; }
+  if(!firmaRelatorOk){ mostrarError("Falta la firma del relator."); return null; }
+
+  return {
+    relator: relator, sector: sector, fecha: fecha,
+    horaInicio: horaInicio, horaTermino: horaTermino,
+    objetivos: document.getElementById("campoObjetivos").value.trim(),
+    materias: document.getElementById("campoMaterias").value.trim(),
+    decisiones: document.getElementById("campoDecisiones").value.trim(),
+    compromisos: document.getElementById("campoCompromisos").value.trim(),
+    fotoEvidencia: fotoEvidenciaDataUrl,
+    turno: turnoSeleccionado, grupo: grupoSeleccionado,
+    participantes: participantes,
+    nombreFirmaRelator: nombreFirmaRelator,
+    canvasFirmaRelator: document.getElementById("canvasFirmaRelator")
+  };
+}
+
+/* ===================== GENERACION DE PDF ===================== */
+function formatearFechaLarga(fechaISO){
+  if(!fechaISO) return "";
+  var partes = fechaISO.split("-");
+  return partes[2] + "-" + partes[1] + "-" + partes[0];
+}
+
+function generarCodigoQR(texto, callback){
+  var qr = new QRious({ element: document.getElementById("qrOculto"), value: texto, size: 240, level: "M" });
+  callback(qr.toDataURL());
+}
+
+function dibujarEncabezado(doc, qrDataUrl){
+  var anchoPagina = doc.internal.pageSize.getWidth();
+  var ch = MARCA.colorHeaderRGB();
+  doc.setFillColor(ch[0], ch[1], ch[2]);
+  doc.rect(0, 0, anchoPagina, 14, "F");
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(6, 2.5, 30, 9, 1.2, 1.2, "F");
+  try{
+    doc.addImage(LOGO_ZUBLIN_DATAURL, "PNG", 8, 4, 26, 6);
+  }catch(err){}
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.text("CÓDIGO: " + CODIGO_DOC, anchoPagina - 8, 9.5, { align: "right" });
+
+  doc.setFillColor(45, 45, 45);
+  doc.rect(0, 14, anchoPagina, 9, "F");
+  doc.setTextColor(230, 230, 230);
+  doc.setFontSize(7);
+  var lineasContrato = doc.splitTextToSize(MARCA.textoContrato(), anchoPagina - (qrDataUrl ? 30 : 16));
+  doc.text(lineasContrato, 8, 18.5);
+
+  if(qrDataUrl){
+    doc.addImage(qrDataUrl, "PNG", anchoPagina - 19, 14.6, 8, 8);
+  }
+  doc.setTextColor(0, 0, 0);
+  return 30;
+}
+
+function dibujarPiePagina(doc, nombreGenerador, fechaGen, numPagina, totalPaginas, corr){
+  var anchoPagina = doc.internal.pageSize.getWidth();
+  var altoPagina = doc.internal.pageSize.getHeight();
+  doc.setDrawColor(200, 200, 200);
+  doc.line(8, altoPagina - 12, anchoPagina - 8, altoPagina - 12);
+  doc.setFontSize(7.5);
+  doc.setTextColor(90, 90, 90);
+  doc.text("Generado por: " + nombreGenerador + " | " + fechaGen + " | " + TITULO_DOC + (corr ? " | N° " + corr : ""), 8, altoPagina - 7);
+  doc.text("Página " + numPagina + " de " + totalPaginas, anchoPagina - 8, altoPagina - 7, { align: "right" });
+  doc.setTextColor(0, 0, 0);
+}
+
+function tituloSeccion(doc, texto, y, anchoPagina){
+  var ca = MARCA.colorRGB();
+  doc.setFillColor(ca[0], ca[1], ca[2]);
+  doc.rect(8, y - 3.8, 1.2, 4.8, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  var maxAncho = anchoPagina - 40;
+  var lineas = doc.splitTextToSize(texto, maxAncho);
+  doc.text(lineas, 11, y);
+  doc.setFont("helvetica", "normal");
+  return y + (lineas.length * 5) + 2;
+}
+
+function textoParrafo(doc, texto, y, anchoPagina){
+  doc.setFontSize(10);
+  var lineas = doc.splitTextToSize(texto || "-", anchoPagina - 16);
+  doc.text(lineas, 8, y);
+  return y + (lineas.length * 4.5) + 4;
+}
+
+function construirPDF(datos, callback){
+  var jsPDFConstructor = window.jspdf.jsPDF;
+  var doc = new jsPDFConstructor({ unit: "mm", format: "a4" });
+  var anchoPagina = doc.internal.pageSize.getWidth();
+  var altoPagina = doc.internal.pageSize.getHeight();
+  var margenInferior = altoPagina - 18;
+
+  var ahora = new Date();
+  var fechaGen = ("0" + ahora.getDate()).slice(-2) + "-" + ("0" + (ahora.getMonth() + 1)).slice(-2) + "-" + ahora.getFullYear();
+
+  var textoQR = CODIGO_DOC + " | " + datos.fecha + " | " + datos.turno + " " + datos.grupo + " | " + datos.participantes.length + " participantes";
+
+  generarCodigoQR(textoQR, function(qrDataUrl){
+    var y = dibujarEncabezado(doc, qrDataUrl);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text("Registro de charla / reunión — listado de firmas", anchoPagina / 2, y, { align: "center" });
+    y += 6;
+
+    var textoBanner = "Listado conforme — " + datos.participantes.length + " participante" + (datos.participantes.length === 1 ? "" : "s") + " registrado" + (datos.participantes.length === 1 ? "" : "s");
+    doc.setFillColor(47, 107, 58);
+    doc.roundedRect(8, y, anchoPagina - 16, 7, 1.5, 1.5, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.text(textoBanner, anchoPagina / 2, y + 4.8, { align: "center" });
+    doc.setTextColor(0, 0, 0);
+    y += 13;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("Relator(es): " + datos.relator, 8, y);
+    doc.text("Sector: " + datos.sector, anchoPagina / 2 + 4, y);
+    y += 5.5;
+    doc.text("Fecha: " + formatearFechaLarga(datos.fecha), 8, y);
+    doc.text("Hora: " + datos.horaInicio + " - " + datos.horaTermino, anchoPagina / 2 + 4, y);
+    y += 5.5;
+    doc.text("Turno: " + datos.turno + "     Grupo: " + datos.grupo, 8, y);
+    y += 8;
+
+    y = tituloSeccion(doc, "Objetivos", y, anchoPagina);
+    y = textoParrafo(doc, datos.objetivos, y, anchoPagina);
+    y = tituloSeccion(doc, "Materias tratadas", y, anchoPagina);
+    y = textoParrafo(doc, datos.materias, y, anchoPagina);
+    y = tituloSeccion(doc, "Decisiones tomadas", y, anchoPagina);
+    y = textoParrafo(doc, datos.decisiones, y, anchoPagina);
+    y = tituloSeccion(doc, "Compromisos", y, anchoPagina);
+    y = textoParrafo(doc, datos.compromisos, y, anchoPagina);
+
+    if(datos.fotoEvidencia){
+      var altoFoto = 60;
+      if(y + altoFoto + 10 > margenInferior){
+        doc.addPage();
+        y = dibujarEncabezado(doc, qrDataUrl);
+      }
+      y = tituloSeccion(doc, "Evidencia fotográfica", y, anchoPagina);
+      try{
+        var anchoFoto = anchoPagina - 16;
+        doc.setDrawColor(210, 210, 208);
+        doc.rect(8, y, anchoFoto, altoFoto);
+        doc.addImage(datos.fotoEvidencia, "JPEG", 8, y, anchoFoto, altoFoto, undefined, "FAST");
+      }catch(err){}
+      y += altoFoto + 8;
+    }
+
+    y += 2;
+    y = tituloSeccion(doc, "Participantes", y, anchoPagina);
+
+    var colN = 8, colNombre = 16, colRut = 92, colArea = 128, colFirma = 160, finTabla = anchoPagina - 8;
+    var altoFila = 16;
+
+    function dibujarCabeceraTabla(yPos){
+      doc.setFillColor(240, 240, 238);
+      doc.rect(8, yPos - 4.5, finTabla - 8, 6, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8.5);
+      doc.text("N°", colN, yPos);
+      doc.text("Nombre y apellido", colNombre, yPos);
+      doc.text("RUT", colRut, yPos);
+      doc.text("Área", colArea, yPos);
+      doc.text("Firma", colFirma, yPos);
+      doc.setFont("helvetica", "normal");
+      return yPos + 6;
+    }
+
+    y = dibujarCabeceraTabla(y);
+
+    datos.participantes.forEach(function(p, idx){
+      if(y + altoFila > margenInferior){
+        doc.addPage();
+        y = dibujarEncabezado(doc, qrDataUrl);
+        y = dibujarCabeceraTabla(y);
+      }
+      doc.setFontSize(9);
+      doc.text(String(idx + 1), colN, y + 5);
+      doc.text(doc.splitTextToSize(p.nombre, colRut - colNombre - 2), colNombre, y + 5);
+      doc.text(p.rut, colRut, y + 5);
+      doc.text(doc.splitTextToSize(p.area, colFirma - colArea - 2), colArea, y + 5);
+      try{
+        var firmaData = p.canvas.toDataURL("image/png");
+        doc.addImage(firmaData, "PNG", colFirma, y, finTabla - colFirma, altoFila - 3);
+      }catch(err){}
+      doc.setDrawColor(225, 225, 222);
+      doc.line(8, y + altoFila - 1, finTabla, y + altoFila - 1);
+      y += altoFila;
+    });
+
+    y += 10;
+    if(y + 40 > margenInferior){
+      doc.addPage();
+      y = dibujarEncabezado(doc, qrDataUrl);
+      y += 4;
+    }
+    y = tituloSeccion(doc, "Firma del relator", y, anchoPagina);
+    doc.setFontSize(10);
+    doc.text(datos.nombreFirmaRelator, 8, y);
+    y += 4;
+    try{
+      var firmaRelatorData = datos.canvasFirmaRelator.toDataURL("image/png");
+      doc.addImage(firmaRelatorData, "PNG", 8, y, 70, 22);
+    }catch(err){}
+
+    var totalPaginas = doc.internal.getNumberOfPages();
+    var corrFirmas = MARCA.correlativo(datos.nombreFirmaRelator, "FIRMAS"); // se calcula UNA sola vez, no por pagina
+    for(var pg = 1; pg <= totalPaginas; pg++){
+      doc.setPage(pg);
+      dibujarPiePagina(doc, datos.nombreFirmaRelator, fechaGen, pg, totalPaginas, corrFirmas);
+    }
+
+    callback(doc);
+  });
+}
+
+/* ===================== FLUJO DE BOTONES ===================== */
+document.getElementById("btnGenerarPDF").addEventListener("click", function(){
+  try{
+  var datos = validarFormulario();
+  if(!datos) return;
+  construirPDF(datos, function(doc){
+    docPDFActual = doc;
+    var blobUrl = doc.output("bloburl");
+    document.getElementById("iframePreview").src = blobUrl;
+    document.getElementById("modalFondo").classList.add("activo");
+  });
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Listado de firmas digitales): ' + (err && err.message ? err.message : err));
+  }
+});
+
+document.getElementById("btnCerrarModal").addEventListener("click", cerrarModal);
+document.getElementById("btnSeguirEditando").addEventListener("click", cerrarModal);
+function cerrarModal(){
+  document.getElementById("modalFondo").classList.remove("activo");
+}
+
+document.getElementById("btnDescargarPDF").addEventListener("click", function(){
+  if(!docPDFActual) return;
+  var fechaCampo = document.getElementById("campoFecha").value || "sin-fecha";
+  docPDFActual.save("Listado-Firmas-" + fechaCampo + "-" + grupoSeleccionado + ".pdf");
+});
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(console.error);
+  });
+}
+</script>
+</body>
+</html>
