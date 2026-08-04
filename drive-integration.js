@@ -221,7 +221,9 @@
     });
     const createData = await createResp.json();
     const sheetId = createData.spreadsheetId;
-    await apiFetch('https://www.googleapis.com/drive/v3/files/' + sheetId + '?addParents=' + raizId + '&removeParents=root');
+    await apiFetch('https://www.googleapis.com/drive/v3/files/' + sheetId + '?addParents=' + raizId + '&removeParents=root', {
+      method: 'PATCH'
+    });
     await apiFetch('https://sheets.googleapis.com/v4/spreadsheets/' + sheetId + '/values/A1:H1?valueInputOption=RAW', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
