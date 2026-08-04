@@ -97,11 +97,26 @@
     });
   }
 
+  function fetchConTimeout(url, options, timeoutMs){
+    timeoutMs = timeoutMs || 12000;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    options = Object.assign({}, options, { signal: controller.signal });
+    return fetch(url, options)
+      .finally(() => clearTimeout(timer))
+      .catch(e => {
+        if(e && e.name === 'AbortError'){
+          throw new Error('Sin respuesta de Google Drive (revisa tu conexion a internet).');
+        }
+        throw e;
+      });
+  }
+
   async function apiFetch(url, options){
     options = options || {};
     const token = await obtenerToken();
     const headers = Object.assign({}, options.headers || {}, { 'Authorization': 'Bearer ' + token });
-    const resp = await fetch(url, Object.assign({}, options, { headers }));
+    const resp = await fetchConTimeout(url, Object.assign({}, options, { headers }));
     if(!resp.ok){
       const txt = await resp.text().catch(() => '');
       throw new Error('Google API error ' + resp.status + ': ' + txt.slice(0, 300));
@@ -184,11 +199,11 @@
     const form = new FormData();
     form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
     form.append('file', blob);
-    const resp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
+    const resp = await fetchConTimeout('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token },
       body: form
-    });
+    }, 20000);
     if(!resp.ok){
       const txt = await resp.text().catch(() => '');
       throw new Error('Error subiendo PDF a Drive: ' + resp.status + ' ' + txt.slice(0, 300));
