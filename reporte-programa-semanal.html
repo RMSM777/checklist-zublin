@@ -10,6 +10,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="marca.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="drive-integration.js?v=2"></script>
 <style>
   :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; --verde:#2e7d32; --naranja:#F2A93B; --morado:#7a3fbf; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -215,7 +217,7 @@
     <div class="acciones">
       <button class="btn-generar" id="btnPDF" onclick="generarPDF()" disabled>Cerrar y descargar PDF</button>
     </div>
-    <p class="nota">Al cerrar se genera el PDF con los KPI, el gr&aacute;fico hist&oacute;rico, el detalle del programa y tu firma.</p>
+    <p class="nota" id="nota">Al cerrar se genera el PDF con los KPI, el gr&aacute;fico hist&oacute;rico, el detalle del programa y tu firma.</p>
   </section>
   </div>
 
@@ -765,7 +767,28 @@ function generarPDF(){
     doc.text('P\u00e1gina '+p+' de '+totalPag, izq+ancho, 291, {align:'right'});
   }
 
-  doc.save('Adherencia_Programa_Semanal_DT_'+fecha+'.pdf');
+  const nombreArch = 'Adherencia_Programa_Semanal_DT_'+fecha+'.pdf';
+  doc.save(nombreArch);
+  const nota = document.getElementById('nota');
+  nota.innerHTML = 'PDF generado y descargado ('+nombreArch+'). Revisa tus descargas para compartirlo.';
+  nota.style.color = '#2e7d32';
+
+  if(window.QCD_DRIVE){
+    nota.innerHTML += '<br><span style="color:#888;">Subiendo a Google Drive...</span>';
+    QCD_DRIVE.subir({
+      blob: doc.output('blob'),
+      nombreArchivo: nombreArch,
+      tipoReporte: 'Adherencia programa semanal DT',
+      correlativo: corr,
+      empresa: MARCA.empresa.nombreCorto,
+      generadoPor: nombre
+    }).then(function(res){
+      nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>');
+    }).catch(function(err){
+      console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
+      nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>');
+    });
+  }
   }catch(err){
     console.error(err);
     alert('Error al generar el PDF (Adherencia programa semanal DT): ' + (err && err.message ? err.message : err));

@@ -690,7 +690,7 @@ function generarPDF(){
       nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>');
     }).catch(function(err){
       console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
-      nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<span style="color:#c0392b;">No se pudo subir a Drive (el PDF local se genero igual).</span>');
+      nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>');
     });
   }
   }catch(err){

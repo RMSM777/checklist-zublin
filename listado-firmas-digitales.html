@@ -421,6 +421,7 @@
       <button type="button" class="cerrar" id="btnSeguirEditando">Seguir editando</button>
       <button type="button" class="descargar" id="btnDescargarPDF">Descargar PDF</button>
     </div>
+    <p id="notaDrive" style="font-size:12px; text-align:center; margin:8px 14px 0; color:#555;"></p>
   </div>
 </div>
 
@@ -429,6 +430,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <script src="marca.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="drive-integration.js?v=2"></script>
 <script>
 /* ===================== ESTADO Y CONSTANTES ===================== */
 /* MARCA: logo/colores/contrato de la empresa activa (Fase 2). */
@@ -452,6 +455,7 @@ var grupoSeleccionado = "G1";
 var contadorParticipantes = 0;
 var canvasesFirma = {};
 var docPDFActual = null;
+var ultimoGeneradoPor = null;
 var fotoEvidenciaDataUrl = null;
 
 /* ===================== SELECTORES TURNO / GRUPO ===================== */
@@ -942,6 +946,7 @@ function construirPDF(datos, callback){
 
     var totalPaginas = doc.internal.getNumberOfPages();
     var corrFirmas = MARCA.correlativo(datos.nombreFirmaRelator, "FIRMAS"); // se calcula UNA sola vez, no por pagina
+    doc._qcdCorrelativo = corrFirmas;
     for(var pg = 1; pg <= totalPaginas; pg++){
       doc.setPage(pg);
       dibujarPiePagina(doc, datos.nombreFirmaRelator, fechaGen, pg, totalPaginas, corrFirmas);
@@ -958,6 +963,7 @@ document.getElementById("btnGenerarPDF").addEventListener("click", function(){
   if(!datos) return;
   construirPDF(datos, function(doc){
     docPDFActual = doc;
+    ultimoGeneradoPor = datos.nombreFirmaRelator;
     var blobUrl = doc.output("bloburl");
     document.getElementById("iframePreview").src = blobUrl;
     document.getElementById("modalFondo").classList.add("activo");
@@ -977,7 +983,27 @@ function cerrarModal(){
 document.getElementById("btnDescargarPDF").addEventListener("click", function(){
   if(!docPDFActual) return;
   var fechaCampo = document.getElementById("campoFecha").value || "sin-fecha";
-  docPDFActual.save("Listado-Firmas-" + fechaCampo + "-" + grupoSeleccionado + ".pdf");
+  var nombreArch = "Listado-Firmas-" + fechaCampo + "-" + grupoSeleccionado + ".pdf";
+  docPDFActual.save(nombreArch);
+
+  var notaEl = document.getElementById("notaDrive");
+  if(notaEl){ notaEl.innerHTML = 'PDF descargado. <span style="color:#888;">Subiendo a Google Drive...</span>'; }
+
+  if(window.QCD_DRIVE){
+    QCD_DRIVE.subir({
+      blob: docPDFActual.output('blob'),
+      nombreArchivo: nombreArch,
+      tipoReporte: 'Listado de firmas digitales',
+      correlativo: docPDFActual._qcdCorrelativo || '-',
+      empresa: MARCA.empresa.nombreCorto,
+      generadoPor: ultimoGeneradoPor
+    }).then(function(res){
+      if(notaEl){ notaEl.innerHTML = '<a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>'; }
+    }).catch(function(err){
+      console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
+      if(notaEl){ notaEl.innerHTML = '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>'; }
+    });
+  }
 });
 </script>
 <script>
