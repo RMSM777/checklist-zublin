@@ -622,10 +622,11 @@ function descartarBorrador(){ borrarBorrador(); document.getElementById('bannerB
 if(localStorage.getItem(BORRADOR_KEY)){ document.getElementById('bannerBorrador').style.display = 'flex'; }
 
 /* ============ Generacion de PDF ============ */
-function generarVistaPrevia(){
+async function generarVistaPrevia(){
   try{
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:'mm', format:'a4'});
+  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
+    const doc = new jsPDF({unit:'mm', format:'a4'});
   const anchoPag = 210, izq = 14, der = 196;
   let y = 10;
 
@@ -763,6 +764,7 @@ function generarVistaPrevia(){
 }
 function cerrarVista(){ document.getElementById('modalPrev').style.display = 'none'; }
 function descargarPDF(){
+  try{
   if(!window._pdfDocGenerado) return;
   const fi = document.getElementById('fechaInicio').value.replace(/-/g,'');
   const ft = document.getElementById('fechaTermino').value.replace(/-/g,'');
@@ -795,6 +797,10 @@ function descargarPDF(){
       console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
       notaEl.innerHTML = '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>';
     });
+  }
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Cambio de turno general - descarga): ' + (err && err.message ? err.message : err));
   }
 }
 

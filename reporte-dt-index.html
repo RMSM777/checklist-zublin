@@ -761,7 +761,7 @@ function filaTabla(nombre, r){
   return [nombre, r.ABIERTA, r.ATRASADA, r.CERRADA, r.total, r.pctCierre.toFixed(1)+'%'];
 }
 
-function generarPDF(){
+async function generarPDF(){
   try{
   if(!R){ alert('Primero cargue el archivo Excel de SIC3PRO (secci\u00f3n 2).'); return; }
   if(!turno){ alert('Seleccione el turno (D\u00cdA o NOCHE).'); return; }
@@ -772,7 +772,8 @@ function generarPDF(){
   const fecha = v('fecha') || new Date().toISOString().slice(0,10);
   const {G} = R;
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:'mm', format:'a4'});
+  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
+    const doc = new jsPDF({unit:'mm', format:'a4'});
   const izq=12, ancho=186;
   let y = 10;
 
@@ -995,12 +996,14 @@ function generarVistaPreviaListado(){
 function cerrarVistaListado(){
   document.getElementById('modalPrevListado').style.display = 'none';
 }
-function descargarPDFListado(){
+async function descargarPDFListado(){
+  try{
   if(!docListadoActual) return;
   const fechaHoy = new Date().toISOString().slice(0,10).replace(/-/g,'');
   const sufijo = vistaListado === 'GRUPO' ? 'AgrupadoPorArea' : 'PorNivel';
   const nombreArch = 'ListadoDT_'+sufijo+'_'+fechaHoy+'.pdf';
-  docListadoActual.save(nombreArch);
+  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
+    docListadoActual.save(nombreArch);
   cerrarVistaListado();
   const nota = document.getElementById('notaListado');
   nota.textContent = 'PDF generado y descargado ('+nombreArch+'). Listo para compartir.';
@@ -1022,6 +1025,10 @@ function descargarPDFListado(){
       console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
       nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>');
     });
+  }
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Listado de seguimiento DT): ' + (err && err.message ? err.message : err));
   }
 }
 

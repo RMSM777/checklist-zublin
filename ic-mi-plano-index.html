@@ -550,7 +550,7 @@ function addTablaPDF(doc,y,head,body,foot){
   return doc.lastAutoTable.finalY+5;
 }
 
-function generarPDF(){
+async function generarPDF(){
   try{
   if(!R){ alert('Primero cargue los tres archivos (secci\u00f3n 2).'); return; }
   if(!turno){ alert('Seleccione el turno.'); return; }
@@ -560,7 +560,8 @@ function generarPDF(){
   const fecha = v('fecha') || new Date().toISOString().slice(0,10);
 
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:'mm', format:'a4', orientation:'landscape'});
+  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
+    const doc = new jsPDF({unit:'mm', format:'a4', orientation:'landscape'});
   const izq=12, ancho=273;
 
   let qrUrl=null;

@@ -381,7 +381,7 @@ function v(id){ return document.getElementById(id).value; }
 /* ============ PDF: vista previa y descarga ============ */
 let docActual = null, urlPrev = null;
 
-function generarVistaPrevia(){
+async function generarVistaPrevia(){
   try{
   const p = nombresPersonal();
   if(!v('tituloInf')){ alert('Ingrese el t\u00edtulo del informe (secci\u00f3n 1).'); return; }
@@ -394,6 +394,7 @@ function generarVistaPrevia(){
   const sinTipo = regsValidos.filter(r=>!r.tipo);
   if(sinTipo.length){ alert('Hay registros sin clasificar (DESVIACI\u00d3N / POSITIVA / ACCI\u00d3N CORRECTIVA).'); return; }
 
+  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
   docActual = construirPDF(p, regsValidos);
   if(urlPrev) URL.revokeObjectURL(urlPrev);
   urlPrev = URL.createObjectURL(docActual.output('blob'));
@@ -408,6 +409,7 @@ function cerrarVista(){
   document.getElementById('modalPrev').style.display = 'none';
 }
 function descargarPDF(){
+  try{
   if(!docActual) return;
   const p = nombresPersonal();
   const nombreArch = 'Informe_'+v('tituloInf').replace(/\s+/g,'_')+'_'+(v('fecha')||'')+'_'+grupo.replace(/\s+/g,'')+'_'+turno.replace(/\s+/g,'')+'.pdf';
@@ -434,12 +436,16 @@ function descargarPDF(){
       nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>');
     });
   }
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Informe procesos constructivos - descarga): ' + (err && err.message ? err.message : err));
+  }
 }
 
 function construirPDF(p, regsValidos){
   const fecha = v('fecha'), hora = v('hora');
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:'mm', format:'a4'});
+    const doc = new jsPDF({unit:'mm', format:'a4'});
   const izq=15, ancho=180;
   let y = 10;
 

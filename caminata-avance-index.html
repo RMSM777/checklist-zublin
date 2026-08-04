@@ -748,7 +748,7 @@ function filaTablaTR(nombre, r){
   return [nombre, fmtNum(r.avanceTeo), fmtNum(r.avanceReal), r.pctCumpl.toFixed(1)+'%', fmtNum(r.hh)];
 }
 
-function generarPDF(){
+async function generarPDF(){
   try{
   if(!R){ alert('Primero cargue el archivo de Caminata de Avance (secci\u00f3n 2).'); return; }
   if(!turno){ alert('Seleccione el turno (D\u00cdA o NOCHE).'); return; }
@@ -759,7 +759,8 @@ function generarPDF(){
   const fecha = v('fecha') || new Date().toISOString().slice(0,10);
   const {G} = R;
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:'mm', format:'a4'});
+  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
+    const doc = new jsPDF({unit:'mm', format:'a4'});
   const izq=12, ancho=186;
   let y = 10;
 

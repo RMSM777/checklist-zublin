@@ -266,5 +266,9 @@
     return { driveFileId: archivoSubido.id, driveLink: archivoSubido.webViewLink, sheetId };
   }
 
-  window.QCD_DRIVE = { subir };
+  async function asegurarToken(){
+    try{ await obtenerToken(); return true; }catch(e){ console.warn('QCD_DRIVE: no se pudo pre-autorizar Google Drive.', e); return false; }
+  }
+
+  window.QCD_DRIVE = { subir, asegurarToken };
 })();

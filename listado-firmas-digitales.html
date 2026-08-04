@@ -980,11 +980,13 @@ function cerrarModal(){
   document.getElementById("modalFondo").classList.remove("activo");
 }
 
-document.getElementById("btnDescargarPDF").addEventListener("click", function(){
+document.getElementById("btnDescargarPDF").addEventListener("click", async function(){
+  try{
   if(!docPDFActual) return;
   var fechaCampo = document.getElementById("campoFecha").value || "sin-fecha";
   var nombreArch = "Listado-Firmas-" + fechaCampo + "-" + grupoSeleccionado + ".pdf";
-  docPDFActual.save(nombreArch);
+  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
+    docPDFActual.save(nombreArch);
 
   var notaEl = document.getElementById("notaDrive");
   if(notaEl){ notaEl.innerHTML = 'PDF descargado. <span style="color:#888;">Subiendo a Google Drive...</span>'; }
@@ -1003,6 +1005,10 @@ document.getElementById("btnDescargarPDF").addEventListener("click", function(){
       console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
       if(notaEl){ notaEl.innerHTML = '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>'; }
     });
+  }
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Listado de firmas digitales - descarga): ' + (err && err.message ? err.message : err));
   }
 });
 </script>

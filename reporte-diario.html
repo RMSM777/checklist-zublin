@@ -485,7 +485,7 @@ function fmtFecha(iso){ if(!iso) return '-'; const p=iso.split('-'); return p[2]
 // --- PDF ---
 // previo=true: genera el mismo PDF con marca de agua "BORRADOR - NO CERRADO",
 // sin bloquear el turno ni borrar el borrador guardado.
-function generarPDF(previo){
+async function generarPDF(previo){
   try{
   const personas = Array.from(document.querySelectorAll('#personal .fila-dyn')).map(f=>({
     nombre: f.querySelector('.p-nombre').value, cargo: f.querySelector('.p-cargo').value
@@ -498,7 +498,8 @@ function generarPDF(previo){
   const fecha = v('fecha') || new Date().toISOString().slice(0,10);
   const fechaTxt = fmtFecha(fecha);
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:'mm', format:'a4'});
+  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
+    const doc = new jsPDF({unit:'mm', format:'a4'});
   const izq = 12, ancho = 186;
   let y = 10;
 
