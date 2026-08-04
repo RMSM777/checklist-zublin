@@ -254,7 +254,7 @@ function dibujarEncabezado(doc, tituloDoc, qrDataUrl, codigoDoc){
   doc.setFillColor(45,45,45);
   doc.rect(0,14,anchoPagina,9,'F');
   doc.setTextColor(230,230,230); doc.setFontSize(7);
-  const lineasContrato = doc.splitTextToSize(TEXTO_CONTRATO, anchoPagina-16);
+  const lineasContrato = doc.splitTextToSize(MARCA.textoContrato(), anchoPagina-16);
   doc.text(lineasContrato, 8, 18.5);
   if(qrDataUrl){ doc.addImage(qrDataUrl,'PNG',anchoPagina-16,25,12,12); }
   doc.setTextColor(30,30,30);
