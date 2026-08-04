@@ -953,6 +953,7 @@ function construirPDF(datos, callback){
 
 /* ===================== FLUJO DE BOTONES ===================== */
 document.getElementById("btnGenerarPDF").addEventListener("click", function(){
+  try{
   var datos = validarFormulario();
   if(!datos) return;
   construirPDF(datos, function(doc){
@@ -961,6 +962,10 @@ document.getElementById("btnGenerarPDF").addEventListener("click", function(){
     document.getElementById("iframePreview").src = blobUrl;
     document.getElementById("modalFondo").classList.add("activo");
   });
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Listado de firmas digitales): ' + (err && err.message ? err.message : err));
+  }
 });
 
 document.getElementById("btnCerrarModal").addEventListener("click", cerrarModal);

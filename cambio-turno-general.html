@@ -623,6 +623,7 @@ if(localStorage.getItem(BORRADOR_KEY)){ document.getElementById('bannerBorrador'
 
 /* ============ Generacion de PDF ============ */
 function generarVistaPrevia(){
+  try{
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({unit:'mm', format:'a4'});
   const anchoPag = 210, izq = 14, der = 196;
@@ -755,6 +756,10 @@ function generarVistaPrevia(){
   doc._qcdGeneradoPor = gen;
   document.getElementById('framePrev').src = doc.output('bloburl');
   document.getElementById('modalPrev').style.display = 'flex';
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Cambio de turno general): ' + (err && err.message ? err.message : err));
+  }
 }
 function cerrarVista(){ document.getElementById('modalPrev').style.display = 'none'; }
 function descargarPDF(){

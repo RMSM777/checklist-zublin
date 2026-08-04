@@ -551,6 +551,7 @@ function addTablaPDF(doc,y,head,body,foot){
 }
 
 function generarPDF(){
+  try{
   if(!R){ alert('Primero cargue los tres archivos (secci\u00f3n 2).'); return; }
   if(!turno){ alert('Seleccione el turno.'); return; }
   const nombre = v('nombre');
@@ -691,6 +692,10 @@ function generarPDF(){
       console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
       nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<span style="color:#c0392b;">No se pudo subir a Drive (el PDF local se genero igual).</span>');
     });
+  }
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Avance caminado IC Mineria): ' + (err && err.message ? err.message : err));
   }
 }
 </script>

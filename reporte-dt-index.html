@@ -762,6 +762,7 @@ function filaTabla(nombre, r){
 }
 
 function generarPDF(){
+  try{
   if(!R){ alert('Primero cargue el archivo Excel de SIC3PRO (secci\u00f3n 2).'); return; }
   if(!turno){ alert('Seleccione el turno (D\u00cdA o NOCHE).'); return; }
   const nombre = v('nombre');
@@ -967,6 +968,10 @@ function generarPDF(){
       console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
       nota.innerHTML = nota.innerHTML.replace('Subiendo a Google Drive...', '<span style="color:#c0392b;">No se pudo subir a Drive (el PDF local se genero igual).</span>');
     });
+  }
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Reporte DT): ' + (err && err.message ? err.message : err));
   }
 }
 

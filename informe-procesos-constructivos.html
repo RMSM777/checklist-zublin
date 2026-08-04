@@ -382,6 +382,7 @@ function v(id){ return document.getElementById(id).value; }
 let docActual = null, urlPrev = null;
 
 function generarVistaPrevia(){
+  try{
   const p = nombresPersonal();
   if(!v('tituloInf')){ alert('Ingrese el t\u00edtulo del informe (secci\u00f3n 1).'); return; }
   if(!turno){ alert('Seleccione el turno.'); return; }
@@ -398,6 +399,10 @@ function generarVistaPrevia(){
   urlPrev = URL.createObjectURL(docActual.output('blob'));
   document.getElementById('framePrev').src = urlPrev;
   document.getElementById('modalPrev').style.display = 'flex';
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Informe procesos constructivos): ' + (err && err.message ? err.message : err));
+  }
 }
 function cerrarVista(){
   document.getElementById('modalPrev').style.display = 'none';

@@ -486,6 +486,7 @@ function fmtFecha(iso){ if(!iso) return '-'; const p=iso.split('-'); return p[2]
 // previo=true: genera el mismo PDF con marca de agua "BORRADOR - NO CERRADO",
 // sin bloquear el turno ni borrar el borrador guardado.
 function generarPDF(previo){
+  try{
   const personas = Array.from(document.querySelectorAll('#personal .fila-dyn')).map(f=>({
     nombre: f.querySelector('.p-nombre').value, cargo: f.querySelector('.p-cargo').value
   })).filter(p=>p.nombre.trim()!=='');
@@ -727,6 +728,10 @@ function generarPDF(previo){
       console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
       notaEl.innerHTML = notaEl.innerHTML.replace('Subiendo a Google Drive...', '<span style="color:#c0392b;">No se pudo subir a Drive (el PDF local se genero igual).</span>');
     });
+  }
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Reporte diario): ' + (err && err.message ? err.message : err));
   }
 }
 </script>
