@@ -95,6 +95,32 @@ html.dark a{
   color:#ffb066;
 }
 
+html.dark table.mini td{
+  border-bottom-color:#334066;
+}
+
+html.dark .qcd-modal-pie{
+  background:#101a2e !important;
+}
+
+html.dark .registro{
+  background:#141d33;
+  border-color:#334066;
+  border-left-color:#38445e;
+}
+
+/* Barra flotante de notificacion (ej: estado de subida a Drive) */
+.qcd-nota-flotante{
+  position:fixed; bottom:12px; left:12px; right:12px;
+  background:#fff; border:1px solid #ccc; border-radius:8px;
+  padding:8px 12px; font-size:12px; z-index:9999;
+}
+html.dark .qcd-nota-flotante{
+  background:#141d33;
+  border-color:#38445e;
+  color:#e7ecf5;
+}
+
 html.dark ::-webkit-scrollbar{ width:10px; height:10px; }
 html.dark ::-webkit-scrollbar-track{ background:#0a0f1c; }
 html.dark ::-webkit-scrollbar-thumb{ background:#334066; border-radius:6px; }
