@@ -67,7 +67,7 @@
   /* Version de la app (formato: v + fecha de release AAAA.MM.DD).
      Fuente unica: se actualiza SOLO aqui, no en cada reporte. Los
      footers de las paginas la pintan llamando a MARCA.pintarVersion(). */
-  const VERSION = 'v2026.08.05';
+  const VERSION = 'v2026.08.06';
 
   const MARCA = {
     _datos: null,
@@ -101,6 +101,7 @@
 
       this._listo = true;
       this._avisarSiPlantilla();
+      this._avisarSiPrivado();
       return this;
     },
 
@@ -119,7 +120,68 @@
         + 'font-size:12.5px; font-weight:600; padding:10px 14px; text-align:center; line-height:1.4;';
       div.textContent = '\u26A0\uFE0F Modo plantilla activo (QC Digital), sin datos de contrato. '
         + 'Para cerrar un reporte real de terreno, cambia \u201cEmpresa activa\u201d de abajo a Z\u00daBLIN.';
-      if(document.body.firstChild){
+      this._insertarAviso(div);
+    },
+
+    /* Deteccion best-effort de navegacion privada/incognito. No hay API
+       oficial para esto en ningun navegador, asi que se usa una heuristica
+       de cuota de almacenamiento (Chrome/Edge/Android en incognito reportan
+       una cuota mucho mas chica que en modo normal) mas un intento de
+       escritura real en IndexedDB (Firefox/Safari privado suelen fallar o
+       reportar cuota ~0). Si algo no esta disponible, se asume que NO es
+       privado (falso negativo es preferible a un aviso equivocado). */
+    async _esNavegacionPrivada(){
+      try{
+        if(navigator.storage && navigator.storage.estimate){
+          const { quota } = await navigator.storage.estimate();
+          if(typeof quota === 'number' && quota > 0 && quota < 120 * 1024 * 1024){
+            return true;
+          }
+        }
+      }catch(e){ /* seguimos con el siguiente metodo */ }
+
+      try{
+        return await new Promise((resolve) => {
+          const req = indexedDB.open('qcd_test_privado');
+          req.onerror = () => resolve(true);
+          req.onsuccess = () => {
+            try{ req.result.close(); }catch(e){}
+            try{ indexedDB.deleteDatabase('qcd_test_privado'); }catch(e){}
+            resolve(false);
+          };
+        });
+      }catch(e){
+        return false;
+      }
+    },
+
+    /* Aviso visible desde el momento en que se abre la pagina, si el
+       navegador esta en modo privado/incognito. Motivo: localStorage
+       (correlativo, borrador autoguardado, empresa activa, modo oscuro,
+       token de Google Drive) se borra completo al cerrar la pestaña en
+       ese modo -- causo correlativos repetidos en terreno (ver traspaso
+       Fase 4). Es solo informativo, no bloquea nada. */
+    async _avisarSiPrivado(){
+      const esPrivado = await this._esNavegacionPrivada();
+      if(!esPrivado) return;
+      if(document.getElementById('qcdAvisoPrivado')) return;
+      const div = document.createElement('div');
+      div.id = 'qcdAvisoPrivado';
+      div.style.cssText = 'background:#fdecea; border-bottom:2px solid #e57373; color:#7a1f1f; '
+        + 'font-size:12.5px; font-weight:600; padding:10px 14px; text-align:center; line-height:1.4;';
+      div.textContent = '\u26A0\uFE0F Navegaci\u00f3n privada detectada. El correlativo, el borrador y la '
+        + 'empresa activa NO se guardar\u00e1n al cerrar esta pesta\u00f1a. Usa una pesta\u00f1a normal para reportes reales.';
+      this._insertarAviso(div);
+    },
+
+    /* Inserta un aviso al tope de la pagina, debajo de los avisos que ya
+       esten puestos (para que plantilla + privado puedan convivir en el
+       orden en que se detectaron, sin pisarse). */
+    _insertarAviso(div){
+      const anterior = document.getElementById('qcdAvisoPlantilla');
+      if(div.id !== 'qcdAvisoPlantilla' && anterior){
+        document.body.insertBefore(div, anterior.nextSibling);
+      } else if(document.body.firstChild){
         document.body.insertBefore(div, document.body.firstChild);
       } else {
         document.body.appendChild(div);
