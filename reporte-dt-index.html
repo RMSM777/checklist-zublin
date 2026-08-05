@@ -769,6 +769,7 @@ function filaTabla(nombre, r){
 
 async function generarPDF(){
   try{
+  if(MARCA.esPlantilla()){ alert('Selecciona tu empresa en el men\u00fa superior antes de cerrar el reporte (QC Digital es solo la plantilla neutra, sin datos de contrato).'); return; }
   if(!R){ alert('Primero cargue el archivo Excel de SIC3PRO (secci\u00f3n 2).'); return; }
   if(!turno){ alert('Seleccione el turno (D\u00cdA o NOCHE).'); return; }
   const nombre = v('nombre');
@@ -996,6 +997,7 @@ initToggle('vistaListadoT', v=>vistaListado=v);
 let docListadoActual = null, urlPrevListado = null;
 
 function generarVistaPreviaListado(){
+  if(MARCA.esPlantilla()){ alert('Selecciona tu empresa en el men\u00fa superior antes de generar el listado (QC Digital es solo la plantilla neutra, sin datos de contrato).'); return; }
   if(!R){ alert('Primero cargue el archivo Excel de SIC3PRO (secci\u00f3n 2).'); return; }
   const cargadoPor = v('cargadoPor');
   if(!cargadoPor){ alert('Ingrese el nombre de qui\u00e9n carga el archivo (secci\u00f3n 6).'); return; }

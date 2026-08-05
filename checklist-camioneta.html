@@ -351,6 +351,7 @@ function dibujarEncabezado(doc, tituloDoc, qrDataUrl){
 
 async function generarPDF(previo){
   try{
+  if(!previo && MARCA.esPlantilla()){ alert('Selecciona tu empresa en el men\u00fa superior antes de cerrar el reporte (QC Digital es solo la plantilla neutra, sin datos de contrato).'); return; }
   const nombre = v('nombre') || 'Sin_nombre';
   const fecha = v('fecha') || new Date().toISOString().slice(0,10);
   const { jsPDF } = window.jspdf;
