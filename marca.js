@@ -258,7 +258,34 @@
       document.getElementById(selectId).addEventListener('change', (ev) => {
         const idElegido = ev.target.value;
         const elegida = this._datos.empresas[idElegido];
-        if(!elegida || elegida.estado === 'pendiente') return; // blindaje extra
+        if(!elegida || elegida.estado === 'pendiente') return;
+
+        /* Cambiar de empresa recarga la pagina (para que todo el PDF y el
+           texto de contrato se regeneren con la marca correcta). Eso, sin
+           mas, borraria lo que el usuario ya llevaba escrito. Si el
+           reporte tiene su propio sistema de borrador (guardarBorrador +
+           recuperarBorrador/restaurarBorrador), lo guardamos ANTES de
+           recargar y dejamos una marca para restaurarlo solo, sin banner,
+           apenas la pagina vuelva a cargar. Si el reporte no tiene
+           borrador, se advierte antes de perder los datos. */
+        const fnGuardar = (typeof window.guardarBorrador === 'function') ? window.guardarBorrador : null;
+        const fnRestaurar = (typeof window.recuperarBorrador === 'function') ? window.recuperarBorrador
+          : (typeof window.restaurarBorrador === 'function') ? window.restaurarBorrador : null;
+        const tieneBorrador = !!(fnGuardar && fnRestaurar);
+
+        const mensaje = tieneBorrador
+          ? 'Cambiar de empresa recarga la p\u00e1gina. Se guardar\u00e1 un borrador autom\u00e1tico de lo que llevas y se restaurar\u00e1 solo apenas vuelva a cargar.\n\n\u00bfContinuar?'
+          : 'Cambiar de empresa recarga la p\u00e1gina y este reporte no tiene guardado autom\u00e1tico: vas a PERDER lo que hayas llenado.\n\n\u00bfContinuar de todas formas?';
+
+        if(!window.confirm(mensaje)){
+          ev.target.value = this.empresa.id; // deja el selector como estaba
+          return;
+        }
+
+        if(tieneBorrador){
+          try{ fnGuardar(); }catch(e){}
+          try{ sessionStorage.setItem('qcd_auto_restaurar', '1'); }catch(e){}
+        }
         this._guardarEmpresa(idElegido);
         location.reload();
       });

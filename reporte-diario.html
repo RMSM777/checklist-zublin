@@ -919,6 +919,13 @@ setInterval(()=>{ if(!restaurando) guardarBorrador(false); }, 30000);
 // Al cargar: si hay un borrador guardado, ofrecer recuperarlo.
 window.addEventListener('DOMContentLoaded', ()=>{
   if(hayBorradorGuardado()){
+    let autoFlag = false;
+    try{ autoFlag = sessionStorage.getItem('qcd_auto_restaurar') === '1'; }catch(e){}
+    if(autoFlag){
+      try{ sessionStorage.removeItem('qcd_auto_restaurar'); }catch(e){}
+      recuperarBorrador();
+      return;
+    }
     let estado;
     try{ estado = JSON.parse(localStorage.getItem(BORRADOR_KEY)); }catch(e){ estado = null; }
     if(estado){

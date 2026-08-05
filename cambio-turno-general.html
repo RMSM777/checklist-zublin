@@ -627,7 +627,16 @@ function restaurarBorrador(){
   document.getElementById('bannerBorrador').style.display = 'none';
 }
 function descartarBorrador(){ borrarBorrador(); document.getElementById('bannerBorrador').style.display = 'none'; }
-if(localStorage.getItem(BORRADOR_KEY)){ document.getElementById('bannerBorrador').style.display = 'flex'; }
+if(localStorage.getItem(BORRADOR_KEY)){
+  let autoFlag = false;
+  try{ autoFlag = sessionStorage.getItem('qcd_auto_restaurar') === '1'; }catch(e){}
+  if(autoFlag){
+    try{ sessionStorage.removeItem('qcd_auto_restaurar'); }catch(e){}
+    restaurarBorrador();
+  } else {
+    document.getElementById('bannerBorrador').style.display = 'flex';
+  }
+}
 
 /* ============ Generacion de PDF ============ */
 async function generarVistaPrevia(){
