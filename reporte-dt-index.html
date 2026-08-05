@@ -1074,9 +1074,14 @@ function construirPDFListado(modo, cargadoPor){
   const tituloDoc = modo==='GRUPO' ? 'LISTADO DE DT AGRUPADO POR \u00c1REA' : 'LISTADO GENERAL DE DT POR NIVEL';
   const codigoDoc = modo==='GRUPO' ? 'INF-GOMS-CL-005 REV.0' : 'INF-GOMS-CL-004 REV.0';
 
+  // Correlativo: se calcula UNA sola vez, antes del QR (el QR necesita el
+  // codigo para armar el link de verificacion).
+  const corr2 = MARCA.correlativo(cargadoPor, 'DT-LISTADO');
+  doc._qcdCorrelativo = corr2;
+
   let qrUrl = null;
   try{
-    const qr = new QRious({ value:['GCC-003', tituloDoc, fechaHoy, cargadoPor].join(' | '), size:200, level:'M' });
+    const qr = new QRious({ value: 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr2), size:200, level:'M' });
     qrUrl = qr.toDataURL();
   }catch(e){}
 
@@ -1141,7 +1146,6 @@ function construirPDFListado(modo, cargadoPor){
   // Pie de pagina en todas las hojas (mismo formato que el resto de tus documentos, sin hora)
   const totalPag = doc.getNumberOfPages();
   const ahora = new Date();
-  const corr2 = MARCA.correlativo(cargadoPor, 'DT-LISTADO');
   const marca = 'Generado por: '+cargadoPor+'  |  '+ahora.toLocaleDateString('es-CL')+'  |  '+tituloDoc+'  |  N° '+corr2;
   for(let p=1;p<=totalPag;p++){
     doc.setPage(p);
@@ -1151,7 +1155,6 @@ function construirPDFListado(modo, cargadoPor){
     doc.text('P\u00e1gina '+p+' de '+totalPag, izq+ancho, 291, {align:'right'});
   }
   doc.setTextColor(30,30,30);
-  doc._qcdCorrelativo = corr2;
   doc._qcdGeneradoPor = cargadoPor;
   return doc;
 }

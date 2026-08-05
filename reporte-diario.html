@@ -505,10 +505,17 @@ async function generarPDF(previo){
 
   function salto(min){ if(y > 297-min){ doc.addPage(); y = 15; } }
 
+  // Correlativo: solo en cierre real (no en "PDF previo"). Se calcula antes
+  // del QR porque el QR de verificacion necesita el codigo.
+  let corr = '';
+  if(!previo){ corr = MARCA.correlativo(gen, 'DIARIO'); }
+
   // Encabezado
   let qrUrl = null;
   try{
-    const qrData = ['GCC-003', 'REPORTE DIARIO CALIDAD', fechaTxt, 'TURNO '+turno, gen].join(' | ');
+    const qrData = corr
+      ? ('https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr))
+      : ['GCC-003', 'REPORTE DIARIO CALIDAD', fechaTxt, 'TURNO '+turno, gen].join(' | ');
     const qr = new QRious({ value: qrData, size: 200, level: 'M' });
     qrUrl = qr.toDataURL();
   }catch(e){}
@@ -669,8 +676,6 @@ async function generarPDF(previo){
   const totalPag = doc.getNumberOfPages();
   const ahora = new Date();
   const dias = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
-  let corr = '';
-  if(!previo){ corr = MARCA.correlativo(gen, 'DIARIO'); }
   const marca = 'Generado por: '+gen+'  |  '+dias[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+'  |  Turno '+(turno==='DIA'?'D\u00EDa':'Noche')+(corr ? '  |  N\u00b0 '+corr : '');
   for(let pg=1; pg<=totalPag; pg++){
     doc.setPage(pg);

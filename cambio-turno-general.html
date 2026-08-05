@@ -630,6 +630,21 @@ async function generarVistaPrevia(){
   const anchoPag = 210, izq = 14, der = 196;
   let y = 10;
 
+  // Correlativo: se calcula UNA sola vez, antes del QR (el QR necesita el
+  // codigo para armar el link de verificacion). No volver a llamar
+  // MARCA.correlativo() mas abajo en esta funcion.
+  const genNombres = personalActual();
+  const gen = genNombres[0] ? genNombres[0].nombre : 'Inspector de Calidad';
+  const corr = MARCA.correlativo(gen, 'TURNO');
+
+  // QR de verificacion publica (apunta a verificar.html)
+  let qrUrl = null;
+  try{
+    const qrData = 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr);
+    const qr = new QRious({ value: qrData, size: 200, level:'M' });
+    qrUrl = qr.toDataURL();
+  }catch(e){}
+
   function encabezado(){
     doc.setFillColor(...MARCA.colorHeaderRGB()); doc.rect(0,0,anchoPag,18,'F');
     try{ doc.addImage(LOGO,'PNG',izq,4.3,13,6.1); }catch(e){}
@@ -637,7 +652,8 @@ async function generarVistaPrevia(){
     doc.text(CODIGO_DOC, der, 8, {align:'right'});
     doc.setFillColor(42,42,42); doc.rect(0,18,anchoPag,10,'F');
     doc.setFontSize(7); doc.setFont(undefined,'normal');
-    doc.text(MARCA.textoContrato(), izq, 24, {maxWidth:der-izq});
+    doc.text(MARCA.textoContrato(), izq, 24, {maxWidth: der-izq-(qrUrl?11:0)});
+    if(qrUrl){ doc.addImage(qrUrl,'PNG',der-8,19,8,8); }
     doc.setFillColor(...MARCA.colorRGB()); doc.rect(0,28,anchoPag,8,'F');
     doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(255,255,255);
     doc.text('CAMBIO DE TURNO', anchoPag/2, 33.5, {align:'center'});
@@ -741,9 +757,6 @@ async function generarVistaPrevia(){
   const totalPag = doc.internal.getNumberOfPages();
   const ahora = new Date();
   const dias = ['Domingo','Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado'];
-  const genNombres = personalActual();
-  const gen = genNombres[0] ? genNombres[0].nombre : 'Inspector de Calidad';
-  const corr = MARCA.correlativo(gen, 'TURNO');
   const marca = 'Generado por: '+gen+'  |  '+dias[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+'  |  Cambio de Turno'+'  |  N° '+corr;
   for(let p=1; p<=totalPag; p++){
     doc.setPage(p);

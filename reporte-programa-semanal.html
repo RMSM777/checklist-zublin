@@ -678,9 +678,13 @@ async function generarPDF(){
   const izq=12, ancho=186;
   let y = 10;
 
+  // Correlativo: se calcula UNA sola vez, antes del QR (el QR necesita el
+  // codigo para armar el link de verificacion).
+  const corr = MARCA.correlativo(nombre, 'PROGSEM');
+
   let qrUrl = null;
   try{
-    const qrData = ['GCC-003','PROG. SEMANAL DT', fecha, turno, semanaLabel(R.mie,R.mar), 'PROG:'+R.programado, 'CUMPL:'+R.pctCumplimiento+'%', 'ADH:'+R.pctAdherencia+'%', nombre].join(' | ');
+    const qrData = 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr);
     const qr = new QRious({ value: qrData, size: 200, level:'M', foreground:'#000000', background:'#ffffff' });
     qrUrl = qr.toDataURL();
   }catch(e){}
@@ -746,19 +750,20 @@ async function generarPDF(){
 
   if(y > 235){ doc.addPage(); y=14; }
   y = puntoTitulo(doc, y, 'Cierre del reporte - Realizado por');
-  doc.setFontSize(8.5); doc.setFont(undefined,'normal');
-  doc.text('Nombre: '+nombre, izq, y);
-  doc.text('RUT: '+(v('rut')||'-'), izq+100, y); y+=5;
-  doc.text('Cargo: '+(v('cargo')||'-'), izq, y);
-  doc.text('Turno: '+turno, izq+100, y); y+=6;
-  doc.setFont(undefined,'bold'); doc.text('Firma:', izq, y); y+=2;
-  doc.addImage(firma.canvas.toDataURL('image/png'), 'PNG', izq, y, 60, 22);
-  y+=24; doc.setDrawColor(30,30,30); doc.setLineWidth(0.2); doc.line(izq, y, izq+60, y);
+  const ahoraFirma = new Date();
+  y = MARCA.dibujarSelloFirma(doc, {
+    x: izq, y: y, ancho: ancho,
+    firmaDataUrl: firma.canvas.toDataURL('image/png'),
+    qrDataUrl: qrUrl,
+    nombre: nombre, cargo: v('cargo') || '-', rut: v('rut') || '-',
+    fecha: ahoraFirma.toLocaleDateString('es-CL'),
+    hora: ahoraFirma.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'}),
+    correlativo: corr
+  });
 
   const totalPag = doc.getNumberOfPages();
   const ahora = new Date();
   const diasSem = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
-  const corr = MARCA.correlativo(nombre, 'PROGSEM');
   const marca = 'Generado por: '+nombre+'  |  '+diasSem[ahora.getDay()]+' '+fmtFecha(ahora)+'  |  Fuente: SIC3PRO'+(fechaDatos?' ('+fechaDatos+')':'')+'  |  N° '+corr;
   for(let p=1;p<=totalPag;p++){
     doc.setPage(p);

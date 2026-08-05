@@ -831,7 +831,12 @@ function construirPDF(datos, callback){
   var ahora = new Date();
   var fechaGen = ("0" + ahora.getDate()).slice(-2) + "-" + ("0" + (ahora.getMonth() + 1)).slice(-2) + "-" + ahora.getFullYear();
 
-  var textoQR = CODIGO_DOC + " | " + datos.fecha + " | " + datos.turno + " " + datos.grupo + " | " + datos.participantes.length + " participantes";
+  // Correlativo: se calcula UNA sola vez, antes del QR (el QR necesita el
+  // codigo para armar el link de verificacion).
+  var corrFirmas = MARCA.correlativo(datos.nombreFirmaRelator, "FIRMAS");
+  doc._qcdCorrelativo = corrFirmas;
+
+  var textoQR = "https://qcdigital.cl/verificar.html?c=" + encodeURIComponent(corrFirmas);
 
   generarCodigoQR(textoQR, function(qrDataUrl){
     var y = dibujarEncabezado(doc, qrDataUrl);
@@ -945,8 +950,6 @@ function construirPDF(datos, callback){
     }catch(err){}
 
     var totalPaginas = doc.internal.getNumberOfPages();
-    var corrFirmas = MARCA.correlativo(datos.nombreFirmaRelator, "FIRMAS"); // se calcula UNA sola vez, no por pagina
-    doc._qcdCorrelativo = corrFirmas;
     for(var pg = 1; pg <= totalPaginas; pg++){
       doc.setPage(pg);
       dibujarPiePagina(doc, datos.nombreFirmaRelator, fechaGen, pg, totalPaginas, corrFirmas);

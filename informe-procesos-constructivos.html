@@ -642,7 +642,7 @@ function construirPDF(p, regsValidos){
   const marca = 'Generado por: '+p[0].nombre+'  |  '+ahora.toLocaleDateString('es-CL')+'  |  '+v('tituloInf').toUpperCase()+'  |  N° '+corr;
   let qrImg = null;
   try{
-    const qr = new QRious({ value:['GCC-003', v('tituloInf').toUpperCase(), fecha, turno, p[0].nombre].join(' | '), size:200, level:'M' });
+    const qr = new QRious({ value: 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr), size:200, level:'M' });
     qrImg = qr.toDataURL();
   }catch(e){}
   for(let pg=1;pg<=total;pg++){

@@ -564,9 +564,11 @@ async function generarPDF(){
     const doc = new jsPDF({unit:'mm', format:'a4', orientation:'landscape'});
   const izq=12, ancho=273;
 
+  const corr = MARCA.correlativo(nombre, 'ICPLANO');
+
   let qrUrl=null;
   try{
-    const qrData = ['GCC-003','PLANO IC MI', fecha, turno, 'CAMINADOS:'+fmtNum(R.totCam), 'PCT:'+(R.pctGlobal==null?'s/d':R.pctGlobal.toFixed(1)+'%'), nombre].join(' | ');
+    const qrData = 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr);
     const qr = new QRious({ value: qrData, size:200, level:'M' }); qrUrl = qr.toDataURL();
   }catch(e){}
 
@@ -649,17 +651,20 @@ async function generarPDF(){
     doc.text(lineas, izq, yz); yz += lineas.length*4+6;
   }
   doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.text('Realizado por', izq, yz); yz+=7;
-  doc.setFontSize(8.5); doc.setFont(undefined,'normal');
-  doc.text('Nombre: '+nombre, izq, yz); doc.text('RUT: '+(v('rut')||'-'), izq+120, yz); yz+=5;
-  doc.text('Cargo: '+(v('cargo')||'-'), izq, yz); doc.text('Turno: '+turno, izq+120, yz); yz+=6;
-  doc.setFont(undefined,'bold'); doc.text('Firma:', izq, yz); yz+=2;
-  doc.addImage(firma.canvas.toDataURL('image/png'), 'PNG', izq, yz, 60, 22);
-  yz+=24; doc.setDrawColor(30,30,30); doc.setLineWidth(0.2); doc.line(izq, yz, izq+60, yz);
+  const ahoraFirma = new Date();
+  yz = MARCA.dibujarSelloFirma(doc, {
+    x: izq, y: yz, ancho: ancho,
+    firmaDataUrl: firma.canvas.toDataURL('image/png'),
+    qrDataUrl: qrUrl,
+    nombre: nombre, cargo: v('cargo') || '-', rut: v('rut') || '-',
+    fecha: ahoraFirma.toLocaleDateString('es-CL'),
+    hora: ahoraFirma.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'}),
+    correlativo: corr
+  });
 
   const totalPag = doc.getNumberOfPages();
   const ahora = new Date();
   const diasSem=['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
-  const corr = MARCA.correlativo(nombre, 'ICPLANO');
   const marca = 'Generado por: '+nombre+'  |  '+diasSem[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs  |  Fuente: IC MI + Listado DT + Caminata'+'  |  N° '+corr;
   for(let p=1;p<=totalPag;p++){
     doc.setPage(p);
