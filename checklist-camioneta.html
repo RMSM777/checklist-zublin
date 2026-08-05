@@ -351,7 +351,6 @@ function dibujarEncabezado(doc, tituloDoc, qrDataUrl){
 
 async function generarPDF(previo){
   try{
-  if(!previo && MARCA.esPlantilla()){ alert('Cambia la \'Empresa activa\' del men\u00fa superior a Z\u00daBLIN antes de cerrar el reporte (ahora mismo est\u00e1 en QC Digital, la plantilla neutra sin datos de contrato).'); return; }
   const nombre = v('nombre') || 'Sin_nombre';
   const fecha = v('fecha') || new Date().toISOString().slice(0,10);
   const { jsPDF } = window.jspdf;

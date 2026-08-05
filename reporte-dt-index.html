@@ -769,7 +769,6 @@ function filaTabla(nombre, r){
 
 async function generarPDF(){
   try{
-  if(MARCA.esPlantilla()){ alert('Cambia la \'Empresa activa\' del men\u00fa superior a Z\u00daBLIN antes de cerrar el reporte (ahora mismo est\u00e1 en QC Digital, la plantilla neutra sin datos de contrato).'); return; }
   if(!R){ alert('Primero cargue el archivo Excel de SIC3PRO (secci\u00f3n 2).'); return; }
   if(!turno){ alert('Seleccione el turno (D\u00cdA o NOCHE).'); return; }
   const nombre = v('nombre');
@@ -997,7 +996,6 @@ initToggle('vistaListadoT', v=>vistaListado=v);
 let docListadoActual = null, urlPrevListado = null;
 
 function generarVistaPreviaListado(){
-  if(MARCA.esPlantilla()){ alert('Cambia la \'Empresa activa\' del men\u00fa superior a Z\u00daBLIN antes de generar el listado (ahora mismo est\u00e1 en QC Digital, la plantilla neutra sin datos de contrato).'); return; }
   if(!R){ alert('Primero cargue el archivo Excel de SIC3PRO (secci\u00f3n 2).'); return; }
   const cargadoPor = v('cargadoPor');
   if(!cargadoPor){ alert('Ingrese el nombre de qui\u00e9n carga el archivo (secci\u00f3n 6).'); return; }
