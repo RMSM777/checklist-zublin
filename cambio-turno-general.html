@@ -198,7 +198,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
     </div>
   </div>
 
-  <footer>Z&uuml;blin &middot; GCC-003 &middot; Cambio de Turno</footer>
+  <footer>Z&uuml;blin &middot; GCC-003 &middot; Cambio de Turno &middot; <span id="qcdVersion"></span></footer>
 </div>
 <script>
 /* Blindaje: si marca.js no carg\u00f3 (por ejemplo, si este archivo se abre
@@ -215,12 +215,15 @@ if(typeof MARCA === 'undefined'){
     iniciar(){ return Promise.resolve(this); },
     aplicarCSS(){}, pintarHeaderHTML(id){ const el=document.getElementById(id); if(el) el.src=this.logoDataUrl; }, crearSelector(){},
     colorRGB(){ return this.empresa.colorPrimarioRGB; },
-    textoContrato(){ return this.empresa.contrato.textoCompleto; }
+    textoContrato(){ return this.empresa.contrato.textoCompleto; },
+    VERSION: '(sin marca.js)',
+    pintarVersion(id){ const el=document.getElementById(id||'qcdVersion'); if(el) el.textContent=this.VERSION; }
   };
 }
 /* MARCA: logo/colores/contrato de la empresa activa (Fase 2). */
 let LOGO = null;
 MARCA.iniciar().then(() => {
+  MARCA.pintarVersion('qcdVersion');
   MARCA.aplicarCSS();
   MARCA.pintarHeaderHTML('logoImg');
   MARCA.crearSelector('selectorEmpresa');

@@ -27,6 +27,8 @@
      MARCA.textoContrato()               -> texto para el header oscuro
      MARCA.esPlantilla()                 -> true si es marca neutra
      MARCA.crearSelector(idContenedor)   -> inyecta <select> de empresa
+     MARCA.VERSION                        -> string, ej. "v2026.08.05"
+     MARCA.pintarVersion(idContenedor)   -> escribe VERSION en un elemento
    ============================================================ */
 
 (function(){
@@ -62,12 +64,18 @@
     pendientes: {}
   };
 
+  /* Version de la app (formato: v + fecha de release AAAA.MM.DD).
+     Fuente unica: se actualiza SOLO aqui, no en cada reporte. Los
+     footers de las paginas la pintan llamando a MARCA.pintarVersion(). */
+  const VERSION = 'v2026.08.05';
+
   const MARCA = {
     _datos: null,
     empresa: null,
     logoDataUrl: null,
     logoQCDigitalDataUrl: null,
     _listo: false,
+    VERSION: VERSION,
 
     async iniciar(){
       if(this._listo) return this;
@@ -185,6 +193,17 @@
 
     textoContrato(){
       return (this.empresa.contrato && this.empresa.contrato.textoCompleto) || '';
+    },
+
+    /* Pinta la version de la app (VERSION, definida arriba, fuente unica)
+       dentro de un elemento del footer. Uso tipico, dentro del
+       .then() de MARCA.iniciar():
+         MARCA.pintarVersion('qcdVersion');
+       Si el elemento no existe (id mal escrito, footer sin span) no
+       hace nada, no lanza error. */
+    pintarVersion(idContenedor){
+      const el = document.getElementById(idContenedor || 'qcdVersion');
+      if(el) el.textContent = this.VERSION;
     },
 
     /* Correlativo interno por usuario + tipo de documento.

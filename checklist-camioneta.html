@@ -177,7 +177,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
     <p class="nota" id="nota">Al cerrar se genera el PDF con todos los datos y tu firma, listo para descargar.</p>
   </section>
 
-  <footer>Zublin - Check List Camioneta</footer>
+  <footer>Zublin - Check List Camioneta &middot; <span id="qcdVersion"></span></footer>
 </div>
 
 <script>
@@ -187,6 +187,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 let LOGO = null; // se completa cuando MARCA.iniciar() resuelve
 
 MARCA.iniciar().then(() => {
+  MARCA.pintarVersion('qcdVersion');
   MARCA.aplicarCSS();
   MARCA.pintarHeaderHTML('logoImg');
   MARCA.crearSelector('selectorEmpresa');

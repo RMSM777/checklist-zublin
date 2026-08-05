@@ -226,13 +226,14 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
   </section>
   </div>
 
-  <footer>Zublin - Adherencia Programa Semanal DT GCC-003</footer>
+  <footer>Zublin - Adherencia Programa Semanal DT GCC-003 &middot; <span id="qcdVersion"></span></footer>
 </div>
 <script>
 /* MARCA: logo/colores/contrato de la empresa activa (Fase 2). */
 let LOGO = null; // se completa cuando MARCA.iniciar() resuelve
 
 MARCA.iniciar().then(() => {
+  MARCA.pintarVersion('qcdVersion');
   MARCA.aplicarCSS();
   MARCA.pintarHeaderHTML('logoImg');
   MARCA.crearSelector('selectorEmpresa');

@@ -143,6 +143,8 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
       </svg>
     </span>
     <span id="footerTxt">QC Digital &middot; GCC-003</span>
+    <span> &middot; </span>
+    <span id="qcdVersion"></span>
   </footer>
 </div>
 <script>
@@ -162,7 +164,9 @@ if (typeof MARCA === 'undefined') {
     colorRGB(){ return this.empresa.colorPrimarioRGB; },
     colorHeaderRGB(){ return this.empresa.colorFondoHeaderRGB; },
     esPlantilla(){ return false; },
-    textoContrato(){ return this.empresa.contrato.textoCompleto; }
+    textoContrato(){ return this.empresa.contrato.textoCompleto; },
+    VERSION: '(sin marca.js)',
+    pintarVersion(id){ const el=document.getElementById(id||'qcdVersion'); if(el) el.textContent=this.VERSION; }
   };
 }
 
@@ -170,6 +174,7 @@ MARCA.iniciar().then(() => {
   MARCA.aplicarCSS();
   MARCA.pintarHeaderHTML('logoImg');
   MARCA.crearSelector('selectorEmpresa');
+  MARCA.pintarVersion('qcdVersion');
 
   const titEl = document.getElementById('empresaTitulo');
   const empresa = MARCA.empresa || {};

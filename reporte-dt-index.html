@@ -283,7 +283,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
     </div>
   </div>
 
-  <footer>Zublin - Reporte Detalles de Terminaci&oacute;n GCC-003</footer>
+  <footer>Zublin - Reporte Detalles de Terminaci&oacute;n GCC-003 &middot; <span id="qcdVersion"></span></footer>
 </div>
 <script>
 /* MARCA: logo/colores/contrato de la empresa activa. El logo se pintaba de
@@ -291,6 +291,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 let LOGO = null; // se completa cuando MARCA.iniciar() resuelve
 
 MARCA.iniciar().then(() => {
+  MARCA.pintarVersion('qcdVersion');
   MARCA.aplicarCSS();
   MARCA.pintarHeaderHTML('logoImg');
   MARCA.crearSelector('selectorEmpresa');

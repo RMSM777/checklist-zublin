@@ -439,6 +439,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
   <div class="mensaje-error" id="mensajeError"></div>
   <button type="button" class="btn-pdf" id="btnGenerarPDF">Vista previa PDF</button>
 
+  <footer style="text-align:center; padding:16px; font-size:11px; color:var(--gris-texto);">Z&uuml;blin &middot; GCC-003 &middot; Listado de Firmas Digitales &middot; <span id="qcdVersion"></span></footer>
 </div>
 
 <div class="modal-fondo" id="modalFondo">
@@ -473,6 +474,7 @@ var LOGO_ZUBLIN_DATAURL = null; // se completa cuando MARCA.iniciar() resuelve
 MARCA.iniciar().then(function(){
   MARCA.aplicarCSS();
   MARCA.pintarHeaderHTML('logoImg');
+  MARCA.pintarVersion('qcdVersion');
   MARCA.crearSelector('selectorEmpresa');
   LOGO_ZUBLIN_DATAURL = MARCA.logoDataUrl;
   var contratoEl = document.querySelector('.header-contrato');

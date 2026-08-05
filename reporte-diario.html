@@ -224,7 +224,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
     <p class="nota" id="nota">Al cerrar se genera el PDF con todos los datos, im&aacute;genes, QR de trazabilidad y firmas.</p>
   </section>
 
-  <footer>Zublin - Reporte de Actividades Diarias - Departamento de Calidad</footer>
+  <footer>Zublin - Reporte de Actividades Diarias - Departamento de Calidad &middot; <span id="qcdVersion"></span></footer>
 </div>
 
 <script>
@@ -234,6 +234,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 let LOGO = null; // se completa cuando MARCA.iniciar() resuelve
 
 MARCA.iniciar().then(() => {
+  MARCA.pintarVersion('qcdVersion');
   MARCA.aplicarCSS();
   MARCA.pintarHeaderHTML('logoimg');
   MARCA.crearSelector('selectorEmpresa');
