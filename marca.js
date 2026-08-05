@@ -100,7 +100,30 @@
         : this.logoDataUrl;
 
       this._listo = true;
+      this._avisarSiPlantilla();
       return this;
+    },
+
+    /* Aviso visible desde el momento en que se abre la pagina, si la
+       empresa activa es la plantilla neutra (QC Digital) sin datos de
+       contrato. Antes, el unico aviso era la alerta al intentar cerrar
+       el reporte -- es decir, DESPUES de llenar todo. Esto avisa ANTES,
+       para no hacer perder tiempo. No reemplaza el bloqueo al cerrar
+       (ese sigue existiendo como red de seguridad), es un aviso extra. */
+    _avisarSiPlantilla(){
+      if(!this.esPlantilla()) return;
+      if(document.getElementById('qcdAvisoPlantilla')) return;
+      const div = document.createElement('div');
+      div.id = 'qcdAvisoPlantilla';
+      div.style.cssText = 'background:#fff3cd; border-bottom:2px solid #ffca28; color:#7a5c00; '
+        + 'font-size:12.5px; font-weight:600; padding:10px 14px; text-align:center; line-height:1.4;';
+      div.textContent = '\u26A0\uFE0F Modo plantilla activo (QC Digital), sin datos de contrato. '
+        + 'Para cerrar un reporte real de terreno, cambia \u201cEmpresa activa\u201d de abajo a Z\u00daBLIN.';
+      if(document.body.firstChild){
+        document.body.insertBefore(div, document.body.firstChild);
+      } else {
+        document.body.appendChild(div);
+      }
     },
 
     async _cargarEmpresasJson(){
@@ -246,7 +269,7 @@
         '<select id="'+selectId+'" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid #ccc;font-size:13px;background:#fff;color:#222;">' +
         empresas.map(e => {
           const pendiente = e.estado === 'pendiente';
-          let etiqueta = e.esPlantilla ? (e.nombreCorto + ' (plantilla)') : e.nombreCorto;
+          let etiqueta = e.esPlantilla ? (e.nombreCorto + ' (plantilla, sin contrato)') : e.nombreCorto;
           if(pendiente) etiqueta += ' (pr\u00f3ximamente)';
           return '<option value="'+e.id+'"'
             + (e.id===this.empresa.id ? ' selected' : '')

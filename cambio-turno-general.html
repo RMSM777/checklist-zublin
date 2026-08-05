@@ -641,7 +641,7 @@ if(localStorage.getItem(BORRADOR_KEY)){
 /* ============ Generacion de PDF ============ */
 async function generarVistaPrevia(){
   try{
-  if(MARCA.esPlantilla()){ alert('Selecciona tu empresa en el men\u00fa superior antes de cerrar el reporte (QC Digital es solo la plantilla neutra, sin datos de contrato).'); return; }
+  if(MARCA.esPlantilla()){ alert('Cambia la \'Empresa activa\' del men\u00fa superior a Z\u00daBLIN antes de cerrar el reporte (ahora mismo est\u00e1 en QC Digital, la plantilla neutra sin datos de contrato).'); return; }
   const { jsPDF } = window.jspdf;
   if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
     const doc = new jsPDF({unit:'mm', format:'a4'});

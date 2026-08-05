@@ -999,7 +999,7 @@ document.getElementById("btnGenerarPDF").addEventListener("click", function(){
   try{
   var datos = validarFormulario();
   if(!datos) return;
-  if(MARCA.esPlantilla()){ alert('Selecciona tu empresa en el men\u00fa superior antes de generar el listado (QC Digital es solo la plantilla neutra, sin datos de contrato).'); return; }
+  if(MARCA.esPlantilla()){ alert('Cambia la \'Empresa activa\' del men\u00fa superior a Z\u00daBLIN antes de generar el listado (ahora mismo est\u00e1 en QC Digital, la plantilla neutra sin datos de contrato).'); return; }
   construirPDF(datos, function(doc){
     docPDFActual = doc;
     ultimoGeneradoPor = datos.nombreFirmaRelator;

@@ -671,7 +671,7 @@ function puntoTitulo(doc, y, txt){
 
 async function generarPDF(){
   try{
-  if(MARCA.esPlantilla()){ alert('Selecciona tu empresa en el men\u00fa superior antes de cerrar el reporte (QC Digital es solo la plantilla neutra, sin datos de contrato).'); return; }
+  if(MARCA.esPlantilla()){ alert('Cambia la \'Empresa activa\' del men\u00fa superior a Z\u00daBLIN antes de cerrar el reporte (ahora mismo est\u00e1 en QC Digital, la plantilla neutra sin datos de contrato).'); return; }
   if(!R){ alert('Primero calcule la adherencia (secci\u00f3n 2).'); return; }
   if(!turno){ alert('Seleccione el turno (D\u00cdA o NOCHE).'); return; }
   const nombre = v('nombre');
