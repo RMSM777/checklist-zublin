@@ -8,7 +8,7 @@
 
    Uso desde cada reporte, justo despues de doc.save(nombreArch):
 
-     QCD_DRIVE.subir({
+     QCD_DRIVE.subirConReintento({
        blob: doc.output('blob'),
        nombreArchivo: nombreArch,
        tipoReporte: 'Reporte diario',        // nombre de la subcarpeta en Drive
@@ -18,8 +18,15 @@
      }).then(function(res){
        console.log('Subido a Drive:', res.driveLink);
      }).catch(function(err){
-       console.warn('No se pudo subir a Drive (el PDF local se genero igual):', err);
+       console.warn('No se pudo subir a Drive (se encolo para reintento automatico; el PDF local se genero igual):', err);
      });
+
+   subirConReintento() se comporta igual que subir() (mismo error en el
+   catch, para no romper el mensaje que cada reporte ya muestra), pero
+   si falla, ademas guarda el PDF completo en una cola local (IndexedDB)
+   y lo reintenta solo mas adelante (al abrir cualquier reporte o
+   cuando vuelve la señal). subir() sigue disponible tal cual para
+   quien no quiera la cola.
 
    Diseño:
    - No bloquea nunca la descarga local del PDF: si falla la subida a
@@ -281,9 +288,178 @@
     return { driveFileId: archivoSubido.id, driveLink: archivoSubido.webViewLink, sheetId };
   }
 
+  // --- Cola de reintento (IndexedDB) ---
+  // Si una subida falla (sin señal, timeout, error de Google), el PDF
+  // completo se guarda aqui junto a sus metadatos. Se reintenta solo:
+  // al abrir cualquier reporte y cuando vuelve la conexion (evento
+  // 'online'). El usuario tambien puede forzar el reintento desde el
+  // aviso que se auto-inyecta cuando hay pendientes.
+  const DB_NAME = 'qcd_drive_queue';
+  const DB_STORE = 'pendientes';
+
+  function abrirDB(){
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if(!db.objectStoreNames.contains(DB_STORE)){
+          db.createObjectStore(DB_STORE, { keyPath: 'id', autoIncrement: true });
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function encolarPendiente(opts){
+    try{
+      const db = await abrirDB();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(DB_STORE, 'readwrite');
+        tx.objectStore(DB_STORE).add(Object.assign({}, opts, {
+          fechaEncolado: new Date().toISOString(), intentos: 0
+        }));
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    }catch(e){ console.warn('QCD_DRIVE: no se pudo encolar para reintento.', e); }
+  }
+
+  async function listarPendientes(){
+    try{
+      const db = await abrirDB();
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(DB_STORE, 'readonly');
+        const req = tx.objectStore(DB_STORE).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    }catch(e){ return []; }
+  }
+
+  async function eliminarPendiente(id){
+    try{
+      const db = await abrirDB();
+      await new Promise((resolve) => {
+        const tx = db.transaction(DB_STORE, 'readwrite');
+        tx.objectStore(DB_STORE).delete(id);
+        tx.oncomplete = resolve;
+        tx.onerror = resolve;
+      });
+    }catch(e){}
+  }
+
+  async function marcarIntento(id, intentos){
+    try{
+      const db = await abrirDB();
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      const store = tx.objectStore(DB_STORE);
+      const getReq = store.get(id);
+      getReq.onsuccess = () => {
+        const item = getReq.result;
+        if(item){
+          item.intentos = intentos;
+          item.ultimoIntento = new Date().toISOString();
+          store.put(item);
+        }
+      };
+    }catch(e){}
+  }
+
+  let reintentando = false;
+
+  async function reintentarPendientes(){
+    if(reintentando) return { intentados: 0, exitosos: 0 };
+    reintentando = true;
+    try{
+      const pendientes = await listarPendientes();
+      let exitosos = 0;
+      for(const item of pendientes){
+        try{
+          await subir(item);
+          await eliminarPendiente(item.id);
+          exitosos++;
+        }catch(e){
+          await marcarIntento(item.id, (item.intentos || 0) + 1);
+        }
+      }
+      await pintarAvisoPendientes();
+      return { intentados: pendientes.length, exitosos };
+    } finally {
+      reintentando = false;
+    }
+  }
+
+  // Subida "segura": si falla, encola para reintento automatico en vez
+  // de perder el reporte. Sigue lanzando el error igual que subir(),
+  // para no romper el catch() que cada reporte ya tiene (su propio
+  // mensaje en pantalla no cambia).
+  async function subirConReintento(opts){
+    try{
+      const res = await subir(opts);
+      pintarAvisoPendientes();
+      return res;
+    }catch(err){
+      await encolarPendiente(opts);
+      pintarAvisoPendientes();
+      throw err;
+    }
+  }
+
+  function inyectarEstilosAviso(){
+    if(document.getElementById('qcdDriveEstilos')) return;
+    const style = document.createElement('style');
+    style.id = 'qcdDriveEstilos';
+    style.textContent =
+      '.qcd-drive-pendientes{ position:fixed; top:8px; right:8px; z-index:9997; ' +
+      'max-width:220px; background:#fff8e1; border:1px solid #ffca28; color:#7a5c00; ' +
+      'font-size:11.5px; line-height:1.4; padding:8px 10px; border-radius:10px; ' +
+      'box-shadow:0 2px 10px rgba(0,0,0,.18); }' +
+      '.qcd-drive-pendientes button{ display:block; margin-top:6px; width:100%; border:none; ' +
+      'background:#7a5c00; color:#fff; font-size:11px; font-weight:700; padding:6px 8px; ' +
+      'border-radius:6px; cursor:pointer; }' +
+      'html.dark .qcd-drive-pendientes{ background:#2a2410; border-color:#5c4a10; color:#ffd977; }' +
+      'html.dark .qcd-drive-pendientes button{ background:#5c4a10; color:#ffe8a3; }';
+    document.head.appendChild(style);
+  }
+
+  async function pintarAvisoPendientes(){
+    const pendientes = await listarPendientes();
+    let el = document.querySelector('.qcd-drive-pendientes');
+    if(!pendientes.length){
+      if(el) el.remove();
+      return;
+    }
+    inyectarEstilosAviso();
+    if(!el){
+      el = document.createElement('div');
+      el.className = 'qcd-drive-pendientes';
+      document.body.appendChild(el);
+    }
+    const n = pendientes.length;
+    el.innerHTML = '\u26A0\uFE0F ' + n + ' reporte' + (n > 1 ? 's' : '') + ' sin subir a Drive'
+      + '<button type="button">Reintentar ahora</button>';
+    el.querySelector('button').addEventListener('click', async (ev) => {
+      ev.target.disabled = true;
+      ev.target.textContent = 'Subiendo...';
+      await reintentarPendientes();
+    });
+  }
+
+  // Reintento automatico: al cargar la pagina (con un pequeño respiro
+  // para no competir con el resto de la carga inicial) y cuando el
+  // navegador avisa que volvio la conexion.
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', () => { pintarAvisoPendientes(); setTimeout(reintentarPendientes, 2500); });
+  } else {
+    pintarAvisoPendientes();
+    setTimeout(reintentarPendientes, 2500);
+  }
+  window.addEventListener('online', () => { reintentarPendientes(); });
+
   async function asegurarToken(){
     try{ await obtenerToken(); return true; }catch(e){ console.warn('QCD_DRIVE: no se pudo pre-autorizar Google Drive.', e); return false; }
   }
 
-  window.QCD_DRIVE = { subir, asegurarToken };
+  window.QCD_DRIVE = { subir, subirConReintento, asegurarToken, reintentarPendientes, listarPendientes };
 })();

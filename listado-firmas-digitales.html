@@ -1030,7 +1030,7 @@ document.getElementById("btnDescargarPDF").addEventListener("click", async funct
   if(window.QCD_DRIVE){
     if(notaEl){ notaEl.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>'; }
     try{
-      var res = await QCD_DRIVE.subir({
+      var res = await QCD_DRIVE.subirConReintento({
         blob: docPDFActual.output('blob'),
         nombreArchivo: nombreArch,
         tipoReporte: 'Listado de firmas digitales',

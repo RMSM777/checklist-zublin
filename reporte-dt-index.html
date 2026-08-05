@@ -965,7 +965,7 @@ async function generarPDF(){
     nota.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
     nota.style.color = '';
     try{
-      const res = await QCD_DRIVE.subir({
+      const res = await QCD_DRIVE.subirConReintento({
         blob: doc.output('blob'),
         nombreArchivo: nombreArch,
         tipoReporte: 'Reporte DT',
@@ -1024,7 +1024,7 @@ async function descargarPDFListado(){
     nota.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
     nota.style.color = '';
     try{
-      const res = await QCD_DRIVE.subir({
+      const res = await QCD_DRIVE.subirConReintento({
         blob: docListadoActual.output('blob'),
         nombreArchivo: nombreArch,
         tipoReporte: 'Reporte DT',

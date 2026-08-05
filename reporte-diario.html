@@ -719,7 +719,7 @@ async function generarPDF(previo){
     notaEl.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
     notaEl.style.color = '';
     try{
-      const res = await QCD_DRIVE.subir({
+      const res = await QCD_DRIVE.subirConReintento({
         blob: doc.output('blob'),
         nombreArchivo: nombreArch,
         tipoReporte: 'Reporte diario',

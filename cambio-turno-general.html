@@ -804,7 +804,7 @@ async function descargarPDF(){
     const docRef = window._pdfDocGenerado;
     notaEl.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
     try{
-      const res = await QCD_DRIVE.subir({
+      const res = await QCD_DRIVE.subirConReintento({
         blob: docRef.output('blob'),
         nombreArchivo: nombreArch,
         tipoReporte: 'Cambio de turno general',
