@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script>
+try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classList.add('dark'); }catch(e){}
+</script>
 <title>Reporte Detalles de Terminacion (DT) - Zublin GCC-003</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -12,6 +15,8 @@
 <script src="marca.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="drive-integration.js?v=2"></script>
+<link rel="stylesheet" href="dark-mode.css">
+<script src="dark-mode.js" defer></script>
 <style>
   :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; --verde:#2e7d32; --naranja:#F2A93B; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -272,7 +277,7 @@
       <button onclick="cerrarVistaListado()" style="background:rgba(255,255,255,.2); border:none; color:#fff; font-size:16px; font-weight:800; width:32px; height:32px; border-radius:6px; cursor:pointer;">&times;</button>
     </div>
     <iframe id="framePrevListado" style="flex:1; border:none; background:#525659;"></iframe>
-    <div style="background:#fff; padding:10px 14px; display:flex; gap:8px;">
+    <div class="qcd-modal-pie" style="background:#fff; padding:10px 14px; display:flex; gap:8px;">
       <button class="btn-limpiar" style="flex:1; padding:12px; border:none; border-radius:8px; font-weight:700; cursor:pointer;" onclick="cerrarVistaListado()">Volver a editar</button>
       <button class="btn-generar" style="flex:2; padding:12px; border:none; border-radius:8px; font-weight:700; cursor:pointer; background:var(--rojo); color:#fff;" onclick="descargarPDFListado()">Descargar PDF</button>
     </div>

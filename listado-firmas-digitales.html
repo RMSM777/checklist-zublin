@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script>
+try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classList.add('dark'); }catch(e){}
+</script>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D72622">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -10,6 +13,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Zublin GCC-003">
 <title>Listado de Firmas Digitales - Züblin GCC-003</title>
+<link rel="stylesheet" href="dark-mode.css">
+<script src="dark-mode.js" defer></script>
 <style>
   :root{
     --rojo:#D72622;
@@ -293,6 +298,34 @@
   .modal-pie .cerrar{background:#fff;}
 
   #qrOculto{position:absolute;left:-9999px;top:-9999px;}
+
+  /* ---------- Modo oscuro ----------
+     Este reporte usa variables y nombres de clase propios
+     (--gris-fondo, --gris-borde, --gris-texto, --negro, .contenedor)
+     que no coinciden con los del resto de la suite, por eso sus
+     overrides de modo oscuro van aqui en vez de en dark-mode.css. */
+  html.dark{
+    --gris-fondo:#0a0f1c;
+    --gris-borde:#38445e;
+    --gris-texto:#a8b2c7;
+    --negro:#e7ecf5;
+  }
+  html.dark .contenedor{ background:#101a2e; }
+  html.dark .btn-selector,
+  html.dark .caja-foto,
+  html.dark .btn-foto,
+  html.dark .btn-foto-quitar,
+  html.dark .tarjeta-participante,
+  html.dark .icono-btn,
+  html.dark .canvas-firma,
+  html.dark .btn-agregar,
+  html.dark .modal-caja,
+  html.dark .modal-pie .cerrar{
+    background:#141d33;
+  }
+  html.dark #notaDrive{
+    color:#8b96b3 !important;
+  }
 
   @media (max-width:480px){
     .header-rojo .logo{font-size:17px;}

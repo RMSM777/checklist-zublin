@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script>
+try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classList.add('dark'); }catch(e){}
+</script>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D72622">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -15,6 +18,8 @@
 <script src="marca.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="drive-integration.js?v=2"></script>
+<link rel="stylesheet" href="dark-mode.css">
+<script src="dark-mode.js" defer></script>
 <style>
   :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
