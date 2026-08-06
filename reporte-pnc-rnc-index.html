@@ -499,11 +499,12 @@ function generarPDF(){
   // caja de cierre
   const boxH=34;
   doc.setFillColor(250,250,250); doc.setDrawColor(225,225,225); doc.setLineWidth(0.3); doc.roundedRect(izq, y, ancho, boxH, 2, 2, 'FD');
-  // --- zona 1: logo (placa navy) ---
-  doc.setFillColor(...hx(COLOR)); doc.roundedRect(izq+5, y+9, 18, 16, 2, 2, 'F');
-  try{ doc.addImage(M.logo||MARCA_FALLBACK.logo,'PNG', izq+6.5, y+12, 15, 10); }catch(e){}
+  // --- zona 1: logo (placa blanca, igual que el header) ---
+  doc.setFillColor(255,255,255); doc.setDrawColor(220,220,220); doc.setLineWidth(0.3);
+  doc.roundedRect(izq+5, y+9, 20, 16, 2, 2, 'FD');
+  try{ doc.addImage(M.logo||MARCA_FALLBACK.logo,'PNG', izq+6.5, y+12.5, 17, 9); }catch(e){}
   // --- zona 2: datos (apilados, columna izquierda-centro) ---
-  const dx = izq+29;
+  const dx = izq+31;
   doc.setTextColor(25,25,25); doc.setFontSize(10.5); doc.setFont(undefined,'bold');
   doc.text(nombre, dx, y+11);
   doc.setFontSize(8); doc.setTextColor(...hx(COLOR2)); doc.setFont(undefined,'bold');
