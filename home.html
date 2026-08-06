@@ -133,6 +133,11 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
       <div class="info"><p class="num">09</p><p class="tit">Cambio de turno general</p><p class="sub">Resumen de ciclo 10 dias, DT y protocolizacion</p></div>
       <div class="flecha">&#8250;</div>
     </a>
+    <a class="tarjeta" href="reporte-pnc-rnc-index.html">
+      <div class="icono">&#128202;</div>
+      <div class="info"><p class="num">10</p><p class="tit">Reporte de PNC y RNC</p><p class="sub">Dashboard y detalle de PNC/RNC desde SIC3PRO</p></div>
+      <div class="flecha">&#8250;</div>
+    </a>
   </div>
 
   <footer>
@@ -236,6 +241,12 @@ const REPORTES_CON_BORRADOR = [
       const detalle = (estado.fechaInicio || '-') + (estado.fechaTermino ? ' al ' + estado.fechaTermino : '');
       return { generador: gen, detalle };
     }
+  },
+  {
+    key: 'CORR_PNCRNC_QC Digital',
+    url: 'reporte-pnc-rnc-index.html',
+    titulo: 'Reporte de PNC y RNC',
+    extraer(estado){ return { generador: estado.autor || estado.nombre || '-', detalle: estado.fecha || '' }; }
   }
 ];
 
