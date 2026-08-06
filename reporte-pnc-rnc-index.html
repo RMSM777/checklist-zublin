@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Reporte de PNC y RNC - QC Digital GCC-003</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{ --marca:#0d1526; --marca2:#f5851f; --gris:#f4f4f4; --borde:#ccc; --texto:#222; --verde:#2e7d32; --naranja:#F2A93B; --rojo:#D72622; --azul:#3b7ddd; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; margin:0; background:#e9e9e9; color:var(--texto); font-size:14px; }
+  .wrap{ max-width:720px; margin:0 auto; background:#fff; min-height:100vh; }
+  .header-rojo{ background:var(--marca); color:#fff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; position:sticky; top:0; z-index:10; }
+  .header-rojo .logo{ display:flex; align-items:center; }
+  .header-rojo .logo img{ height:26px; display:block; }
+  .placa-logo{ background:#fff; border-radius:6px; padding:5px 9px; display:flex; align-items:center; }
+  .header-rojo .titulo-h{ font-weight:700; font-size:13px; letter-spacing:.3px; flex:1; text-align:center; }
+  .header-rojo .codigo{ font-size:11px; text-align:right; line-height:1.4; }
+  .header-contrato{ background:#2a2a2a; color:#eee; font-size:11px; padding:8px 16px; line-height:1.5; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .header-contrato .qr-mini{ width:34px; height:34px; flex-shrink:0; }
+  .contrato{ text-align:left; font-size:12px; color:#555; padding:8px 14px; background:var(--gris); border-bottom:1px solid #ddd; line-height:1.5; }
+  section{ padding:12px 14px; }
+  .seccion-tit{ color:var(--marca2); font-weight:700; font-size:13px; padding:6px 0; border-bottom:2px solid var(--marca2); margin:16px 0 10px; }
+  .datos-tabla{ display:grid; grid-template-columns:auto 1fr auto 1fr; gap:4px 10px; font-size:12.5px; margin-bottom:6px; }
+  .datos-tabla .k{ font-weight:700; color:#333; }
+  .datos-tabla .val{ color:#444; }
+  .campo{ margin-bottom:10px; }
+  .campo label{ display:block; font-size:12px; color:#555; margin-bottom:3px; font-weight:600; }
+  input,select,textarea{ width:100%; padding:9px 10px; border:1px solid var(--borde); border-radius:6px; font-size:14px; background:#fff; font-family:inherit; }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--marca2); }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .leyenda{ font-size:11px; color:#666; background:var(--gris); padding:8px 10px; border-radius:6px; margin-bottom:8px; }
+  .acciones{ display:flex; gap:8px; margin-top:10px; }
+  .acciones button{ flex:1; padding:12px; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn-limpiar{ background:#eee; color:#555; }
+  .btn-generar{ background:var(--marca2); color:#fff; }
+  .btn-generar:disabled{ background:#f2c79a; cursor:not-allowed; }
+  .nota{ font-size:12px; color:#888; text-align:center; margin-top:10px; padding:0 10px; }
+  footer{ text-align:center; padding:16px; font-size:11px; color:#999; }
+  canvas.firma{ width:100%; height:150px; border:1px solid var(--borde); border-radius:6px; background:#fafafa; touch-action:none; display:block; }
+
+  .toggle{ display:flex; gap:6px; }
+  .toggle button{ flex:1; padding:10px 6px; border:1px solid var(--borde); background:#fff; border-radius:6px; font-size:13px; font-weight:700; color:#666; cursor:pointer; }
+  .toggle button.act{ background:var(--marca2); color:#fff; border-color:var(--marca2); }
+
+  .dropzone{ border:2px dashed var(--borde); border-radius:10px; padding:20px 14px; text-align:center; color:#777; font-size:13px; cursor:pointer; transition:border-color .15s; }
+  .dropzone.ok{ border-color:var(--verde); background:#f2f9f2; color:var(--verde); font-weight:600; }
+  .dropzone input{ display:none; }
+  .estado-carga{ font-size:12px; margin-top:8px; text-align:center; color:#888; }
+  .estado-carga.err{ color:var(--rojo); font-weight:600; }
+  .estado-carga.ok{ color:var(--verde); font-weight:600; }
+
+  .kpis{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:8px 0; }
+  .kpi{ background:var(--gris); border-radius:8px; padding:10px 4px; text-align:center; border-top:3px solid #bbb; }
+  .kpi .num{ font-size:20px; font-weight:800; }
+  .kpi .lbl{ font-size:9.5px; color:#666; font-weight:600; margin-top:2px; letter-spacing:.3px; }
+  .kpi.total{ border-top-color:#444; }
+  .kpi.abiertas{ border-top-color:var(--naranja); } .kpi.abiertas .num{ color:#c07f10; }
+  .kpi.atrasadas{ border-top-color:var(--rojo); } .kpi.atrasadas .num{ color:var(--rojo); }
+  .kpi.pend{ border-top-color:var(--azul); } .kpi.pend .num{ color:var(--azul); }
+  .kpi.cerradas{ border-top-color:var(--verde); } .kpi.cerradas .num{ color:var(--verde); }
+
+  .punto{ border:1px solid #e3e3e3; border-radius:10px; padding:10px 12px; margin-bottom:14px; }
+  .punto-tit{ font-size:13px; font-weight:800; color:var(--marca2); margin:0 0 2px; }
+  .punto-sub{ font-size:11px; color:#888; margin:0 0 8px; }
+  .chartbox{ position:relative; width:100%; }
+  .dos-donas{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:520px){ .dos-donas{ grid-template-columns:1fr; } }
+  table.mini{ width:100%; border-collapse:collapse; font-size:11.5px; margin-top:8px; }
+  table.mini th{ background:var(--marca); color:#fff; padding:5px 6px; text-align:left; font-size:10.5px; }
+  table.mini td{ padding:5px 6px; border-bottom:1px solid #eee; }
+  table.mini tr.tot td{ font-weight:800; background:var(--gris); }
+  table.mini td.num, table.mini th.num{ text-align:center; }
+  .est-ABIERTA{ color:var(--naranja); font-weight:700; }
+  .est-ATRASADA{ color:var(--rojo); font-weight:700; }
+  .est-PENDIENTE{ color:var(--azul); font-weight:700; }
+  .est-CERRADA{ color:var(--verde); font-weight:700; }
+  #zonaReporte{ display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header-rojo">
+    <div class="logo"><span class="placa-logo"><img id="logoImg" src="" alt="QC Digital"></span></div>
+    <div class="titulo-h" id="tituloH">REPORTE DE PNC Y RNC</div>
+    <div class="codigo" id="codigoH">C&Oacute;DIGO: GCC-003 &middot; PNC/RNC</div>
+  </div>
+  <div class="header-contrato">
+    <span id="contratoTxt">QC Digital &middot; Industry Quality Suite &mdash; Seleccione una empresa en el selector para cargar los datos del contrato.</span>
+    <canvas id="qrMini" class="qr-mini" width="30" height="30"></canvas>
+  </div>
+  <div class="contrato">Disciplina: Miner&iacute;a (MI)</div>
+
+  <section>
+    <div class="seccion-tit">1 - Datos del reporte</div>
+    <div class="grid2">
+      <div class="campo"><label>Obra / Faena</label><input id="obra" type="text" value="Mina Chuquicamata Subterr&aacute;nea - Mina Norte"></div>
+      <div class="campo"><label>Fecha del reporte</label><input id="fecha" type="date"></div>
+    </div>
+    <div class="grid2">
+      <div class="campo">
+        <label>Turno</label>
+        <div class="toggle" id="turnoT">
+          <button data-v="TURNO DIA">TURNO D&Iacute;A</button>
+          <button data-v="TURNO NOCHE">TURNO NOCHE</button>
+        </div>
+      </div>
+      <div class="campo"><label>Datos SIC3PRO al</label><input id="fechaDatos" type="date"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="seccion-tit">2 - Carga de listados SIC3PRO</div>
+    <div class="leyenda">Exporta desde SIC3PRO el <b>Listado de RNC</b> y el <b>Listado de PNC</b> del contrato (formato .xls) y c&aacute;rgalos aqu&iacute;. El reporte se arma autom&aacute;ticamente.</div>
+    <label style="font-size:12px;color:#555;font-weight:600;margin-bottom:4px;display:block;">Listado de RNC</label>
+    <div class="dropzone" id="dzRNC">Toca para seleccionar el archivo .xls de RNC<input type="file" id="fileRNC" accept=".xls,.xlsx"></div>
+    <div class="estado-carga" id="estRNC"></div>
+    <label style="font-size:12px;color:#555;font-weight:600;margin:12px 0 4px;display:block;">Listado de PNC</label>
+    <div class="dropzone" id="dzPNC">Toca para seleccionar el archivo .xls de PNC<input type="file" id="filePNC" accept=".xls,.xlsx"></div>
+    <div class="estado-carga" id="estPNC"></div>
+  </section>
+
+  <div id="zonaReporte">
+    <section>
+      <div class="seccion-tit">Punto 1 - Resumen general (RNC + PNC)</div>
+      <div class="kpis">
+        <div class="kpi total"><div class="num" id="kTot">0</div><div class="lbl">TOTAL</div></div>
+        <div class="kpi abiertas"><div class="num" id="kAbi">0</div><div class="lbl">ABIERTAS</div></div>
+        <div class="kpi atrasadas"><div class="num" id="kAtr">0</div><div class="lbl">ATRASADAS</div></div>
+        <div class="kpi pend"><div class="num" id="kPen">0</div><div class="lbl">PENDIENTES</div></div>
+        <div class="kpi cerradas"><div class="num" id="kCer">0</div><div class="lbl">CERRADAS</div></div>
+      </div>
+      <table class="mini" id="tablaResumen"></table>
+    </section>
+
+    <section>
+      <div class="punto">
+        <p class="punto-tit">Punto 2 &middot; Distribuci&oacute;n por estado</p>
+        <p class="punto-sub">Estado de cada tipo de registro seg&uacute;n base SIC3PRO</p>
+        <div class="dos-donas">
+          <div class="chartbox"><canvas id="chRNC"></canvas></div>
+          <div class="chartbox"><canvas id="chPNC"></canvas></div>
+        </div>
+      </div>
+      <div class="punto">
+        <p class="punto-tit">Punto 3 &middot; Evoluci&oacute;n PNC por mes de emisi&oacute;n</p>
+        <p class="punto-sub">Cantidad de PNC emitidas por mes</p>
+        <div class="chartbox"><canvas id="chMes"></canvas></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="seccion-tit">Punto 4 - Detalle RNC</div>
+      <table class="mini" id="tablaRNC"></table>
+    </section>
+
+    <section>
+      <div class="seccion-tit">Punto 5 - Detalle PNC</div>
+      <table class="mini" id="tablaPNC"></table>
+    </section>
+  </div>
+
+  <section>
+    <div class="seccion-tit">6 - Realizado por (cierre del reporte)</div>
+    <div class="campo"><label>Nombre y apellido</label><input id="nombre" type="text" placeholder="Ej: Rodrigo Moraga SM."></div>
+    <div class="grid2">
+      <div class="campo"><label>RUT</label><input id="rut" type="text" placeholder="12.345.678-9"></div>
+      <div class="campo"><label>Cargo</label><input id="cargo" type="text" value="Inspector de Calidad"></div>
+    </div>
+    <label style="font-size:12px;color:#555;font-weight:600;">Firma (cierra el reporte)</label>
+    <canvas id="firma1" class="firma"></canvas>
+    <div class="acciones"><button class="btn-limpiar" onclick="limpiarFirma()">Limpiar firma</button></div>
+  </section>
+
+  <section>
+    <div class="acciones">
+      <button class="btn-generar" id="btnPDF" onclick="generarPDF()" disabled>Cerrar y descargar PDF</button>
+    </div>
+    <p class="nota" id="nota">Carga ambos listados y firma para habilitar el cierre. El PDF sale con resumen, gr&aacute;ficos, detalles, firma, correlativo y QR de trazabilidad.</p>
+  </section>
+
+  <footer id="footTxt">QC Digital - Reporte de PNC y RNC GCC-003</footer>
+</div>
+
+<script>
+/* ============ MARCA (multiempresa) ============ */
+// Si marca.js v2 esta cargado en la app, usa MARCA. Aqui fallback autonomo QC Digital.
+const MARCA_FALLBACK = {
+  nombre:'QC Digital', colorHex:'#0d1526', color2Hex:'#f5851f', prefijoCorr:'RMS',
+  contrato:'QC Digital \u00b7 Industry Quality Suite \u2014 Suite de inspecci\u00f3n y reportabilidad de calidad en terreno.',
+  logo:'data:image/png;base64,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'
+};
+const M = (typeof window.MARCA !== 'undefined' && window.MARCA) ? window.MARCA : MARCA_FALLBACK;
+const COLOR = M.colorHex || '#0d1526';
+const COLOR2 = M.color2Hex || '#f5851f';
+const PREFIJO = M.prefijoCorr || 'RMS';
+document.documentElement.style.setProperty('--marca', COLOR);
+document.documentElement.style.setProperty('--marca2', COLOR2);
+document.getElementById('logoImg').src = M.logo || MARCA_FALLBACK.logo;
+if(M.contrato){ document.getElementById('contratoTxt').innerHTML = M.contrato; }
+document.getElementById('footTxt').textContent = M.nombre + ' - Reporte de PNC y RNC GCC-003';
+
+const CODIGO_DOC = 'GCC-003 \u00b7 PNC / RNC';
+const COLEST = { ABIERTA:'#F2A93B', ATRASADA:'#D72622', PENDIENTE:'#3b7ddd', CERRADA:'#2e7d32', OTRO:'#9aa4ae' };
+// paleta sobria para donas
+const COLDONA = { ABIERTA:'#e0a458', ATRASADA:'#b5544e', PENDIENTE:'#5b7a99', CERRADA:'#4f7a6a', OTRO:'#9aa4ae' };
+const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
+
+document.getElementById('fecha').value = new Date().toISOString().slice(0,10);
+
+/* ============ Toggle turno ============ */
+let turno = 'TURNO NOCHE';
+(function initTurno(){
+  const cont = document.getElementById('turnoT');
+  cont.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      cont.querySelectorAll('button').forEach(b=>b.classList.remove('act'));
+      btn.classList.add('act'); turno = btn.dataset.v;
+    });
+  });
+  cont.querySelectorAll('button')[1].classList.add('act');
+})();
+
+/* ============ QR mini header ============ */
+function pintarQRmini(){
+  try{
+    const q = new QRious({ value:(M.nombre+' | PNC-RNC | GCC-003'), size:80 });
+    const cv = document.getElementById('qrMini'); const ctx = cv.getContext('2d');
+    cv.width=68; cv.height=68; const img=new Image();
+    img.onload=()=>ctx.drawImage(img,0,0,68,68); img.src=q.toDataURL();
+  }catch(e){}
+}
+pintarQRmini();
+
+/* ============ Carga de archivos ============ */
+let DATA = { rnc:null, pnc:null };
+function bindDrop(dzId, inputId, tipo, estId){
+  const dz = document.getElementById(dzId), inp = document.getElementById(inputId), est = document.getElementById(estId);
+  dz.addEventListener('click', ()=>inp.click());
+  inp.addEventListener('change', async ()=>{
+    if(!inp.files[0]) return;
+    try{
+      const rows = await leerXLS(inp.files[0]);
+      const parsed = tabla(rows);
+      if(parsed.data.length===0) throw new Error('sin filas');
+      DATA[tipo] = parsed.data;
+      dz.classList.add('ok'); dz.textContent = inp.files[0].name;
+      est.textContent = parsed.data.length + ' registros cargados'; est.className='estado-carga ok';
+    }catch(e){
+      est.textContent = 'No se pudo leer el archivo. Verifica que sea el .xls de SIC3PRO.'; est.className='estado-carga err';
+    }
+    revisar();
+  });
+}
+bindDrop('dzRNC','fileRNC','rnc','estRNC');
+bindDrop('dzPNC','filePNC','pnc','estPNC');
+
+function leerXLS(file){ return new Promise((res,rej)=>{
+  const r=new FileReader();
+  r.onload=e=>{ try{ const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+    res(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})); }catch(err){rej(err);} };
+  r.onerror=rej; r.readAsArrayBuffer(file);
+}); }
+function tabla(rows){
+  let hi = rows.findIndex(r=>String(r[0]).trim().toUpperCase().replace('\u00cd','I')==='ITEM');
+  if(hi<0) return {hdr:[],data:[]};
+  const hdr = rows[hi].map(c=>String(c).trim());
+  const data = rows.slice(hi+1).filter(r=>String(r[0]).trim()!=='').map(r=>{ const o={}; hdr.forEach((h,i)=>o[h]=String(r[i]??'').trim()); return o; });
+  return {hdr,data};
+}
+const col=(o,...alts)=>{ for(const a of alts){ const k=Object.keys(o).find(k=>k.toUpperCase().replace('\u00cd','I').startsWith(a)); if(k) return o[k]; } return ''; };
+const ent=v=>{ const s=String(v).trim(); const n=parseFloat(s); return (!isNaN(n)&&/^-?\d+(\.\d+)?$/.test(s))?String(Math.round(n)):s; };
+function cnt(arr,fn){ const m={}; arr.forEach(x=>{ const k=(fn(x)||'\u2014').toUpperCase(); m[k]=(m[k]||0)+1; }); return m; }
+function mesEmision(o){ const f=col(o,'FECHA EMISION','FECHA EMISI\u00d3N'); const p=f.split(/[\/\-]/); if(p.length<2) return null; return parseInt(p[1])-1; }
+
+/* ============ Firma ============ */
+function crearFirma(id){
+  const cv=document.getElementById(id); const ctx=cv.getContext('2d'); let dib=false, hay=false;
+  function ajustar(){ const r=cv.getBoundingClientRect(); cv.width=r.width; cv.height=r.height; ctx.lineWidth=2; ctx.lineCap='round'; ctx.strokeStyle='#111'; }
+  function pos(e){ const r=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left, y:t.clientY-r.top}; }
+  function start(e){ dib=true; hay=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); e.preventDefault(); }
+  function move(e){ if(!dib) return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); e.preventDefault(); }
+  function end(){ dib=false; }
+  cv.addEventListener('mousedown',start); cv.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+  cv.addEventListener('touchstart',start,{passive:false}); cv.addEventListener('touchmove',move,{passive:false}); cv.addEventListener('touchend',end);
+  setTimeout(ajustar,60); window.addEventListener('resize',()=>{ if(!hay) ajustar(); });
+  return { canvas:cv, ajustar, limpiar(){ ctx.clearRect(0,0,cv.width,cv.height); hay=false; }, get hayFirma(){ return hay; } };
+}
+const firma = crearFirma('firma1');
+function limpiarFirma(){ firma.limpiar(); }
+
+/* ============ Render en pantalla ============ */
+let chRNC, chPNC, chMes, G={};
+function revisar(){
+  if(DATA.rnc && DATA.pnc){ document.getElementById('zonaReporte').style.display='block'; render(); }
+  document.getElementById('btnPDF').disabled = !(DATA.rnc && DATA.pnc);
+}
+function render(){
+  const R=DATA.rnc, P=DATA.pnc;
+  const rEst=cnt(R,o=>col(o,'ESTADO')), pEst=cnt(P,o=>col(o,'ESTADO'));
+  G = { rEst, pEst, R, P };
+  const sum=(e,k)=>e[k]||0;
+  const tAbi=sum(rEst,'ABIERTA')+sum(pEst,'ABIERTA');
+  const tAtr=sum(rEst,'ATRASADA')+sum(pEst,'ATRASADA');
+  const tPen=sum(rEst,'PENDIENTE')+sum(pEst,'PENDIENTE');
+  const tCer=sum(rEst,'CERRADA')+sum(pEst,'CERRADA');
+  document.getElementById('kTot').textContent=R.length+P.length;
+  document.getElementById('kAbi').textContent=tAbi;
+  document.getElementById('kAtr').textContent=tAtr;
+  document.getElementById('kPen').textContent=tPen;
+  document.getElementById('kCer').textContent=tCer;
+
+  // tabla resumen
+  const fila=(lbl,e,t)=>`<tr><td>${lbl}</td><td class="num">${t}</td>
+    <td class="num est-ABIERTA">${sum(e,'ABIERTA')}</td><td class="num est-ATRASADA">${sum(e,'ATRASADA')}</td>
+    <td class="num est-PENDIENTE">${sum(e,'PENDIENTE')}</td><td class="num est-CERRADA">${sum(e,'CERRADA')}</td></tr>`;
+  document.getElementById('tablaResumen').innerHTML =
+    `<tr><th>Tipo</th><th class="num">Total</th><th class="num">Abiertas</th><th class="num">Atrasadas</th><th class="num">Pendientes</th><th class="num">Cerradas</th></tr>`
+    + fila('RNC',rEst,R.length) + fila('PNC',pEst,P.length)
+    + `<tr class="tot"><td>TOTAL</td><td class="num">${R.length+P.length}</td><td class="num">${tAbi}</td><td class="num">${tAtr}</td><td class="num">${tPen}</td><td class="num">${tCer}</td></tr>`;
+
+  // donas
+  chRNC = donut('chRNC', rEst, 'RNC por estado', chRNC);
+  chPNC = donut('chPNC', pEst, 'PNC por estado', chPNC);
+
+  // evolucion mes
+  const pMes={}; P.forEach(o=>{ const m=mesEmision(o); if(m!=null) pMes[m]=(pMes[m]||0)+1; });
+  const claves=Object.keys(pMes).map(Number).sort((a,b)=>a-b);
+  if(chMes) chMes.destroy();
+  chMes = new Chart(document.getElementById('chMes'), {
+    type:'bar',
+    data:{ labels:claves.map(m=>MESES[m]), datasets:[{ label:'PNC emitidas', data:claves.map(m=>pMes[m]), backgroundColor:COLOR2 }] },
+    options:{ plugins:{ legend:{display:false} }, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } } }
+  });
+
+  // detalle RNC
+  let hR=`<tr><th>N&deg; RNC</th><th>Emisi&oacute;n</th><th>Programada</th><th class="num">Atraso</th><th>Estado</th><th>Criticidad</th><th>Ubicaci&oacute;n</th></tr>`;
+  R.forEach(o=>{ const a=parseFloat(col(o,'ATRASO'))||0; const est=col(o,'ESTADO').toUpperCase();
+    hR+=`<tr><td>${ent(col(o,'NUMERO RNC','N\u00daMERO'))}</td><td>${col(o,'FECHA EMISION','FECHA EMISI\u00d3N')}</td><td>${col(o,'FECHA PROGRAMADA')}</td>
+      <td class="num" style="color:${a>0?'var(--rojo)':'#999'};font-weight:${a>0?700:400}">${a>0?a+' d':'\u2014'}</td>
+      <td class="est-${est}">${col(o,'ESTADO')}</td><td>${col(o,'CRITICIDAD')}</td><td>${col(o,'UBICACION','UBICACI\u00d3N')}</td></tr>`; });
+  document.getElementById('tablaRNC').innerHTML=hR;
+
+  // detalle PNC
+  let hP=`<tr><th>N&deg; PNC</th><th>Emisi&oacute;n</th><th>Estado</th><th>Disposici&oacute;n</th><th>Ubicaci&oacute;n</th><th>Acepta</th></tr>`;
+  P.forEach(o=>{ const est=col(o,'ESTADO').toUpperCase();
+    hP+=`<tr><td>${ent(col(o,'NUMERO PNC','N\u00daMERO'))}</td><td>${col(o,'FECHA EMISION','FECHA EMISI\u00d3N')}</td>
+      <td class="est-${est}">${col(o,'ESTADO')}</td><td>${col(o,'DISPOSICION')}</td><td>${col(o,'UBICACION','UBICACI\u00d3N')}</td><td>${col(o,'ACEPTA')}</td></tr>`; });
+  document.getElementById('tablaPNC').innerHTML=hP;
+
+  setTimeout(()=>{ if(!firma.hayFirma) firma.ajustar(); }, 120);
+}
+function donut(id, mapa, titulo, prev){
+  if(prev) prev.destroy();
+  const ents=Object.entries(mapa).filter(([,v])=>v>0);
+  return new Chart(document.getElementById(id), {
+    type:'doughnut',
+    data:{ labels:ents.map(e=>e[0]), datasets:[{ data:ents.map(e=>e[1]), backgroundColor:ents.map(e=>COLDONA[e[0]]||COLDONA.OTRO), borderColor:'#fff', borderWidth:2 }] },
+    options:{ cutout:'58%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11} } }, title:{ display:true, text:titulo, font:{size:12} } } }
+  });
+}
+
+/* ============ Correlativo (per-doc, incrementa al cerrar) ============ */
+function corrKey(){ return 'CORR_PNCRNC_' + (M.nombre||'QC'); }
+function corrActual(){ const n=parseInt(localStorage.getItem(corrKey())||'0')+1; return PREFIJO+'-2026-'+String(n).padStart(4,'0'); }
+function corrCommit(){ localStorage.setItem(corrKey(), String(parseInt(localStorage.getItem(corrKey())||'0')+1)); }
+
+/* ============ PDF ============ */
+function hx(h){ h=h.replace('#',''); return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)]; }
+function dibujarEncabezado(doc, qrDataUrl){
+  const w=doc.internal.pageSize.getWidth();
+  doc.setFillColor(...hx(COLOR)); doc.rect(0,0,w,14,'F');
+  doc.setFillColor(255,255,255); doc.roundedRect(6,2.5,30,9,1.2,1.2,'F');
+  try{ doc.addImage(M.logo||MARCA_FALLBACK.logo,'PNG',8,3.5,26,7); }catch(e){}
+  doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont(undefined,'bold');
+  doc.text('REPORTE DE PNC Y RNC', w/2, 8, {align:'center'});
+  doc.setFontSize(7.5); doc.setFont(undefined,'normal');
+  doc.text('C\u00d3DIGO: '+CODIGO_DOC, w-26, 8, {align:'right'});
+  doc.setFillColor(42,42,42); doc.rect(0,14,w,9,'F');
+  doc.setTextColor(230,230,230); doc.setFontSize(7);
+  const txt = (M.contrato||MARCA_FALLBACK.contrato).replace(/<[^>]+>/g,'');
+  doc.text(doc.splitTextToSize(txt, w-30), 8, 18.5);
+  if(qrDataUrl){ doc.setFillColor(255,255,255); doc.roundedRect(w-13,2,11,11,1,1,'F'); doc.addImage(qrDataUrl,'PNG',w-12.5,2.5,10,10); }
+  doc.setTextColor(30,30,30);
+  return 30;
+}
+function pieToPDF(doc, mapa, cx, cy, r){
+  const ents=Object.entries(mapa).filter(([,v])=>v>0);
+  const tot=ents.reduce((a,[,v])=>a+v,0)||1; let a=-Math.PI/2;
+  ents.forEach(([k,v])=>{
+    const ang=v/tot*Math.PI*2, steps=Math.max(2,Math.ceil(ang/0.12));
+    doc.setFillColor(...hx(COLDONA[k]||COLDONA.OTRO));
+    for(let i=0;i<steps;i++){ const a1=a+ang*i/steps, a2=a+ang*(i+1)/steps;
+      doc.triangle(cx,cy,cx+r*Math.cos(a1),cy+r*Math.sin(a1),cx+r*Math.cos(a2),cy+r*Math.sin(a2),'F'); }
+    a+=ang;
+  });
+  // centro blanco (dona)
+  doc.setFillColor(255,255,255); doc.circle(cx,cy,r*0.55,'F');
+}
+function v(id){ return (document.getElementById(id).value||'').trim(); }
+
+function generarPDF(){
+  if(!(DATA.rnc && DATA.pnc)){ alert('Carga ambos listados.'); return; }
+  if(!firma.hayFirma){ alert('Debe firmar para cerrar el reporte (secci\u00f3n 6).'); return; }
+  const { jsPDF } = window.jspdf; const doc = new jsPDF({unit:'mm', format:'a4'});
+  const izq=8, ancho=doc.internal.pageSize.getWidth()-16;
+  const fechaISO = v('fecha')||new Date().toISOString().slice(0,10);
+  const fecha = fechaISO.split('-').reverse().join('-');
+  const fechaDatos = v('fechaDatos') ? v('fechaDatos').split('-').reverse().join('-') : '';
+  const nombre = v('nombre')||'-';
+  const correl = corrActual();
+  const R=DATA.rnc, P=DATA.pnc, rEst=G.rEst, pEst=G.pEst;
+  const sum=(e,k)=>e[k]||0;
+
+  // QR trazabilidad
+  const qrData = [M.nombre,'PNC-RNC',correl,fecha,turno,'RNC:'+R.length,'PNC:'+P.length].join(' | ');
+  const qrUrl = new QRious({ value:qrData, size:120 }).toDataURL();
+
+  let y = dibujarEncabezado(doc, qrUrl);
+  y += 4;
+
+  // Datos del reporte
+  doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(...hx(COLOR2));
+  doc.text('1 - Datos del reporte', izq, y); doc.setDrawColor(...hx(COLOR2)); doc.setLineWidth(0.4); doc.line(izq,y+1.5,izq+ancho,y+1.5); y+=7;
+  doc.setTextColor(40,40,40); doc.setFontSize(9); doc.setFont(undefined,'normal');
+  const dr=(k1,v1,k2,v2)=>{ doc.setFont(undefined,'bold'); doc.text(k1,izq,y); doc.setFont(undefined,'normal'); doc.text(String(v1),izq+32,y);
+    doc.setFont(undefined,'bold'); doc.text(k2,izq+100,y); doc.setFont(undefined,'normal'); doc.text(String(v2),izq+140,y); y+=5; };
+  dr('Obra/Faena:', v('obra')||'-', 'Fecha reporte:', fecha);
+  dr('Turno:', turno, 'Datos SIC3PRO al:', fechaDatos||'-');
+  dr('Disciplina:', 'Miner\u00eda (MI)', 'Correlativo:', correl);
+  y+=3;
+
+  // Punto 1 - resumen + KPIs
+  doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(...hx(COLOR2));
+  doc.text('Punto 1 - Resumen general (RNC + PNC)', izq, y); doc.line(izq,y+1.5,izq+ancho,y+1.5); y+=6;
+  const tAbi=sum(rEst,'ABIERTA')+sum(pEst,'ABIERTA'), tAtr=sum(rEst,'ATRASADA')+sum(pEst,'ATRASADA'),
+        tPen=sum(rEst,'PENDIENTE')+sum(pEst,'PENDIENTE'), tCer=sum(rEst,'CERRADA')+sum(pEst,'CERRADA');
+  const kp=[['TOTAL',R.length+P.length],['ABIERTAS',tAbi],['ATRASADAS',tAtr],['PENDIENTES',tPen],['CERRADAS',tCer]];
+  let kx=izq, kw=ancho/5;
+  kp.forEach(k=>{ doc.setFillColor(244,244,244); doc.roundedRect(kx+1,y,kw-2,16,1.5,1.5,'F');
+    doc.setTextColor(30,30,30); doc.setFontSize(15); doc.setFont(undefined,'bold'); doc.text(String(k[1]),kx+kw/2,y+8,{align:'center'});
+    doc.setFontSize(6.5); doc.setFont(undefined,'normal'); doc.setTextColor(90,90,90); doc.text(k[0],kx+kw/2,y+13,{align:'center'}); kx+=kw; });
+  y+=20;
+
+  // tabla resumen
+  doc.autoTable({ startY:y, head:[['Tipo','Total','Abiertas','Atrasadas','Pendientes','Cerradas']],
+    body:[ ['RNC',R.length,sum(rEst,'ABIERTA'),sum(rEst,'ATRASADA'),sum(rEst,'PENDIENTE'),sum(rEst,'CERRADA')],
+           ['PNC',P.length,sum(pEst,'ABIERTA'),sum(pEst,'ATRASADA'),sum(pEst,'PENDIENTE'),sum(pEst,'CERRADA')],
+           ['TOTAL',R.length+P.length,tAbi,tAtr,tPen,tCer] ],
+    theme:'grid', headStyles:{ fillColor:hx(COLOR), fontSize:8, halign:'center' },
+    bodyStyles:{ fontSize:8, halign:'center' }, columnStyles:{ 0:{ halign:'left', fontStyle:'bold' } },
+    styles:{ cellPadding:2 },
+    didParseCell:d=>{ if(d.row.index===2) d.cell.styles.fillColor=[238,241,245];
+      const cm={2:hx('#c07f10'),3:hx('#D72622'),4:hx('#3b7ddd'),5:hx('#2e7d32')};
+      if(d.section==='body'&&cm[d.column.index]){ d.cell.styles.textColor=cm[d.column.index]; d.cell.styles.fontStyle='bold'; } } });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Punto 2 - dos donas
+  doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(...hx(COLOR2));
+  doc.text('Punto 2 - Distribuci\u00f3n por estado', izq, y); doc.line(izq,y+1.5,izq+ancho,y+1.5); y+=8;
+  doc.setFontSize(9); doc.setTextColor(...hx(COLOR)); doc.setFont(undefined,'bold');
+  doc.text('RNC por estado', izq+2, y); doc.text('PNC por estado', izq+100, y); y+=2;
+  const legend=(mapa,lx,ly)=>{ doc.setFontSize(7.5); let yy=ly;
+    Object.entries(mapa).filter(([,vv])=>vv>0).forEach(([k,vv])=>{ const t=Object.values(mapa).reduce((a,b)=>a+b,0)||1;
+      doc.setFillColor(...hx(COLDONA[k]||COLDONA.OTRO)); doc.rect(lx,yy-2.5,3,3,'F');
+      doc.setTextColor(70,70,70); doc.setFont(undefined,'normal'); doc.text(`${k}: ${vv} (${Math.round(vv/t*100)}%)`, lx+5, yy); yy+=5; }); };
+  pieToPDF(doc, rEst, izq+18, y+16, 14); legend(rEst, izq+40, y+8);
+  pieToPDF(doc, pEst, izq+118, y+16, 14); legend(pEst, izq+140, y+8);
+  y += 38;
+
+  // Punto 4 - detalle RNC
+  if(y>235){ doc.addPage(); y=dibujarEncabezado(doc,qrUrl)+4; }
+  doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(...hx(COLOR2));
+  doc.text('Punto 4 - Detalle RNC', izq, y); doc.line(izq,y+1.5,izq+ancho,y+1.5); y+=4;
+  doc.autoTable({ startY:y, head:[['N\u00b0 RNC','Emisi\u00f3n','Programada','Atraso','Estado','Criticidad','Ubicaci\u00f3n']],
+    body:R.map(o=>{ const a=parseFloat(col(o,'ATRASO'))||0; return [ent(col(o,'NUMERO RNC','N\u00daMERO')),col(o,'FECHA EMISION','FECHA EMISI\u00d3N'),col(o,'FECHA PROGRAMADA'),a>0?a+' d':'\u2014',col(o,'ESTADO'),col(o,'CRITICIDAD'),col(o,'UBICACION','UBICACI\u00d3N')]; }),
+    theme:'grid', headStyles:{ fillColor:hx(COLOR), fontSize:7 }, bodyStyles:{ fontSize:7 }, styles:{ cellPadding:1.5 },
+    didParseCell:d=>{ if(d.section==='body'&&d.column.index===4){ const e=(d.cell.raw||'').toUpperCase(); if(COLEST[e]){ d.cell.styles.textColor=hx(COLEST[e]); d.cell.styles.fontStyle='bold'; } } } });
+  y = doc.lastAutoTable.finalY + 8;
+
+  // Punto 5 - detalle PNC
+  if(y>235){ doc.addPage(); y=dibujarEncabezado(doc,qrUrl)+4; }
+  doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(...hx(COLOR2));
+  doc.text('Punto 5 - Detalle PNC', izq, y); doc.line(izq,y+1.5,izq+ancho,y+1.5); y+=4;
+  doc.autoTable({ startY:y, head:[['N\u00b0 PNC','Emisi\u00f3n','Estado','Disposici\u00f3n','Ubicaci\u00f3n','Acepta']],
+    body:P.map(o=>[ent(col(o,'NUMERO PNC','N\u00daMERO')),col(o,'FECHA EMISION','FECHA EMISI\u00d3N'),col(o,'ESTADO'),col(o,'DISPOSICION'),col(o,'UBICACION','UBICACI\u00d3N'),col(o,'ACEPTA')]),
+    theme:'grid', headStyles:{ fillColor:hx(COLOR), fontSize:7 }, bodyStyles:{ fontSize:7 }, styles:{ cellPadding:1.5 },
+    didParseCell:d=>{ if(d.section==='body'&&d.column.index===2){ const e=(d.cell.raw||'').toUpperCase(); if(COLEST[e]){ d.cell.styles.textColor=hx(COLEST[e]); d.cell.styles.fontStyle='bold'; } } } });
+  y = doc.lastAutoTable.finalY + 10;
+
+  // Cierre del reporte
+  if(y>224){ doc.addPage(); y=dibujarEncabezado(doc,qrUrl)+6; }
+  doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(...hx(COLOR2));
+  doc.text('Cierre del reporte - Realizado por', izq, y); doc.line(izq,y+1.5,izq+ancho,y+1.5); y+=6;
+  // caja de cierre
+  const boxH=34;
+  doc.setFillColor(250,250,250); doc.setDrawColor(225,225,225); doc.setLineWidth(0.3); doc.roundedRect(izq, y, ancho, boxH, 2, 2, 'FD');
+  // --- zona 1: logo (placa navy) ---
+  doc.setFillColor(...hx(COLOR)); doc.roundedRect(izq+5, y+9, 18, 16, 2, 2, 'F');
+  try{ doc.addImage(M.logo||MARCA_FALLBACK.logo,'PNG', izq+6.5, y+12, 15, 10); }catch(e){}
+  // --- zona 2: datos (apilados, columna izquierda-centro) ---
+  const dx = izq+29;
+  doc.setTextColor(25,25,25); doc.setFontSize(10.5); doc.setFont(undefined,'bold');
+  doc.text(nombre, dx, y+11);
+  doc.setFontSize(8); doc.setTextColor(...hx(COLOR2)); doc.setFont(undefined,'bold');
+  doc.text((v('cargo')||'Inspector de Calidad'), dx, y+16);
+  doc.setFontSize(7.5); doc.setFont(undefined,'normal'); doc.setTextColor(95,95,95);
+  const ahora=new Date(); const hh=ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+  doc.text('RUT: '+(v('rut')||'-'), dx, y+22);
+  doc.text('Firmado digitalmente \u00b7 '+fecha+' '+hh+' hrs', dx, y+26);
+  doc.setFont(undefined,'bold'); doc.setTextColor(...hx(COLOR));
+  doc.text('N\u00b0 '+correl, dx, y+30);
+  // --- zona 3: firma (recuadro propio, derecha-centro) ---
+  const fx = izq+ancho-72, fw=44, fyTop=y+6;
+  doc.setDrawColor(230,230,230); doc.setLineWidth(0.2);
+  doc.addImage(firma.canvas.toDataURL('image/png'),'PNG', fx, fyTop, fw, 16);
+  doc.setDrawColor(120,120,120); doc.setLineWidth(0.3); doc.line(fx, fyTop+18, fx+fw, fyTop+18);
+  doc.setFontSize(6.5); doc.setFont(undefined,'normal'); doc.setTextColor(120,120,120);
+  doc.text('Firma inspector', fx+fw/2, fyTop+22, {align:'center'});
+  // --- zona 4: QR (extremo derecho) ---
+  doc.addImage(qrUrl,'PNG', izq+ancho-22, y+9, 16, 16);
+  y+=boxH+4;
+  doc.setFontSize(7); doc.setTextColor(140,140,140); doc.setFont(undefined,'normal');
+  doc.text(M.nombre+' \u00b7 Industry Quality Suite \u2014 documento trazable, generado autom\u00e1ticamente \u00b7 c\u00f3digo de verificaci\u00f3n en el QR.', izq, y);
+
+  // Pie de pagina
+  const totalPag=doc.getNumberOfPages(); const dias=['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+  const pie='Generado por: '+nombre+'  |  '+dias[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+' '+hh+' hrs  |  Fuente: SIC3PRO'+(fechaDatos?' ('+fechaDatos+')':'')+'  |  '+correl;
+  for(let p=1;p<=totalPag;p++){ doc.setPage(p);
+    doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(130,130,130);
+    doc.setDrawColor(200,200,200); doc.setLineWidth(0.2); doc.line(izq,287,izq+ancho,287);
+    doc.text(pie, izq, 291); doc.text('Pagina '+p+' de '+totalPag, izq+ancho, 291, {align:'right'}); }
+  doc.setTextColor(30,30,30);
+
+  corrCommit();
+  const arch = 'ReportePNCRNC_'+fecha.replace(/-/g,'')+'_'+turno.replace(/\s+/g,'')+'.pdf';
+
+  // ===== Respaldo en Drive + registro en Google Sheet (hook, se activa con OAuth) =====
+  // Cuando marca.js/app exponga window.QCDrive (item 4 del roadmap: OAuth drive.file),
+  // este bloque sube el PDF y agrega una fila al Sheet-indice. Mientras no exista, descarga normal.
+  try{
+    if(typeof window.QCDrive!=='undefined' && window.QCDrive.subir){
+      const blob = doc.output('blob');
+      window.QCDrive.subir({
+        archivo: arch, blob: blob, tipo: 'PNC_RNC', correlativo: correl,
+        fila: {                         // fila para la hoja indice
+          Correlativo: correl, Tipo: 'Reporte PNC y RNC', Fecha: fecha, Turno: turno,
+          Empresa: (M.nombre||''), Realizado: nombre, RUT: v('rut')||'',
+          RNC: R.length, PNC: P.length, Total: R.length+P.length,
+          Abiertas: tAbi, Atrasadas: tAtr, Pendientes: tPen, Cerradas: tCer,
+          Generado: ahora.toISOString(), Archivo: arch
+        }
+      }).then(()=>{ const n=document.getElementById('nota'); n.innerHTML='PDF generado, respaldado en Drive y registrado en el listado. '+correl; n.style.color='#2e7d32'; })
+        .catch(()=>{ document.getElementById('nota').innerHTML='PDF generado ('+arch+'). Respaldo Drive pendiente (sin conexi\u00f3n).'; });
+    }
+  }catch(e){}
+
+  doc.save(arch);
+  const nota=document.getElementById('nota'); nota.innerHTML='PDF generado y descargado ('+arch+').  Correlativo '+correl+'.'; nota.style.color='#2e7d32';
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('service-worker.js').catch(console.error); });
+}
+</script>
+</body>
+</html>
