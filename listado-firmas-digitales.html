@@ -429,6 +429,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
   <div class="relator-final">
     <h3 class="titulo-seccion" style="margin:0 0 10px;">Firma del relator</h3>
     <input type="text" id="campoNombreRelatorFirma" placeholder="Nombre del relator" style="margin-bottom:8px;">
+    <input type="text" id="campoRutRelatorFirma" placeholder="RUT del relator (12.345.678-9)" style="margin-bottom:8px;">
     <label style="font-size:11px;color:var(--gris-texto);display:block;margin-bottom:4px;">Firma</label>
     <canvas id="canvasFirmaRelator" class="canvas-firma"></canvas>
     <div class="firma-acciones">
@@ -744,6 +745,7 @@ function validarFormulario(){
   var horaInicio = document.getElementById("campoHoraInicio").value;
   var horaTermino = document.getElementById("campoHoraTermino").value;
   var nombreFirmaRelator = document.getElementById("campoNombreRelatorFirma").value.trim();
+  var rutFirmaRelator = document.getElementById("campoRutRelatorFirma").value.trim();
   var firmaRelatorOk = canvasesFirma["canvasFirmaRelator"] && canvasesFirma["canvasFirmaRelator"].tieneTrazo;
 
   if(!relator){ mostrarError("Falta indicar el Relator(es)."); return null; }
@@ -778,6 +780,7 @@ function validarFormulario(){
     turno: turnoSeleccionado, grupo: grupoSeleccionado,
     participantes: participantes,
     nombreFirmaRelator: nombreFirmaRelator,
+    rutFirmaRelator: rutFirmaRelator,
     canvasFirmaRelator: document.getElementById("canvasFirmaRelator")
   };
 }
@@ -984,7 +987,7 @@ function construirPDF(datos, callback){
     y = MARCA.dibujarSelloFirma(doc, {
       x: 8, y: y, ancho: anchoPagina - 16,
       nombre: datos.nombreFirmaRelator,
-      cargo: "Relator", rut: "-",
+      cargo: "Relator", rut: (datos.rutFirmaRelator || "-"),
       fecha: ahoraFirma.toLocaleDateString("es-CL"),
       hora: ahoraFirma.toLocaleTimeString("es-CL", {hour:"2-digit", minute:"2-digit"}),
       correlativo: corrFirmas,
