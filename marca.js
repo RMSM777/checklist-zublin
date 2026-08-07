@@ -67,13 +67,14 @@
   /* Version de la app (formato: v + fecha de release AAAA.MM.DD).
      Fuente unica: se actualiza SOLO aqui, no en cada reporte. Los
      footers de las paginas la pintan llamando a MARCA.pintarVersion(). */
-  const VERSION = 'v2026.08.07';
+  const VERSION = 'v2026.08.08';
 
   const MARCA = {
     _datos: null,
     empresa: null,
     logoDataUrl: null,
     logoQCDigitalDataUrl: null,
+    logoQCDigitalSelloDataUrl: null,
     _listo: false,
     VERSION: VERSION,
 
@@ -98,6 +99,12 @@
       this.logoQCDigitalDataUrl = qcDigital
         ? await this._cargarLogo(qcDigital.logoArchivo)
         : this.logoDataUrl;
+
+      /* Version cuadrada del sello (hexagono + check, sin texto) para la
+         placa de firma. Si no existe el archivo, cae al logo apaisado. */
+      this.logoQCDigitalSelloDataUrl =
+        (await this._cargarLogo('logo-qcdigital-sello.txt'))
+        || this.logoQCDigitalDataUrl;
 
       this._listo = true;
       this._avisarSiPlantilla();
@@ -391,69 +398,102 @@
 
        Devuelve el nuevo Y (debajo del sello + leyenda), listo para seguir
        dibujando contenido despues. */
+    /* Dibuja UNA caja de firma (34 mm de alto) con las 4 zonas del
+       estandar QC Digital: placa-logo, datos apilados, firma manuscrita
+       con su linea, y QR al extremo derecho. Devuelve el Y bajo la caja.
+       Uso interno: lo llama dibujarSelloFirma para 1 o 2 firmantes. */
+    _dibujarCajaFirma(doc, f){
+      const NARANJA = [245, 133, 31];  // #f5851f - fijo QC Digital
+      const x = f.x, y = f.y, ancho = f.ancho, boxH = 34;
+
+      /* Caja contenedora */
+      doc.setFillColor(250, 250, 250); doc.setDrawColor(225, 225, 225); doc.setLineWidth(0.3);
+      doc.roundedRect(x, y, ancho, boxH, 2, 2, 'FD');
+
+      /* Zona 1: logo QC Digital en placa blanca (sello cuadrado) */
+      doc.setFillColor(255, 255, 255); doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.3);
+      doc.roundedRect(x + 5, y + 8, 18, 18, 2, 2, 'FD');
+      const sello = this.logoQCDigitalSelloDataUrl || this.logoQCDigitalDataUrl;
+      if(sello){ try{ doc.addImage(sello, 'PNG', x + 6.5, y + 9.5, 15, 15); }catch(e){} }
+
+      /* Zona 2: datos apilados */
+      const dx = x + 29;
+      doc.setTextColor(25, 25, 25); doc.setFontSize(10.5); doc.setFont(undefined, 'bold');
+      doc.text(f.nombre || '-', dx, y + 11);
+      doc.setFontSize(8); doc.setTextColor(...NARANJA); doc.setFont(undefined, 'bold');
+      doc.text(f.cargo || 'Inspector de Calidad', dx, y + 16);
+      doc.setFontSize(7.5); doc.setFont(undefined, 'normal'); doc.setTextColor(95, 95, 95);
+      doc.text('RUT: ' + (f.rut || '-'), dx, y + 22);
+      doc.text('Firmado digitalmente \u00b7 ' + (f.fecha || '') + (f.hora ? ' ' + f.hora : '') + ' hrs', dx, y + 26);
+      doc.setFont(undefined, 'bold'); doc.setTextColor(...NARANJA);
+      doc.text('N\u00b0 ' + (f.correlativo || '-'), dx, y + 30);
+
+      /* Zona 3: firma con recuadro y linea "Firma inspector" */
+      const fx = x + ancho - 72, fw = 44, fyTop = y + 6;
+      if(f.firmaDataUrl){ try{ doc.addImage(f.firmaDataUrl, 'PNG', fx, fyTop, fw, 16); }catch(e){} }
+      doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.3); doc.line(fx, fyTop + 18, fx + fw, fyTop + 18);
+      doc.setFontSize(6.5); doc.setFont(undefined, 'normal'); doc.setTextColor(120, 120, 120);
+      doc.text(f.etiquetaFirma || 'Firma inspector', fx + fw / 2, fyTop + 22, { align: 'center' });
+
+      /* Zona 4: QR al extremo derecho */
+      if(f.qrDataUrl){ try{ doc.addImage(f.qrDataUrl, 'PNG', x + ancho - 22, y + 9, 16, 16); }catch(e){} }
+
+      return y + boxH;
+    },
+
+    /* Dibuja el bloque de cierre/firma estandar QC Digital. Colores y logo
+       SIEMPRE de QC Digital (sello de plataforma), sin importar la empresa.
+
+       Uso con UN firmante (compatible con reportes ya migrados):
+         y = MARCA.dibujarSelloFirma(doc, {
+           x: izq, y: y, ancho: ancho,
+           firmaDataUrl: firma.canvas.toDataURL('image/png'),
+           qrDataUrl: qrUrl, nombre, cargo, rut, fecha, hora, correlativo
+         });
+
+       Uso con DOS firmantes (mismo diseno, dos cajas apiladas; el QR se
+       repite en ambas):
+         y = MARCA.dibujarSelloFirma(doc, {
+           x: izq, y: y, ancho: ancho,
+           firmantes: [ {nombre,cargo,rut,firmaDataUrl,etiquetaFirma}, {...} ],
+           qrDataUrl: qrUrl, fecha, hora, correlativo
+         });
+       Cada firmante puede traer su propio correlativo/fecha/qr; si no,
+       hereda los de nivel superior. */
     dibujarSelloFirma(doc, opts){
       opts = opts || {};
-      const NAVY = [13, 21, 38];       // #0d1526 - fijo QC Digital
-      const NARANJA = [245, 133, 31];  // #f5851f - fijo QC Digital
-      const GRIS_BORDE = [216, 219, 226];
-      const GRIS_TEXTO = [110, 116, 128];
+      const GRIS_TEXTO = [140, 140, 140];
+      const x = opts.x, ancho = opts.ancho;
 
-      const x = opts.x, y0 = opts.y, ancho = opts.ancho;
-      const h = 26;
-      const hayQr = !!opts.qrDataUrl;
+      /* Normalizar a un arreglo de firmantes */
+      let firmantes = Array.isArray(opts.firmantes) && opts.firmantes.length
+        ? opts.firmantes
+        : [{ nombre: opts.nombre, cargo: opts.cargo, rut: opts.rut,
+             firmaDataUrl: opts.firmaDataUrl, etiquetaFirma: opts.etiquetaFirma,
+             correlativo: opts.correlativo, fecha: opts.fecha, hora: opts.hora,
+             qrDataUrl: opts.qrDataUrl }];
 
-      /* Franja de fondo + acento naranja a la izquierda */
-      doc.setDrawColor(...GRIS_BORDE); doc.setLineWidth(0.25);
-      doc.rect(x, y0, ancho, h);
-      doc.setFillColor(...NARANJA);
-      doc.rect(x, y0, 1.2, h, 'F');
+      let y = opts.y;
+      firmantes.forEach((fr, i) => {
+        if(i > 0) y += 4; // separacion entre cajas
+        y = this._dibujarCajaFirma(doc, {
+          x: x, y: y, ancho: ancho,
+          nombre: fr.nombre, cargo: fr.cargo, rut: fr.rut,
+          firmaDataUrl: fr.firmaDataUrl,
+          etiquetaFirma: fr.etiquetaFirma,
+          correlativo: fr.correlativo != null ? fr.correlativo : opts.correlativo,
+          fecha: fr.fecha != null ? fr.fecha : opts.fecha,
+          hora: fr.hora != null ? fr.hora : opts.hora,
+          qrDataUrl: fr.qrDataUrl != null ? fr.qrDataUrl : opts.qrDataUrl
+        });
+      });
 
-      /* Logo QC Digital (siempre, aunque la empresa activa sea otra) */
-      const logoW = 12, logoH = 12;
-      const logoX = x + 4, logoY = y0 + (h - logoH) / 2;
-      if(this.logoQCDigitalDataUrl){
-        try{ doc.addImage(this.logoQCDigitalDataUrl, 'PNG', logoX, logoY, logoW, logoH); }catch(e){}
-      }
-
-      /* Bloque de texto: nombre/cargo + linea de metadatos */
-      const textoX = logoX + logoW + 5;
-      const anchoTexto = 70;
-      doc.setTextColor(30, 30, 30);
-      doc.setFontSize(9); doc.setFont(undefined, 'bold');
-      doc.text((opts.nombre || '-') + (opts.cargo ? ' \u00b7 ' + opts.cargo : ''), textoX, y0 + h/2 - 1.5, { maxWidth: anchoTexto });
+      /* Leyenda inferior (una sola vez, bajo la ultima caja) */
+      let yFinal = y + 5;
       doc.setFontSize(7); doc.setFont(undefined, 'normal'); doc.setTextColor(...GRIS_TEXTO);
-      const rutTxt = opts.rut ? ('RUT ' + opts.rut + ' \u00b7 ') : '';
-      const metaTxt = rutTxt + 'Firmado digitalmente \u00b7 ' + (opts.fecha || '') + (opts.hora ? ', ' + opts.hora : '') + ' hrs \u00b7 N\u00b0 ' + (opts.correlativo || '-');
-      doc.text(metaTxt, textoX, y0 + h/2 + 3, { maxWidth: anchoTexto });
-
-      /* Divisor */
-      const divX = textoX + anchoTexto + 2;
-      doc.setDrawColor(...GRIS_BORDE); doc.setLineWidth(0.2);
-      doc.line(divX, y0 + 3, divX, y0 + h - 3);
-
-      /* Firma */
-      const firmaX = divX + 4;
-      const firmaW = hayQr ? 34 : (x + ancho - firmaX - 4);
-      const firmaH = 14;
-      const firmaY = y0 + (h - firmaH) / 2;
-      doc.setDrawColor(...GRIS_BORDE); doc.setLineWidth(0.2);
-      doc.rect(firmaX, firmaY, firmaW, firmaH);
-      if(opts.firmaDataUrl){
-        try{ doc.addImage(opts.firmaDataUrl, 'PNG', firmaX + 1, firmaY + 1, firmaW - 2, firmaH - 2); }catch(e){}
-      }
-
-      /* QR (opcional) */
-      if(hayQr){
-        const qrSize = 14;
-        const qrX = x + ancho - qrSize - 4;
-        const qrY = y0 + (h - qrSize) / 2;
-        try{ doc.addImage(opts.qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize); }catch(e){}
-      }
-
-      /* Leyenda inferior */
-      let yFinal = y0 + h + 3.5;
-      doc.setFontSize(6.5); doc.setFont(undefined, 'normal'); doc.setTextColor(...GRIS_TEXTO);
-      doc.text('QC Digital \u00b7 Industry Quality Suite \u2014 documento trazable, generado autom\u00e1ticamente' + (hayQr ? ' \u00b7 c\u00f3digo de verificaci\u00f3n en el QR.' : '.'), x, yFinal);
+      doc.text((this.empresa && this.empresa.nombreCorto ? this.empresa.nombreCorto : 'QC Digital') +
+        ' \u00b7 Industry Quality Suite \u2014 documento trazable, generado autom\u00e1ticamente \u00b7 c\u00f3digo de verificaci\u00f3n en el QR.',
+        x, yFinal);
       doc.setTextColor(30, 30, 30);
 
       return yFinal + 4;
