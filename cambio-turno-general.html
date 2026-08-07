@@ -551,6 +551,7 @@ function actualizarFirmantes(){
   [...cont.children].forEach(c=>{ if(!actuales.has(c.dataset.nombre)) c.remove(); });
   nombres.forEach(nombre=>{
     let bloque = [...cont.children].find(c=>c.dataset.nombre===nombre);
+    const persona = personalActual().find(p=>p.nombre===nombre);
     if(!bloque){
       bloque = document.createElement('div');
       bloque.className = 'firmante-bloque';
@@ -562,6 +563,7 @@ function actualizarFirmantes(){
       firmas[canvasId] = crearFirma(bloque.querySelector('canvas'));
       bloque.dataset.canvasId = canvasId;
     }
+    bloque.dataset.cargo = persona ? persona.cargo : 'Inspector de Calidad';
     bloque.querySelector('.nombre').textContent = nombre;
   });
 }
@@ -756,20 +758,34 @@ async function generarVistaPrevia(){
   });
 
   tituloSeccion('Firmas digitales');
+  y += 2;
   const bloques = [...document.querySelectorAll('#firmas .firmante-bloque')];
-  const colGap = 8;
-  const colAncho = (der - izq - colGap) / 2;
-  const filaAlto = 26;
-  bloques.forEach((b,i)=>{
-    const col = i % 2;
-    if(col === 0) saltoSiNecesario(filaAlto);
-    const x = izq + col * (colAncho + colGap);
-    doc.setFontSize(8); doc.text(b.dataset.nombre, x, y);
+  const anchoSello = der - izq;
+  const ahoraF = new Date();
+  const fechaF = ahoraF.toLocaleDateString('es-CL');
+  const horaF = ahoraF.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
+  bloques.forEach((b)=>{
+    saltoSiNecesario(38); // 34mm de caja + margen
     const obj = firmas[b.dataset.canvasId];
-    if(obj && obj.hayFirma){ try{ doc.addImage(obj.canvas.toDataURL('image/png'),'PNG', x, y+2, colAncho, 18); }catch(e){} }
-    else { doc.setFontSize(7); doc.text('(sin firma)', x, y+10); }
-    if(col === 1 || i === bloques.length-1) y += filaAlto;
+    const firmaData = (obj && obj.hayFirma) ? obj.canvas.toDataURL('image/png') : null;
+    y = MARCA.dibujarSelloFirma(doc, {
+      x: izq, y: y, ancho: anchoSello,
+      nombre: b.dataset.nombre,
+      cargo: b.dataset.cargo || 'Inspector de Calidad',
+      rut: '-',
+      fecha: fechaF, hora: horaF, correlativo: corr,
+      firmaDataUrl: firmaData, qrDataUrl: qrUrl,
+      sinLeyenda: true
+    });
+    y += 2;
   });
+  // Leyenda unica al final de todas las firmas
+  saltoSiNecesario(8);
+  doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(140,140,140);
+  doc.text((MARCA.empresa && MARCA.empresa.nombreCorto ? MARCA.empresa.nombreCorto : 'QC Digital') +
+    ' \u00b7 Industry Quality Suite \u2014 documento trazable, generado autom\u00e1ticamente \u00b7 c\u00f3digo de verificaci\u00f3n en el QR.',
+    izq, y);
+  doc.setTextColor(30,30,30); y += 5;
 
   const totalPag = doc.internal.getNumberOfPages();
   const ahora = new Date();

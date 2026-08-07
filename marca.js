@@ -488,7 +488,10 @@
         });
       });
 
-      /* Leyenda inferior (una sola vez, bajo la ultima caja) */
+      /* Leyenda inferior (una sola vez, bajo la ultima caja).
+         Se puede omitir con opts.sinLeyenda para reportes que apilan
+         varias cajas con salto de pagina y ponen la leyenda aparte. */
+      if(opts.sinLeyenda){ return y + 2; }
       let yFinal = y + 5;
       doc.setFontSize(7); doc.setFont(undefined, 'normal'); doc.setTextColor(...GRIS_TEXTO);
       doc.text((this.empresa && this.empresa.nombreCorto ? this.empresa.nombreCorto : 'QC Digital') +
