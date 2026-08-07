@@ -609,22 +609,44 @@ function construirPDF(p, regsValidos){
     y += 2;
   }
 
-  // Firmas
-  checkY(45);
-  const yF = y + 22;
-  doc.addImage(F1.canvas.toDataURL('image/png'), 'PNG', izq+5, y, 55, 20);
-  doc.setDrawColor(30,30,30); doc.setLineWidth(0.2);
-  doc.line(izq+5, yF, izq+65, yF);
-  doc.setFontSize(8.5); doc.setFont(undefined,'normal');
-  doc.text(p[0].nombre, izq+35, yF+4.5, {align:'center'});
-  doc.text('Firma '+(p[0].cargo||'Inspector Calidad'), izq+35, yF+9, {align:'center'});
+  // Cierre del reporte - estandar QC Digital (marca.js)
+  // Correlativo y QR se calculan aqui (antes se hacian mas abajo).
+  const ahora = new Date();
+  const corr = MARCA.correlativo(p[0].nombre, 'PROCESOS');
+  let qrImg = null;
+  try{
+    const qr = new QRious({ value: 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr), size:200, level:'M' });
+    qrImg = qr.toDataURL();
+  }catch(e){}
+  const _fechaCierre = (v('fecha') ? new Date(v('fecha')+'T00:00:00').toLocaleDateString('es-CL') : ahora.toLocaleDateString('es-CL'));
+  const _horaCierre = ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+
+  // Cada firmante: dos cajas iguales si hay 2 inspectores (QR repetido)
+  const _firmantes = [{
+    nombre: p[0].nombre, cargo: p[0].cargo || 'Inspector de Calidad',
+    rut: p[0].rut || '-', firmaDataUrl: F1.canvas.toDataURL('image/png'),
+    etiquetaFirma: 'Firma inspector'
+  }];
   if(p.length >= 2 && F2.hayFirma){
-    doc.addImage(F2.canvas.toDataURL('image/png'), 'PNG', izq+115, y, 55, 20);
-    doc.line(izq+115, yF, izq+175, yF);
-    doc.text(p[1].nombre, izq+145, yF+4.5, {align:'center'});
-    doc.text('Firma '+(p[1].cargo||'Inspector Calidad'), izq+145, yF+9, {align:'center'});
+    _firmantes.push({
+      nombre: p[1].nombre, cargo: p[1].cargo || 'Inspector de Calidad',
+      rut: p[1].rut || '-', firmaDataUrl: F2.canvas.toDataURL('image/png'),
+      etiquetaFirma: 'Firma inspector'
+    });
   }
-  y = yF + 14;
+
+  // Espacio necesario: 34mm por caja (+4 de separacion) + titulo + leyenda
+  checkY(_firmantes.length >= 2 ? 90 : 52);
+  doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(...MARCA.colorRGB());
+  doc.text('Cierre del reporte - Realizado por', izq, y);
+  doc.setDrawColor(...MARCA.colorRGB()); doc.setLineWidth(0.4); doc.line(izq, y+1.5, izq+ancho, y+1.5);
+  y += 6;
+  y = MARCA.dibujarSelloFirma(doc, {
+    x: izq, y: y, ancho: ancho,
+    fecha: _fechaCierre, hora: _horaCierre, correlativo: corr, qrDataUrl: qrImg,
+    firmantes: _firmantes
+  });
+  y += 4;
 
   // Anexos fotograficos
   anexos.forEach(a=>{
@@ -641,16 +663,9 @@ function construirPDF(p, regsValidos){
     });
   });
 
-  // QR y pie en todas las paginas
+  // QR y pie en todas las paginas (corr, ahora y qrImg ya se definieron en el cierre)
   const total = doc.getNumberOfPages();
-  const ahora = new Date();
-  const corr = MARCA.correlativo(p[0].nombre, 'PROCESOS');
   const marca = 'Generado por: '+p[0].nombre+'  |  '+ahora.toLocaleDateString('es-CL')+'  |  '+v('tituloInf').toUpperCase()+'  |  N° '+corr;
-  let qrImg = null;
-  try{
-    const qr = new QRious({ value: 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr), size:200, level:'M' });
-    qrImg = qr.toDataURL();
-  }catch(e){}
   for(let pg=1;pg<=total;pg++){
     doc.setPage(pg);
     if(pg===1 && qrImg) doc.addImage(qrImg, 'PNG', izq+ancho-22, 24, 22, 22);
