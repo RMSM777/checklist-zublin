@@ -664,29 +664,15 @@ async function generarVistaPrevia(){
     qrUrl = qr.toDataURL();
   }catch(e){}
 
-  function encabezado(){
-    doc.setFillColor(...MARCA.colorHeaderRGB()); doc.rect(0,0,anchoPag,18,'F');
-    try{ doc.addImage(LOGO,'PNG',izq,4.3,13,6.1); }catch(e){}
-    doc.setTextColor(255,255,255); doc.setFontSize(8); doc.setFont(undefined,'bold');
-    doc.text(CODIGO_DOC, der, 8, {align:'right'});
-    doc.setFillColor(42,42,42); doc.rect(0,18,anchoPag,10,'F');
-    doc.setFontSize(7); doc.setFont(undefined,'normal');
-    doc.text(MARCA.textoContrato(), izq, 24, {maxWidth: der-izq-(qrUrl?11:0)});
-    if(qrUrl){ doc.addImage(qrUrl,'PNG',der-8,19,8,8); }
-    doc.setFillColor(...MARCA.colorRGB()); doc.rect(0,28,anchoPag,8,'F');
-    doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(255,255,255);
-    doc.text('CAMBIO DE TURNO', anchoPag/2, 33.5, {align:'center'});
-    doc.setTextColor(0,0,0);
-    y = 42;
-  }
+
   function saltoSiNecesario(alto){ if(y + alto > 285){ doc.addPage(); encabezado(); } }
   function tituloSeccion(txt){
     saltoSiNecesario(12);
-    doc.setFillColor(...MARCA.colorRGB()); doc.rect(izq, y, der-izq, 6, 'F');
-    doc.setTextColor(255,255,255); doc.setFontSize(9); doc.setFont(undefined,'bold');
-    doc.text(txt, izq+2, y+4.2);
+    doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.setTextColor(...MARCA.colorRGB());
+    doc.text(txt, izq, y);
+    doc.setDrawColor(...MARCA.colorRGB()); doc.setLineWidth(0.4); doc.line(izq, y+1.5, der, y+1.5);
     doc.setTextColor(0,0,0); doc.setFont(undefined,'normal');
-    y += 9;
+    y += 7;
   }
   function parrafo(txt, tam){
     tam = tam || 8.5; doc.setFontSize(tam);
@@ -765,7 +751,7 @@ async function generarVistaPrevia(){
   const fechaF = ahoraF.toLocaleDateString('es-CL');
   const horaF = ahoraF.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
   bloques.forEach((b)=>{
-    saltoSiNecesario(38); // 34mm de caja + margen
+    saltoSiNecesario(28); // 24mm de caja compacta + margen
     const obj = firmas[b.dataset.canvasId];
     const firmaData = (obj && obj.hayFirma) ? obj.canvas.toDataURL('image/png') : null;
     y = MARCA.dibujarSelloFirma(doc, {
@@ -775,7 +761,7 @@ async function generarVistaPrevia(){
       rut: '-',
       fecha: fechaF, hora: horaF, correlativo: corr,
       firmaDataUrl: firmaData, qrDataUrl: qrUrl,
-      sinLeyenda: true
+      sinLeyenda: true, compacto: true
     });
     y += 2;
   });

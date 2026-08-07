@@ -404,11 +404,41 @@
        Uso interno: lo llama dibujarSelloFirma para 1 o 2 firmantes. */
     _dibujarCajaFirma(doc, f){
       const NARANJA = [245, 133, 31];  // #f5851f - fijo QC Digital
-      const x = f.x, y = f.y, ancho = f.ancho, boxH = 34;
+      const compacto = !!f.compacto;
+      const x = f.x, y = f.y, ancho = f.ancho, boxH = compacto ? 24 : 34;
 
       /* Caja contenedora */
       doc.setFillColor(250, 250, 250); doc.setDrawColor(225, 225, 225); doc.setLineWidth(0.3);
       doc.roundedRect(x, y, ancho, boxH, 2, 2, 'FD');
+
+      if(compacto){
+        /* --- Version compacta (24mm): para reportes con varios firmantes
+           que deben caber en una sola hoja (ej. cambio de turno). --- */
+        // Zona 1: logo en placa blanca mas pequena
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.3);
+        doc.roundedRect(x + 4, y + 4.5, 15, 15, 2, 2, 'FD');
+        const s = this.logoQCDigitalSelloDataUrl || this.logoQCDigitalDataUrl;
+        if(s){ try{ doc.addImage(s, 'PNG', x + 5.2, y + 5.7, 12.6, 12.6); }catch(e){} }
+        // Zona 2: datos apilados (nombre / cargo / firmado+correlativo en una linea)
+        const dxc = x + 24;
+        doc.setTextColor(25, 25, 25); doc.setFontSize(9.5); doc.setFont(undefined, 'bold');
+        doc.text(f.nombre || '-', dxc, y + 8);
+        doc.setFontSize(7.5); doc.setTextColor(...NARANJA); doc.setFont(undefined, 'bold');
+        doc.text((f.cargo || 'Inspector de Calidad') + (f.rut && f.rut !== '-' ? '  \u00b7  RUT: ' + f.rut : ''), dxc, y + 12.5);
+        doc.setFontSize(7); doc.setFont(undefined, 'normal'); doc.setTextColor(95, 95, 95);
+        doc.text('Firmado digitalmente \u00b7 ' + (f.fecha || '') + (f.hora ? ' ' + f.hora : '') + ' hrs', dxc, y + 16.5);
+        doc.setFont(undefined, 'bold'); doc.setTextColor(...NARANJA);
+        doc.text('N\u00b0 ' + (f.correlativo || '-'), dxc, y + 20.5);
+        // Zona 3: firma con linea
+        const fxc = x + ancho - 66, fwc = 40, fyc = y + 3;
+        if(f.firmaDataUrl){ try{ doc.addImage(f.firmaDataUrl, 'PNG', fxc, fyc, fwc, 13); }catch(e){} }
+        doc.setDrawColor(120, 120, 120); doc.setLineWidth(0.3); doc.line(fxc, fyc + 14.5, fxc + fwc, fyc + 14.5);
+        doc.setFontSize(6), doc.setFont(undefined, 'normal'); doc.setTextColor(120, 120, 120);
+        doc.text(f.etiquetaFirma || 'Firma inspector', fxc + fwc / 2, fyc + 18, { align: 'center' });
+        // Zona 4: QR
+        if(f.qrDataUrl){ try{ doc.addImage(f.qrDataUrl, 'PNG', x + ancho - 19, y + 5, 14, 14); }catch(e){} }
+        return y + boxH;
+      }
 
       /* Zona 1: logo QC Digital en placa blanca (sello cuadrado) */
       doc.setFillColor(255, 255, 255); doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.3);
@@ -484,7 +514,8 @@
           correlativo: fr.correlativo != null ? fr.correlativo : opts.correlativo,
           fecha: fr.fecha != null ? fr.fecha : opts.fecha,
           hora: fr.hora != null ? fr.hora : opts.hora,
-          qrDataUrl: fr.qrDataUrl != null ? fr.qrDataUrl : opts.qrDataUrl
+          qrDataUrl: fr.qrDataUrl != null ? fr.qrDataUrl : opts.qrDataUrl,
+          compacto: opts.compacto
         });
       });
 
