@@ -975,14 +975,21 @@ function construirPDF(datos, callback){
       y = dibujarEncabezado(doc, qrDataUrl);
       y += 4;
     }
-    y = tituloSeccion(doc, "Firma del relator", y, anchoPagina);
-    doc.setFontSize(10);
-    doc.text(datos.nombreFirmaRelator, 8, y);
-    y += 4;
-    try{
-      var firmaRelatorData = datos.canvasFirmaRelator.toDataURL("image/png");
-      doc.addImage(firmaRelatorData, "PNG", 8, y, 70, 22);
-    }catch(err){}
+    // Cierre del reporte - el relator firma como quien cierra (sello QC Digital, igual que los inspectores)
+    if(y > 235){ doc.addPage(); y = dibujarEncabezado(doc, qrDataUrl); }
+    y = tituloSeccion(doc, "Cierre del reporte - Realizado por", y, anchoPagina);
+    var ahoraFirma = new Date();
+    var firmaRelatorData = null;
+    try{ firmaRelatorData = datos.canvasFirmaRelator.toDataURL("image/png"); }catch(err){}
+    y = MARCA.dibujarSelloFirma(doc, {
+      x: 8, y: y, ancho: anchoPagina - 16,
+      nombre: datos.nombreFirmaRelator,
+      cargo: "Relator", rut: "-",
+      fecha: ahoraFirma.toLocaleDateString("es-CL"),
+      hora: ahoraFirma.toLocaleTimeString("es-CL", {hour:"2-digit", minute:"2-digit"}),
+      correlativo: corrFirmas,
+      firmaDataUrl: firmaRelatorData, qrDataUrl: qrDataUrl
+    });
 
     var totalPaginas = doc.internal.getNumberOfPages();
     for(var pg = 1; pg <= totalPaginas; pg++){
