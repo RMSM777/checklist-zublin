@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script>
+try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classList.add('dark'); }catch(e){}
+</script>
 <title>Reporte Detalles de Terminacion (DT) - Zublin GCC-003</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -10,6 +13,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="marca.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="drive-integration.js?v=2"></script>
+<link rel="stylesheet" href="dark-mode.css">
+<script src="dark-mode.js" defer></script>
 <style>
   :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; --verde:#2e7d32; --naranja:#F2A93B; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -37,9 +44,17 @@
   .btn-limpiar{ background:#eee; color:#555; }
   .btn-generar{ background:var(--rojo); color:#fff; }
   .btn-generar:disabled{ background:#e0a3a1; cursor:not-allowed; }
+  .btn-borrador{ background:#2e7d32; color:#fff; }
+  .btn-previo{ background:#555; color:#fff; }
   .nota{ font-size:12px; color:#888; text-align:center; margin-top:10px; padding:0 10px; }
   footer{ text-align:center; padding:16px; font-size:11px; color:#999; }
   canvas.firma{ width:100%; height:150px; border:1px solid var(--borde); border-radius:6px; background:#fafafa; touch-action:none; display:block; }
+  .borrador-estado{ font-size:11px; color:#2e7d32; text-align:center; margin-bottom:8px; min-height:14px; }
+  .banner-recuperar{ background:#fff8e1; border:1px solid #ffca28; border-radius:8px; padding:10px 12px; margin:10px 14px; font-size:12px; color:#7a5c00; }
+  .banner-recuperar .acciones-banner{ display:flex; gap:8px; margin-top:8px; }
+  .banner-recuperar button{ flex:1; padding:8px; border:none; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; }
+  .banner-recuperar .btn-si{ background:#2e7d32; color:#fff; }
+  .banner-recuperar .btn-no{ background:#ccc; color:#333; }
 
   /* Turno y toggles */
   .toggle{ display:flex; gap:6px; }
@@ -106,6 +121,14 @@
   <div class="titulo">REPORTE CONTROL DETALLES DE TERMINACI&Oacute;N (DT)</div>
   <div class="contrato">
     Disciplina: Miner&iacute;a (MI)
+  </div>
+
+  <div class="banner-recuperar" id="banner-recuperar" style="display:none;">
+    <span id="banner-recuperar-txt"></span>
+    <div class="acciones-banner">
+      <button class="btn-si" onclick="recuperarBorrador()">Recuperar</button>
+      <button class="btn-no" onclick="descartarBorrador()">Empezar de nuevo</button>
+    </div>
   </div>
 
   <section>
@@ -219,16 +242,52 @@
   </section>
 
   <section>
+    <div class="seccion-tit">6 - Listado de seguimiento (DT pendientes)</div>
+    <div class="leyenda">Genera un PDF aparte con el detalle imprimible de las DT <b>ABIERTA</b> y <b>ATRASADA</b> (N&deg;, SubSistema, Ubic., Descripci&oacute;n, Estado), separado como prefieras: por Nivel o por Grupo (Punto 4). Las filas atrasadas se resaltan en rojo.</div>
+    <div class="campo"><label>Cargado por</label><input id="cargadoPor" type="text" placeholder="Nombre de quien carga el archivo hoy"></div>
+    <div class="campo">
+      <label>Separar listado por</label>
+      <div class="toggle" id="vistaListadoT">
+        <button data-v="NIVEL" class="act">NIVEL</button>
+        <button data-v="GRUPO">GRUPO (Punto 4)</button>
+      </div>
+    </div>
     <div class="acciones">
-      <button class="btn-generar" id="btnPDF" onclick="generarPDF()">Cerrar y descargar PDF</button>
+      <button class="btn-generar" id="btnListadoPreview" onclick="generarVistaPreviaListado()" disabled>Vista previa del listado</button>
+    </div>
+    <p class="nota" id="notaListado">Se abre una vista previa del PDF antes de descargar.</p>
+  </section>
+
+  <section>
+    <div class="borrador-estado" id="borrador-estado">Borrador no guardado a&uacute;n.</div>
+    <div class="acciones">
+      <button class="btn-borrador" onclick="guardarBorrador(true)">Guardar borrador</button>
+    </div>
+    <div class="acciones">
+      <button class="btn-generar" id="btnPDF" onclick="generarPDF()" disabled>Cerrar y descargar PDF</button>
     </div>
     <p class="nota" id="nota">Al cerrar se genera el PDF con los totales, porcentajes, los 7 gr&aacute;ficos y tu firma, listo para descargar y compartir.</p>
   </section>
   </div>
 
-  <footer>Reporte Detalles de Terminaci&oacute;n GCC-003 &middot; <span id="qcdVersion"></span></footer>
+  <!-- Vista previa del listado de seguimiento -->
+  <div id="modalPrevListado" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:100; flex-direction:column;">
+    <div style="background:var(--rojo); color:#fff; padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+      <b style="font-size:13px;">Vista previa del listado</b>
+      <button onclick="cerrarVistaListado()" style="background:rgba(255,255,255,.2); border:none; color:#fff; font-size:16px; font-weight:800; width:32px; height:32px; border-radius:6px; cursor:pointer;">&times;</button>
+    </div>
+    <iframe id="framePrevListado" style="flex:1; border:none; background:#525659;"></iframe>
+    <div class="qcd-modal-pie" style="background:#fff; padding:10px 14px; display:flex; gap:8px;">
+      <button class="btn-limpiar" style="flex:1; padding:12px; border:none; border-radius:8px; font-weight:700; cursor:pointer;" onclick="cerrarVistaListado()">Volver a editar</button>
+      <button class="btn-generar" style="flex:2; padding:12px; border:none; border-radius:8px; font-weight:700; cursor:pointer; background:var(--rojo); color:#fff;" onclick="descargarPDFListado()">Descargar PDF</button>
+    </div>
+  </div>
+
+  <footer>Zublin - Reporte Detalles de Terminaci&oacute;n GCC-003 &middot; <span id="qcdVersion"></span></footer>
 </div>
 <script>
+/* MARCA: logo/colores/contrato de la empresa activa. El logo se pintaba de
+   forma inmediata al cargar, asi que se mueve dentro del .then(). */
 let LOGO = null; // se completa cuando MARCA.iniciar() resuelve
 
 MARCA.iniciar().then(() => {
@@ -240,29 +299,32 @@ MARCA.iniciar().then(() => {
   const contratoEl = document.querySelector('.header-contrato');
   if(contratoEl) contratoEl.textContent = MARCA.textoContrato();
   const footerEl = document.querySelector('footer');
-  if(footerEl) footerEl.textContent = (MARCA.empresa.nombreCorto || 'QC Digital') + ' - Reporte Detalles de Terminaci\u00f3n' + (MARCA.empresa.contrato && MARCA.empresa.contrato.codigoProyecto ? ' ' + MARCA.empresa.contrato.codigoProyecto : '');
+  if(footerEl){
+    const codigo = MARCA.empresa.contrato && MARCA.empresa.contrato.codigoProyecto;
+    footerEl.textContent = (MARCA.empresa.nombreCorto || 'QC Digital') + ' - Reporte Detalles de Terminaci\u00f3n' + (codigo ? ' ' + codigo : '');
+  }
 });
 
-const CODIGO_DOC = 'GCC-003 \u00b7 REPORTE DT'; // codigo de TIPO de documento, no de empresa
+const CODIGO_DOC = 'GCC-003 \u00b7 REPORTE DT'; // codigo de TIPO de documento, no de empresa: no se toca en Fase 2
 
-function dibujarEncabezado(doc, tituloDoc, qrDataUrl){
+function dibujarEncabezado(doc, tituloDoc, qrDataUrl, codigoDoc){
   const anchoPagina = doc.internal.pageSize.getWidth();
   doc.setFillColor(...MARCA.colorHeaderRGB());
   doc.rect(0,0,anchoPagina,14,'F');
   doc.setFillColor(255,255,255);
   doc.roundedRect(6,2.5,30,9,1.2,1.2,'F');
-  try{ doc.addImage(LOGO,'PNG',8,4,26,6); }catch(e){}
+  try{ doc.addImage(LOGO,'PNG',14.5,4.3,13,6.1); }catch(e){}
   doc.setTextColor(255,255,255);
   doc.setFontSize(9); doc.setFont(undefined,'bold');
   doc.text(tituloDoc, 40, 7);
   doc.setFontSize(7.5); doc.setFont(undefined,'normal');
-  doc.text('C\u00d3DIGO: ' + CODIGO_DOC, anchoPagina-8, 9.5, {align:'right'});
+  doc.text('C\u00d3DIGO: ' + (codigoDoc || CODIGO_DOC), anchoPagina-8, 9.5, {align:'right'});
   doc.setFillColor(45,45,45);
   doc.rect(0,14,anchoPagina,9,'F');
   doc.setTextColor(230,230,230); doc.setFontSize(7);
   const lineasContrato = doc.splitTextToSize(MARCA.textoContrato(), anchoPagina-(qrDataUrl?30:16));
   doc.text(lineasContrato, 8, 18.5);
-  if(qrDataUrl){ doc.addImage(qrDataUrl,'PNG',anchoPagina-20,2,12,12); }
+  if(qrDataUrl){ doc.addImage(qrDataUrl,'PNG',anchoPagina-19,14.6,8,8); }
   doc.setTextColor(30,30,30);
   return 30;
 }
@@ -414,8 +476,9 @@ function procesarFilas(filas, nombreArchivo){
   }
   const iSub = headers.findIndex(h=>h.includes('SUBAREA'));
   const iArea = headers.findIndex((h,ix)=>h.includes('AREA') && ix!==iSub);
+  const iSubSistema = headers.findIndex(h=>h.includes('SUBSISTEMA'));
   const C = {
-    punch: col('PUNCH'), area:iArea, sub:iSub,
+    punch: col('PUNCH'), area:iArea, sub:iSub, subsistema:iSubSistema,
     prio: col('PRIO'), disc: col('DISC'), ubic: col('UBIC'),
     desc: col('DESCRIPCION'), emision: col('EMISION'),
     estado: headers.findIndex(h=>h==='ESTADO'),
@@ -430,14 +493,15 @@ function procesarFilas(filas, nombreArchivo){
     if(!['ABIERTA','CERRADA','ATRASADA'].includes(estado)) continue;
     const area = f[C.area]||'', sub = f[C.sub]||'';
     registros.push({
-      punch: f[C.punch]||'', area, sub,
+      punch: f[C.punch]||'', area, sub, subsistema: f[C.subsistema]||'',
       prio: f[C.prio]||'', disc: norm(f[C.disc])||'S/D',
       ubic: f[C.ubic]||'', desc: f[C.desc]||'',
       estado,
       fEmision: parseFecha(f[C.emision]),
       fRealCierre: parseFecha(f[C.realCierre]),
       idExt: f[C.idExt]||'',
-      nivel: clasificarNivel(area, sub)
+      nivel: clasificarNivel(area, sub),
+      grupo: clasificarGrupo(area)
     });
   }
   if(!registros.length){ setEstadoCarga('El archivo se ley\u00f3 pero no se encontraron registros de DT.','err'); return; }
@@ -503,6 +567,8 @@ function calcularYRenderizar(){
   });
 
   R = {G, porDisc, porNivel, porGrupo, porSub, semanas, dias};
+  document.getElementById('btnPDF').disabled = false;
+  const btnLP = document.getElementById('btnListadoPreview'); if(btnLP) btnLP.disabled = false;
   renderTodo();
 }
 
@@ -613,7 +679,9 @@ function renderTodo(){
   const elS = document.getElementById('tbSub');
   let hs = '<tr><th>Sub\u00c1rea</th><th class="num">Abiertas</th><th class="num">Atrasadas</th><th class="num">Pendientes</th><th class="num">Cerradas</th></tr>';
   let TS={a:0,t:0,c:0};
-  subs.forEach(([s,r])=>{ hs+='<tr><td>'+s+'</td><td class="num">'+r.ABIERTA+'</td><td class="num">'+r.ATRASADA+'</td><td class="num">'+r.pendientes+'</td><td class="num">'+r.CERRADA+'</td></tr>'; TS.a+=r.ABIERTA;TS.t+=r.ATRASADA;TS.c+=r.CERRADA; });
+  // Total real sobre TODAS las subareas (incluye las 100% cerradas, que no aparecen en la lista de pendientes)
+  [...R.porSub.keys()].forEach(s=>{ const r=resumen(R.porSub.get(s)); TS.a+=r.ABIERTA; TS.t+=r.ATRASADA; TS.c+=r.CERRADA; });
+  subs.forEach(([s,r])=>{ hs+='<tr><td>'+s+'</td><td class="num">'+r.ABIERTA+'</td><td class="num">'+r.ATRASADA+'</td><td class="num">'+r.pendientes+'</td><td class="num">'+r.CERRADA+'</td></tr>'; });
   hs += '<tr class="tot"><td>TOTAL</td><td class="num">'+TS.a+'</td><td class="num">'+TS.t+'</td><td class="num">'+(TS.a+TS.t)+'</td><td class="num">'+TS.c+'</td></tr>';
   elS.innerHTML = hs;
 
@@ -626,7 +694,7 @@ function renderTodo(){
   // Punto 7: cierres diarios + acumulado
   nuevoChart('chCierres', { type:'bar',
     data:{ labels:R.dias.map(d=>d.label), datasets:[
-      {type:'line', label:'Acumulado', data:R.dias.map(d=>d.acum), borderColor:'#D72622', backgroundColor:'rgba(215,38,34,.10)', fill:true, tension:.25, pointRadius:2, yAxisID:'y1'},
+      {type:'line', label:'Acumulado', data:R.dias.map(d=>d.acum), borderColor:MARCA.empresa.colorPrimario, backgroundColor:'rgba('+MARCA.colorRGB().join(',')+',.10)', fill:true, tension:.25, pointRadius:2, yAxisID:'y1'},
       {label:'Cierres del d\u00eda', data:R.dias.map(d=>d.n), backgroundColor:'#2e7d32'}
     ]},
     options:{ scales:{ y:{position:'left', title:{display:true,text:'Cierres/d\u00eda'}}, y1:{position:'right', grid:{drawOnChartArea:false}, title:{display:true,text:'Acumulado'}} },
@@ -699,7 +767,8 @@ function filaTabla(nombre, r){
   return [nombre, r.ABIERTA, r.ATRASADA, r.CERRADA, r.total, r.pctCierre.toFixed(1)+'%'];
 }
 
-function generarPDF(){
+async function generarPDF(){
+  try{
   if(!R){ alert('Primero cargue el archivo Excel de SIC3PRO (secci\u00f3n 2).'); return; }
   if(!turno){ alert('Seleccione el turno (D\u00cdA o NOCHE).'); return; }
   const nombre = v('nombre');
@@ -709,14 +778,19 @@ function generarPDF(){
   const fecha = v('fecha') || new Date().toISOString().slice(0,10);
   const {G} = R;
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:'mm', format:'a4'});
+  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
+    const doc = new jsPDF({unit:'mm', format:'a4'});
   const izq=12, ancho=186;
   let y = 10;
 
-  // Encabezado con logo y QR de trazabilidad
+  // Correlativo: se calcula UNA sola vez, antes del QR (el QR necesita el
+  // codigo para armar el link de verificacion).
+  const corr = MARCA.correlativo(nombre, 'DT');
+
+  // Encabezado con logo y QR de verificacion (apunta a verificar.html)
   let qrUrl = null;
   try{
-    const qrData = ['GCC-003','REPORTE DT', fecha, turno, 'TOTAL:'+G.total, 'CIERRE:'+G.pctCierre.toFixed(1)+'%', nombre].join(' | ');
+    const qrData = 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr);
     const qr = new QRious({ value: qrData, size: 200, level:'M' });
     qrUrl = qr.toDataURL();
   }catch(e){}
@@ -827,9 +901,13 @@ function generarPDF(){
   y = puntoTitulo(doc, y, 'Punto 5 - Pendientes por SubArea (Nivel / MB)');
   y = addChart(doc, 'chSub', y, 60);
   {
-    const subs = [...R.porSub.keys()].map(s=>[s, resumen(R.porSub.get(s))]).filter(x=>x[1].pendientes>0).sort((a,b)=>b[1].pendientes-a[1].pendientes);
+    // Total real: se calcula sobre TODAS las subareas (incluidas las que ya estan 100% cerradas,
+    // que antes quedaban fuera de la suma por filtrarse de la tabla visible).
     let T={a:0,t:0,c:0};
-    const body = subs.map(([s,r])=>{ T.a+=r.ABIERTA;T.t+=r.ATRASADA;T.c+=r.CERRADA; return [s, r.ABIERTA, r.ATRASADA, r.pendientes, r.CERRADA]; });
+    [...R.porSub.keys()].forEach(s=>{ const r=resumen(R.porSub.get(s)); T.a+=r.ABIERTA; T.t+=r.ATRASADA; T.c+=r.CERRADA; });
+    // Tabla visible: solo subareas con pendientes (abiertas o atrasadas), que es lo util para seguimiento.
+    const subs = [...R.porSub.keys()].map(s=>[s, resumen(R.porSub.get(s))]).filter(x=>x[1].pendientes>0).sort((a,b)=>b[1].pendientes-a[1].pendientes);
+    const body = subs.map(([s,r])=>[s, r.ABIERTA, r.ATRASADA, r.pendientes, r.CERRADA]);
     y = addTablaPDF(doc, y, ['SubArea','Abiertas','Atrasadas','Pendientes','Cerradas'], body,
       ['TOTAL',T.a,T.t,T.a+T.t,T.c]);
   }
@@ -851,26 +929,25 @@ function generarPDF(){
     doc.text(lineas, izq, y); y += lineas.length*4 + 4;
   }
 
-  // Cierre / firma  (estilo unificado QC Digital - centralizado en marca.js)
-  if(y > 224){ doc.addPage(); y=14; }
-  const corrDT = MARCA.correlativo(nombre, 'DT');
-  const hhC = new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
-  doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(...MARCA.colorRGB());
-  doc.text('Cierre del reporte - Realizado por', izq, y);
-  doc.setDrawColor(...MARCA.colorRGB()); doc.setLineWidth(0.4); doc.line(izq, y+1.5, izq+ancho, y+1.5);
-  y += 6;
+  // Cierre / firma
+  if(y > 235){ doc.addPage(); y=14; }
+  y = puntoTitulo(doc, y, 'Cierre del reporte - Realizado por');
+  const ahoraFirma = new Date();
   y = MARCA.dibujarSelloFirma(doc, {
     x: izq, y: y, ancho: ancho,
-    nombre: nombre, cargo: (v('cargo')||'Inspector de Calidad'),
-    rut: (v('rut')||'-'), fecha: fecha, hora: hhC, correlativo: corrDT,
-    firmaDataUrl: firma.canvas.toDataURL('image/png'), qrDataUrl: qrUrl
+    firmaDataUrl: firma.canvas.toDataURL('image/png'),
+    qrDataUrl: qrUrl,
+    nombre: nombre, cargo: v('cargo') || '-', rut: v('rut') || '-',
+    fecha: ahoraFirma.toLocaleDateString('es-CL'),
+    hora: ahoraFirma.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'}),
+    correlativo: corr
   });
 
   // Pie de pagina en todas las hojas
   const totalPag = doc.getNumberOfPages();
   const ahora = new Date();
   const diasSem = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
-  const marca = 'Generado por: '+nombre+'  |  '+diasSem[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs  |  Fuente: SIC3PRO'+(fechaDatos?' ('+fechaDatos+')':'');
+  const marca = 'Generado por: '+nombre+'  |  '+diasSem[ahora.getDay()]+' '+ahora.toLocaleDateString('es-CL')+' '+ahora.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})+' hrs  |  Fuente: SIC3PRO'+(fechaDatos?' ('+fechaDatos+')':'')+'  |  N° '+corr;
   for(let p=1;p<=totalPag;p++){
     doc.setPage(p);
     doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(130,130,130);
@@ -881,11 +958,327 @@ function generarPDF(){
   doc.setTextColor(30,30,30);
 
   const nombreArch = 'ReporteDT_GCC003_'+fecha+'_'+turno.replace(/\s+/g,'')+'.pdf';
-  doc.save(nombreArch);
   const nota = document.getElementById('nota');
-  nota.innerHTML = 'PDF generado y descargado ('+nombreArch+'). Revisa tus descargas para compartirlo.';
+  let driveHtml = '';
+  if(window.QCD_DRIVE){
+    nota.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
+    nota.style.color = '';
+    try{
+      const res = await QCD_DRIVE.subirConReintento({
+        blob: doc.output('blob'),
+        nombreArchivo: nombreArch,
+        tipoReporte: 'Reporte DT',
+        correlativo: corr,
+        empresa: MARCA.empresa.nombreCorto,
+        generadoPor: nombre
+      });
+      driveHtml = '<br><a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>';
+    }catch(err){
+      console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
+      driveHtml = '<br><span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>';
+    }
+  }
+  doc.save(nombreArch);
+  nota.innerHTML = 'PDF generado y descargado ('+nombreArch+'). Revisa tus descargas para compartirlo.' + driveHtml;
   nota.style.color = '#2e7d32';
+  borrarBorrador();
+
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Reporte DT): ' + (err && err.message ? err.message : err));
+  }
 }
+
+/* ================= Listado de seguimiento (Punto 3 / Punto 4 en detalle imprimible) ================= */
+let vistaListado = 'NIVEL';
+initToggle('vistaListadoT', v=>vistaListado=v);
+
+let docListadoActual = null, urlPrevListado = null;
+
+function generarVistaPreviaListado(){
+  if(!R){ alert('Primero cargue el archivo Excel de SIC3PRO (secci\u00f3n 2).'); return; }
+  const cargadoPor = v('cargadoPor');
+  if(!cargadoPor){ alert('Ingrese el nombre de qui\u00e9n carga el archivo (secci\u00f3n 6).'); return; }
+
+  docListadoActual = construirPDFListado(vistaListado, cargadoPor);
+  if(urlPrevListado) URL.revokeObjectURL(urlPrevListado);
+  urlPrevListado = URL.createObjectURL(docListadoActual.output('blob'));
+  document.getElementById('framePrevListado').src = urlPrevListado;
+  document.getElementById('modalPrevListado').style.display = 'flex';
+}
+function cerrarVistaListado(){
+  document.getElementById('modalPrevListado').style.display = 'none';
+}
+async function descargarPDFListado(){
+  try{
+  if(!docListadoActual) return;
+  const fechaHoy = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const sufijo = vistaListado === 'GRUPO' ? 'AgrupadoPorArea' : 'PorNivel';
+  const nombreArch = 'ListadoDT_'+sufijo+'_'+fechaHoy+'.pdf';
+  cerrarVistaListado();
+  const nota = document.getElementById('notaListado');
+  let driveHtml = '';
+  if(window.QCD_DRIVE){
+    nota.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
+    nota.style.color = '';
+    try{
+      const res = await QCD_DRIVE.subirConReintento({
+        blob: docListadoActual.output('blob'),
+        nombreArchivo: nombreArch,
+        tipoReporte: 'Reporte DT',
+        correlativo: docListadoActual._qcdCorrelativo,
+        empresa: MARCA.empresa.nombreCorto,
+        generadoPor: docListadoActual._qcdGeneradoPor
+      });
+      driveHtml = '<br><a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>';
+    }catch(err){
+      console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
+      driveHtml = '<br><span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>';
+    }
+  }
+  docListadoActual.save(nombreArch);
+  nota.innerHTML = 'PDF generado y descargado ('+nombreArch+'). Listo para compartir.' + driveHtml;
+  nota.style.color = '#2e7d32';
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Listado de seguimiento DT): ' + (err && err.message ? err.message : err));
+  }
+}
+
+function pendientesOrdenados(regs){
+  // Atrasadas primero (para que salten a la vista), luego por N de punch
+  return regs.filter(r=>r.estado==='ABIERTA'||r.estado==='ATRASADA')
+    .sort((a,b)=> (a.estado==='ATRASADA'?0:1) - (b.estado==='ATRASADA'?0:1) || String(a.punch).localeCompare(String(b.punch)));
+}
+
+function tablaListadoPDF(doc, y, regs){
+  const body = pendientesOrdenados(regs).map(r=>[r.punch, r.subsistema||'-', r.ubic||'-', r.desc||'-', r.estado]);
+  doc.autoTable({
+    startY:y, head:[['N\u00b0','SUBSISTEMA','UBIC.','DESCRIPCI\u00d3N','ESTADO']], body,
+    theme:'grid', margin:{left:15, right:15},
+    styles:{fontSize:7.6, cellPadding:1.6, textColor:[40,40,40], lineColor:[210,210,210], lineWidth:.15, valign:'middle'},
+    headStyles:{fillColor:MARCA.colorRGB(), textColor:255, fontStyle:'bold'},
+    columnStyles:{0:{cellWidth:16, halign:'center', fontStyle:'bold'}, 4:{cellWidth:20, halign:'center', fontStyle:'bold'}},
+    didParseCell: function(data){
+      if(data.section==='body'){
+        const estado = data.row.raw[4];
+        if(estado==='ATRASADA'){ data.cell.styles.fillColor=[253,236,235]; data.cell.styles.textColor=[215,38,34]; }
+        else if(data.column.index===4){ data.cell.styles.textColor=[192,127,16]; }
+      }
+    }
+  });
+  return doc.lastAutoTable.finalY + 6;
+}
+
+function construirPDFListado(modo, cargadoPor){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'mm', format:'a4'});
+  const izq=15, ancho=180;
+  let y = 10;
+
+  const fechaHoy = new Date().toISOString().slice(0,10);
+  const tituloDoc = modo==='GRUPO' ? 'LISTADO DE DT AGRUPADO POR \u00c1REA' : 'LISTADO GENERAL DE DT POR NIVEL';
+  const codigoDoc = modo==='GRUPO' ? 'INF-GOMS-CL-005 REV.0' : 'INF-GOMS-CL-004 REV.0';
+
+  // Correlativo: se calcula UNA sola vez, antes del QR (el QR necesita el
+  // codigo para armar el link de verificacion).
+  const corr2 = MARCA.correlativo(cargadoPor, 'DT-LISTADO');
+  doc._qcdCorrelativo = corr2;
+
+  let qrUrl = null;
+  try{
+    const qr = new QRious({ value: 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr2), size:200, level:'M' });
+    qrUrl = qr.toDataURL();
+  }catch(e){}
+
+  // Reutiliza el mismo encabezado de marca (logo + franja roja + contrato) que el resto del reporte,
+  // pero con su propio codigo de documento.
+  dibujarEncabezado(doc, tituloDoc, qrUrl, codigoDoc);
+  y = 30;
+
+  doc.setFontSize(8.5); doc.setFont(undefined,'normal');
+  doc.text('Cargado por: '+cargadoPor+'   |   Fecha de carga: '+fechaHoy, izq, y); y+=6;
+  doc.setFontSize(8); doc.setTextColor(90,90,90);
+  const fuenteTxt = 'Fuente: base SIC3PRO'+(fechaDatos?' ('+fechaDatos+')':'')+'. Se listan las DT ABIERTA y ATRASADA (pendientes de cierre). Las filas en rojo claro son ATRASADAS.';
+  const lineasFuente = doc.splitTextToSize(fuenteTxt, ancho);
+  doc.text(lineasFuente, izq, y); y += lineasFuente.length*4 + 3;
+  doc.setTextColor(30,30,30);
+
+  const G = resumen(registros);
+  const kp = [['TOTAL DT',G.total],['ABIERTAS',G.ABIERTA],['ATRASADAS',G.ATRASADA],['CERRADAS',G.CERRADA],['% CIERRE',G.pctCierre.toFixed(1)+'%']];
+  const anchoK = ancho/5;
+  kp.forEach((k,i)=>{
+    const x = izq + i*anchoK;
+    doc.setFillColor(244,244,244); doc.roundedRect(x+1, y, anchoK-2, 14, 1.5, 1.5, 'F');
+    doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.text(String(k[1]), x+anchoK/2, y+6.5, {align:'center'});
+    doc.setFontSize(6.5); doc.setFont(undefined,'normal'); doc.setTextColor(100,100,100);
+    doc.text(k[0], x+anchoK/2, y+11.5, {align:'center'}); doc.setTextColor(30,30,30);
+  });
+  y += 20;
+
+  function tituloConAviso(txt, regs){
+    if(y > 258){ doc.addPage(); y = 14; }
+    const at = regs.filter(r=>r.estado==='ATRASADA').length;
+    doc.setFontSize(10.5); doc.setFont(undefined,'bold'); doc.setTextColor(...MARCA.colorRGB());
+    doc.text(txt, izq, y);
+    if(at>0){
+      doc.setFontSize(8.5);
+      doc.text('\u26a0 '+at+' ATRASADA'+(at>1?'S':''), izq+ancho, y, {align:'right'});
+    }
+    doc.setDrawColor(...MARCA.colorRGB()); doc.setLineWidth(0.4); doc.line(izq, y+1.5, izq+ancho, y+1.5);
+    doc.setTextColor(30,30,30); y += 6.5;
+  }
+
+  if(modo === 'GRUPO'){
+    const grupos = ['G1','G2','OTROS'].filter(g=>R.porGrupo.has(g));
+    grupos.forEach(g=>{
+      const regsGrupo = R.porGrupo.get(g);
+      const pend = pendientesOrdenados(regsGrupo);
+      tituloConAviso(GRUPOS_DEF[g].nombre.replace(/\u00b7/g,'-')+'  \u2014  '+pend.length+' DT pendientes', regsGrupo);
+      if(pend.length){ y = tablaListadoPDF(doc, y, regsGrupo); }
+      else { doc.setFontSize(8.5); doc.setFont(undefined,'italic'); doc.text('Sin DT pendientes en este grupo.', izq, y); doc.setFont(undefined,'normal'); y+=8; }
+    });
+  } else {
+    const nivs = ORDEN_NIVELES.filter(n=>R.porNivel.has(n)).concat(R.porNivel.has('OTROS')?['OTROS']:[]);
+    nivs.forEach(n=>{
+      const regsNivel = R.porNivel.get(n);
+      const pend = pendientesOrdenados(regsNivel);
+      if(!pend.length) return;
+      tituloConAviso('Nivel: '+NIVEL_INFO[n].nombre+'  \u2014  '+pend.length+' DT pendientes', regsNivel);
+      y = tablaListadoPDF(doc, y, regsNivel);
+    });
+  }
+
+  // Pie de pagina en todas las hojas (mismo formato que el resto de tus documentos, sin hora)
+  const totalPag = doc.getNumberOfPages();
+  const ahora = new Date();
+  const marca = 'Generado por: '+cargadoPor+'  |  '+ahora.toLocaleDateString('es-CL')+'  |  '+tituloDoc+'  |  N° '+corr2;
+  for(let p=1;p<=totalPag;p++){
+    doc.setPage(p);
+    doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(130,130,130);
+    doc.setDrawColor(200,200,200); doc.setLineWidth(0.2); doc.line(izq, 287, izq+ancho, 287);
+    doc.text(marca, izq, 291);
+    doc.text('P\u00e1gina '+p+' de '+totalPag, izq+ancho, 291, {align:'right'});
+  }
+  doc.setTextColor(30,30,30);
+  doc._qcdGeneradoPor = cargadoPor;
+  return doc;
+}
+
+/* ============================================================
+   AUTOGUARDADO DE BORRADOR (localStorage, por dispositivo)
+   Guarda solo los campos del formulario y la firma; el archivo
+   Excel de SIC3PRO NO se persiste aqui (se vuelve a cargar en
+   segundos desde la fuente si hace falta).
+   ============================================================ */
+const BORRADOR_KEY = 'qcd_borrador_reporte_dt';
+let borradorTimer = null;
+let restaurando = false;
+
+function pintarToggleActivo(contId, valor){
+  const cont = document.getElementById(contId);
+  if(!cont) return;
+  cont.querySelectorAll('button').forEach(b=>{
+    b.classList.remove('act','act-verde','act-gris');
+    if(b.dataset.v===valor) b.classList.add(b.dataset.cls||'act');
+  });
+}
+
+function recolectarEstadoBorrador(){
+  return {
+    guardadoEn: new Date().toISOString(),
+    obra: v('obra'), fecha: v('fecha'), turno, movimientos,
+    obs: v('obs'),
+    nombre: v('nombre'), rut: v('rut'), cargo: v('cargo'),
+    cargadoPor: v('cargadoPor'), vistaListado,
+    firma1: firma.hayFirma ? firma.canvas.toDataURL('image/png') : null
+  };
+}
+
+function guardarBorrador(manual){
+  if(restaurando) return;
+  try{
+    const estado = recolectarEstadoBorrador();
+    localStorage.setItem(BORRADOR_KEY, JSON.stringify(estado));
+    const el = document.getElementById('borrador-estado');
+    const hora = new Date(estado.guardadoEn).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+    el.textContent = (manual?'Borrador guardado manualmente a las ':'Autoguardado a las ')+hora+'.';
+  }catch(e){
+    document.getElementById('borrador-estado').textContent = 'No se pudo guardar el borrador.';
+    console.error('Error guardando borrador:', e);
+  }
+}
+
+function programarAutoguardado(){
+  clearTimeout(borradorTimer);
+  borradorTimer = setTimeout(()=>guardarBorrador(false), 800);
+}
+
+function borrarBorrador(){ try{ localStorage.removeItem(BORRADOR_KEY); }catch(e){} }
+function hayBorradorGuardado(){ try{ return localStorage.getItem(BORRADOR_KEY)!==null; }catch(e){ return false; } }
+
+function recuperarBorrador(){
+  let estado;
+  try{ estado = JSON.parse(localStorage.getItem(BORRADOR_KEY)); }catch(e){ estado = null; }
+  if(!estado) return;
+  restaurando = true;
+
+  document.getElementById('obra').value = estado.obra||'';
+  if(estado.fecha) document.getElementById('fecha').value = estado.fecha;
+  if(estado.turno){ turno = estado.turno; pintarToggleActivo('turnoT', estado.turno); }
+  if(estado.movimientos){ movimientos = estado.movimientos; pintarToggleActivo('movT', estado.movimientos); }
+  document.getElementById('obs').value = estado.obs||'';
+  document.getElementById('nombre').value = estado.nombre||'';
+  document.getElementById('rut').value = estado.rut||'';
+  document.getElementById('cargo').value = estado.cargo||'';
+  document.getElementById('cargadoPor').value = estado.cargadoPor||'';
+  if(estado.vistaListado){ vistaListado = estado.vistaListado; pintarToggleActivo('vistaListadoT', estado.vistaListado); }
+
+  if(estado.firma1){
+    const img1 = new Image();
+    img1.onload = ()=>{ firma.ctx.drawImage(img1,0,0,firma.canvas.width,firma.canvas.height); firma.hayFirma=true; };
+    img1.src = estado.firma1;
+  }
+
+  document.getElementById('banner-recuperar').style.display = 'none';
+  document.getElementById('borrador-estado').textContent = 'Borrador recuperado. Recuerda volver a cargar el archivo Excel de SIC3PRO.';
+  restaurando = false;
+}
+
+function descartarBorrador(){
+  if(!confirm('Esto elimina el borrador guardado en este dispositivo. ¿Continuar?')) return;
+  borrarBorrador();
+  document.getElementById('banner-recuperar').style.display = 'none';
+}
+
+document.addEventListener('input', ev=>{ if(!restaurando && ev.target.closest('.wrap')) programarAutoguardado(); });
+document.addEventListener('change', ev=>{ if(!restaurando && ev.target.closest('.wrap')) programarAutoguardado(); });
+document.addEventListener('click', ev=>{
+  if(restaurando) return;
+  if(ev.target.tagName==='BUTTON' && ev.target.closest('.toggle')) programarAutoguardado();
+});
+
+setInterval(()=>{ if(!restaurando) guardarBorrador(false); }, 30000);
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  if(hayBorradorGuardado()){
+    let autoFlag = false;
+    try{ autoFlag = sessionStorage.getItem('qcd_auto_restaurar') === '1'; }catch(e){}
+    if(autoFlag){
+      try{ sessionStorage.removeItem('qcd_auto_restaurar'); }catch(e){}
+      recuperarBorrador();
+      return;
+    }
+    let estado;
+    try{ estado = JSON.parse(localStorage.getItem(BORRADOR_KEY)); }catch(e){ estado = null; }
+    if(estado){
+      const horaTxt = estado.guardadoEn ? new Date(estado.guardadoEn).toLocaleString('es-CL') : '';
+      document.getElementById('banner-recuperar-txt').textContent =
+        'Hay un borrador sin terminar (guardado '+horaTxt+'). ¿Recuperar?';
+      document.getElementById('banner-recuperar').style.display = 'block';
+    }
+  }
+});
 
 </script>
 </body>
