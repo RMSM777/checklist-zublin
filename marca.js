@@ -67,7 +67,7 @@
   /* Version de la app (formato: v + fecha de release AAAA.MM.DD).
      Fuente unica: se actualiza SOLO aqui, no en cada reporte. Los
      footers de las paginas la pintan llamando a MARCA.pintarVersion(). */
-  const VERSION = 'v2026.08.06';
+  const VERSION = 'v2026.08.07';
 
   const MARCA = {
     _datos: null,
