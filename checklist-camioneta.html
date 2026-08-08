@@ -452,30 +452,32 @@ async function generarPDF(previo){
   const obs = doc.splitTextToSize(v('obs')||'-', ancho);
   doc.text(obs, izq, y); y += obs.length*4 + 4;
 
-  // Realizado por (bloque completo con ambas firmas necesita ~65 mm)
-  if(y>205){ doc.addPage(); y=15; }
-  doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.text('Realizado por:', izq, y); y+=5;
-  doc.setFontSize(8.5); doc.setFont(undefined,'normal');
-  doc.text('Nombre: '+v('nombre'), izq, y);
-  doc.text('RUT: '+v('rut'), izq+100, y); y+=5;
-  doc.text('Cargo: '+v('cargo'), izq, y);
-  doc.text('Correo: '+v('correo'), izq+100, y); y+=6;
-  // Revisado por
-  y+=2;
-  doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.text('Revisado por:', izq, y); y+=5;
-  doc.setFontSize(8.5); doc.setFont(undefined,'normal');
-  doc.text('Nombre: '+(v('nombre2')||'-'), izq, y);
-  doc.text('RUT: '+(v('rut2')||'-'), izq+100, y); y+=5;
-  doc.text('Cargo: '+(v('cargo2')||'-'), izq, y); y+=7;
-  // Firmas lado a lado
-  doc.setFont(undefined,'bold');
-  doc.text('Firma conductor:', izq, y);
-  doc.text('Firma revisor:', izq+100, y); y+=3;
-  if(firmas[1].hayFirma){ doc.addImage(firmas[1].canvas.toDataURL('image/png'), 'PNG', izq, y, 60, 22); }
-  else { doc.setFont(undefined,'normal'); doc.text('(sin firma)', izq, y+8); }
-  if(firmas[2].hayFirma){ doc.addImage(firmas[2].canvas.toDataURL('image/png'), 'PNG', izq+100, y, 60, 22); }
-  else { doc.setFont(undefined,'normal'); doc.text('(sin firma)', izq+100, y+8); }
-  y+=24; doc.line(izq, y, izq+60, y); doc.line(izq+100, y, izq+160, y);
+  // Cierre del reporte - doble firma (conductor + revisor) con sello QC Digital
+  if(y>170){ doc.addPage(); y=15; }
+  doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.setTextColor(...MARCA.colorRGB());
+  doc.text('Cierre del reporte - Realizado por', izq, y);
+  doc.setDrawColor(...MARCA.colorRGB()); doc.setLineWidth(0.4); doc.line(izq, y+1.5, izq+ancho, y+1.5);
+  doc.setTextColor(0,0,0); y+=6;
+  const _ahoraF = new Date();
+  const _fechaF = _ahoraF.toLocaleDateString('es-CL');
+  const _horaF = _ahoraF.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+  const _firmantes = [{
+    nombre: v('nombre') || '-', cargo: v('cargo') || 'Conductor', rut: v('rut') || '-',
+    firmaDataUrl: firmas[1].hayFirma ? firmas[1].canvas.toDataURL('image/png') : null,
+    etiquetaFirma: 'Firma conductor'
+  }];
+  if(v('nombre2') || firmas[2].hayFirma){
+    _firmantes.push({
+      nombre: v('nombre2') || '-', cargo: v('cargo2') || 'Revisor', rut: v('rut2') || '-',
+      firmaDataUrl: firmas[2].hayFirma ? firmas[2].canvas.toDataURL('image/png') : null,
+      etiquetaFirma: 'Firma revisor'
+    });
+  }
+  y = MARCA.dibujarSelloFirma(doc, {
+    x: izq, y: y, ancho: ancho,
+    fecha: _fechaF, hora: _horaF, correlativo: corr, qrDataUrl: qrUrl,
+    firmantes: _firmantes
+  });
 
   // Pie de pagina en todas las hojas
   const totalPag = doc.getNumberOfPages();
