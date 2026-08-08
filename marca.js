@@ -78,6 +78,16 @@
     _listo: false,
     VERSION: VERSION,
 
+    /* --- Getters de compatibilidad con reportes escritos para el objeto
+       'M' de estilo antiguo (M.logo, M.nombre, M.colorHex, etc.). Mapean
+       al estado real para que esos reportes funcionen sin reescribirse. --- */
+    get logo(){ return this.logoDataUrl; },
+    get nombre(){ return this.empresa ? (this.empresa.nombreCorto || this.empresa.nombre) : 'QC Digital'; },
+    get colorHex(){ return this.empresa ? this.empresa.colorFondoHeader : '#0d1526'; },
+    get color2Hex(){ return this.empresa ? this.empresa.colorPrimario : '#f5851f'; },
+    get prefijoCorr(){ return this.empresa && this.empresa.prefijoCorr ? this.empresa.prefijoCorr : 'RMS'; },
+    get contrato(){ return this.textoContrato ? this.textoContrato() : ''; },
+
     async iniciar(){
       if(this._listo) return this;
       this._datos = await this._cargarEmpresasJson();
@@ -90,11 +100,13 @@
 
       this.empresa = this._datos.empresas[idActivo] || Object.values(this._datos.empresas)[0];
       this.logoDataUrl = await this._cargarLogo(this.empresa.logoArchivo);
+      // medir proporcion del logo de la empresa (para la placa de firma sin deformar)
+      this._logoRatio = await this._medirRatio(this.logoDataUrl);
 
-      /* El sello de firma (dibujarSelloFirma) SIEMPRE usa el logo y los
-         colores de QC Digital, sin importar la empresa activa — es un
-         sello de plataforma, no de contrato. Se carga aparte del logo
-         de la empresa activa. */
+      /* El sello de firma (dibujarSelloFirma) usa el logo de la EMPRESA
+         activa (Zublin -> logo Zublin, QC Digital -> logo QC Digital).
+         Igual mantenemos el logo QC Digital cargado por compatibilidad y
+         como fallback. */
       const qcDigital = (this._datos.empresas && this._datos.empresas.qcdigital) || null;
       this.logoQCDigitalDataUrl = qcDigital
         ? await this._cargarLogo(qcDigital.logoArchivo)
@@ -225,6 +237,21 @@
         console.warn('MARCA: no se pudo cargar el logo ('+archivo+'), header quedara sin imagen.', e);
         return null;
       }
+    },
+
+    /* Mide la proporcion ancho/alto de un dataURL de imagen. Devuelve un
+       numero (ej. 2.13). Si falla, cae a 2.2. Se usa para encajar el logo
+       en la placa de firma sin deformarlo. */
+    _medirRatio(dataUrl){
+      return new Promise((resolve) => {
+        if(!dataUrl){ resolve(2.2); return; }
+        try{
+          const img = new Image();
+          img.onload = () => resolve((img.naturalWidth && img.naturalHeight) ? (img.naturalWidth / img.naturalHeight) : 2.2);
+          img.onerror = () => resolve(2.2);
+          img.src = dataUrl;
+        }catch(e){ resolve(2.2); }
+      });
     },
 
     _leerEmpresaGuardada(){
@@ -398,6 +425,25 @@
 
        Devuelve el nuevo Y (debajo del sello + leyenda), listo para seguir
        dibujando contenido despues. */
+    /* Dibuja el logo de la EMPRESA activa dentro de una placa blanca,
+       centrado y respetando su proporcion (sin deformar). Ancho/alto de
+       placa en mm. El logo se ajusta al que quepa (contain). */
+    _logoEnPlaca(doc, px, py, pw, ph){
+      // placa blanca
+      doc.setFillColor(255, 255, 255); doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.3);
+      doc.roundedRect(px, py, pw, ph, 2, 2, 'FD');
+      const logo = this.logoDataUrl || this.logoQCDigitalSelloDataUrl || this.logoQCDigitalDataUrl;
+      if(!logo){ return; }
+      // proporcion del logo (si la sabemos por el data URL, si no asumimos 2.2:1)
+      let ratio = this._logoRatio || 2.2;
+      const padX = 1.6, padY = 1.6;
+      const maxW = pw - padX * 2, maxH = ph - padY * 2;
+      let w = maxW, h = w / ratio;
+      if(h > maxH){ h = maxH; w = h * ratio; }
+      const lx = px + (pw - w) / 2, ly = py + (ph - h) / 2;
+      try{ doc.addImage(logo, 'PNG', lx, ly, w, h); }catch(e){}
+    },
+
     /* Dibuja UNA caja de firma (34 mm de alto) con las 4 zonas del
        estandar QC Digital: placa-logo, datos apilados, firma manuscrita
        con su linea, y QR al extremo derecho. Devuelve el Y bajo la caja.
@@ -414,11 +460,8 @@
       if(compacto){
         /* --- Version compacta (24mm): para reportes con varios firmantes
            que deben caber en una sola hoja (ej. cambio de turno). --- */
-        // Zona 1: logo en placa blanca mas pequena
-        doc.setFillColor(255, 255, 255); doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.3);
-        doc.roundedRect(x + 4, y + 4.5, 15, 15, 2, 2, 'FD');
-        const s = this.logoQCDigitalSelloDataUrl || this.logoQCDigitalDataUrl;
-        if(s){ try{ doc.addImage(s, 'PNG', x + 5.2, y + 5.7, 12.6, 12.6); }catch(e){} }
+        // Zona 1: logo de la empresa en placa apaisada
+        this._logoEnPlaca(doc, x + 4, y + 5, 22, 14);
         // Zona 2: datos apilados (nombre / cargo / firmado+correlativo en una linea)
         const dxc = x + 24;
         doc.setTextColor(25, 25, 25); doc.setFontSize(9.5); doc.setFont(undefined, 'bold');
@@ -440,11 +483,8 @@
         return y + boxH;
       }
 
-      /* Zona 1: logo QC Digital en placa blanca (sello cuadrado) */
-      doc.setFillColor(255, 255, 255); doc.setDrawColor(220, 220, 220); doc.setLineWidth(0.3);
-      doc.roundedRect(x + 5, y + 8, 18, 18, 2, 2, 'FD');
-      const sello = this.logoQCDigitalSelloDataUrl || this.logoQCDigitalDataUrl;
-      if(sello){ try{ doc.addImage(sello, 'PNG', x + 6.5, y + 9.5, 15, 15); }catch(e){} }
+      /* Zona 1: logo de la empresa activa en placa apaisada */
+      this._logoEnPlaca(doc, x + 4, y + 9, 22, 16);
 
       /* Zona 2: datos apilados */
       const dx = x + 29;
