@@ -20,6 +20,8 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <script src="drive-integration.js?v=2"></script>
 <link rel="stylesheet" href="dark-mode.css">
 <script src="dark-mode.js" defer></script>
+<script src="piwii-widget.js" defer></script>
+<script src="piwii-llenado.js" defer></script>
 <style>
   :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -259,6 +261,7 @@ cont.querySelectorAll('button').forEach(btn=>{
     estados[btn.dataset.k].valor = btn.dataset.v;
   });
 });
+window.estados = estados; // expuesto para el modo llenado conversacional de Piwii
 
 // Control de fatiga y somnolencia
 // Para agregar mas puntos, solo suma nuevos textos a este listado.
