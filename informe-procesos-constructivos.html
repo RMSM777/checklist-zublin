@@ -53,7 +53,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
   .toggle button{ flex:1; padding:10px 6px; border:1px solid var(--borde); background:#fff; border-radius:6px; font-size:13px; font-weight:700; color:#666; cursor:pointer; }
   .toggle button.act{ background:var(--rojo); color:#fff; border-color:var(--rojo); }
   .btn-add{ width:100%; padding:10px; border:2px dashed var(--borde); background:#fafafa; border-radius:8px; font-size:13px; font-weight:700; color:#777; cursor:pointer; margin-top:4px; }
-  .fila-persona{ display:grid; grid-template-columns:1fr 150px 34px; gap:6px; margin-bottom:6px; align-items:center; }
+  .fila-persona{ display:grid; grid-template-columns:1fr 140px 130px 34px; gap:6px; margin-bottom:6px; align-items:center; }
   .btn-x{ width:34px; height:38px; border:none; background:#fbe9e9; color:var(--rojo); border-radius:6px; font-weight:800; cursor:pointer; font-size:15px; }
 
   /* Registros */
@@ -225,12 +225,13 @@ document.querySelectorAll('#grupoT button').forEach(b=>{
 /* ============ Personal en turno ============ */
 let F1 = null, F2 = null; // firmas: se crean mas abajo, declaradas aqui para evitar errores de inicializacion
 let nPersona = 0;
-function agregarPersona(nombre, cargo){
+function agregarPersona(nombre, cargo, rut){
   nPersona++;
   const div = document.createElement('div');
   div.className = 'fila-persona';
   div.innerHTML = '<input type="text" placeholder="Nombre" value="'+(nombre||'')+'">'
     +'<input type="text" placeholder="Cargo" value="'+(cargo||'Inspector de Calidad')+'">'
+    +'<input type="text" placeholder="RUT" value="'+(rut||'')+'">'
     +'<button class="btn-x" onclick="this.parentElement.remove(); actualizarFirmantes();">&times;</button>';
   document.getElementById('personas').appendChild(div);
   actualizarFirmantes();
@@ -240,8 +241,8 @@ function agregarPersona(nombre, cargo){
 function nombresPersonal(){
   const res = [];
   document.querySelectorAll('#personas .fila-persona').forEach(f=>{
-    const [nom, cargo] = f.querySelectorAll('input');
-    if(nom.value.trim()) res.push({nombre:nom.value.trim(), cargo:(cargo.value||'Inspector de Calidad').trim()});
+    const [nom, cargo, rut] = f.querySelectorAll('input');
+    if(nom.value.trim()) res.push({nombre:nom.value.trim(), cargo:(cargo.value||'Inspector de Calidad').trim(), rut:(rut && rut.value ? rut.value.trim() : '')});
   });
   return res;
 }
@@ -285,7 +286,7 @@ function agregarRegistro(){
     +'</div>'
     +'<div class="campo"><label>T\u00edtulo del registro</label><input type="text" id="rt'+reg.id+'" placeholder="Ej: Primer cami\u00f3n mixer \u2014 Gu\u00eda 153524"></div>'
     +'<div class="campo"><label>Descripci\u00f3n</label><textarea id="rd'+reg.id+'" rows="4" placeholder="Detalle de lo observado: hechos, mediciones, resultado y disposici\u00f3n..."></textarea></div>'
-    +'<label class="btn-foto" style="display:inline-block;">\ud83d\udcf7 Agregar fotos<input type="file" accept="image/*" multiple hidden onchange="agregarFotos('+reg.id+', this)"></label>'
+    +'<label class="btn-foto" style="display:inline-block;">\ud83d\uddbc\ufe0f Agregar fotos<input type="file" accept="image/*,.jpg,.jpeg,.png,.heic,.heif,.webp" multiple hidden onchange="agregarFotos('+reg.id+', this)"></label>'
     +'<div class="fotos-grid" id="fg'+reg.id+'"></div>';
   document.getElementById('registros').appendChild(div);
   actualizarChips();
