@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es-CL">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0d1526">
+<title>Piwii · Asistente QC Digital</title>
+<style>
+  :root{
+    --bg:#0d1526; --bg2:#151f36; --bg3:#1c2942;
+    --naranjo:#f5851f; --naranjo-cl:#ff9d3f;
+    --txt:#f1f5f9; --txt2:#94a3b8; --linea:#243049;
+    --ok:#4f9d69; --pend:#e05c4a;
+    --burb-p:#1c2942; --burb-u:#f5851f;
+    --sombra:rgba(0,0,0,.45);
+    --sans:'Segoe UI',system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+  /* Encabezado */
+  header{padding:12px 16px;border-bottom:2px solid var(--naranjo);background:linear-gradient(160deg,var(--bg2),var(--bg));display:flex;align-items:center;gap:12px;flex:0 0 auto}
+  header .logo{flex:0 0 auto;border-radius:11px;filter:drop-shadow(0 3px 9px var(--sombra))}
+  header .h-txt h1{margin:0;font-size:1.12rem;font-weight:800}
+  header .h-txt h1 .p{color:var(--naranjo)}
+  header .h-txt p{margin:2px 0 0;font-size:.74rem;color:var(--txt2)}
+  header .estado{margin-left:auto;font-size:.68rem;color:var(--txt2);border:1px solid var(--linea);padding:5px 10px;border-radius:20px;display:flex;align-items:center;gap:6px}
+  header .estado .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+
+  /* Zona de chat */
+  .chat{flex:1 1 auto;overflow-y:auto;padding:18px 14px;display:flex;flex-direction:column;gap:12px}
+  .chat::-webkit-scrollbar{width:8px}
+  .chat::-webkit-scrollbar-thumb{background:var(--linea);border-radius:8px}
+
+  .msg{max-width:82%;padding:11px 14px;border-radius:14px;font-size:.92rem;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;animation:aparece .2s ease}
+  @keyframes aparece{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .msg.piwii{background:var(--burb-p);border:1px solid var(--linea);border-bottom-left-radius:4px;align-self:flex-start}
+  .msg.user{background:var(--burb-u);color:#0d1526;font-weight:500;border-bottom-right-radius:4px;align-self:flex-end}
+  .msg.piwii b{color:var(--naranjo-cl)}
+  .msg .badge{display:inline-block;font-size:.68rem;font-weight:800;padding:2px 9px;border-radius:20px;margin:2px 4px 2px 0;text-transform:uppercase;letter-spacing:.5px}
+  .msg .badge.df{background:rgba(224,92,74,.2);color:var(--pend);border:1px solid var(--pend)}
+  .msg .badge.dt{background:rgba(245,133,31,.18);color:var(--naranjo);border:1px solid var(--naranjo)}
+  .msg .badge.ok{background:rgba(79,157,105,.18);color:var(--ok);border:1px solid var(--ok)}
+  .msg .fuente{display:block;margin-top:7px;font-size:.7rem;color:var(--txt2);border-top:1px solid var(--linea);padding-top:5px}
+
+  .escribiendo{align-self:flex-start;display:flex;gap:4px;padding:12px 15px;background:var(--burb-p);border:1px solid var(--linea);border-radius:14px;border-bottom-left-radius:4px}
+  .escribiendo span{width:7px;height:7px;border-radius:50%;background:var(--txt2);animation:parpadeo 1.2s infinite}
+  .escribiendo span:nth-child(2){animation-delay:.2s}
+  .escribiendo span:nth-child(3){animation-delay:.4s}
+  @keyframes parpadeo{0%,60%,100%{opacity:.25}30%{opacity:1}}
+
+  /* Chips */
+  .chips{flex:0 0 auto;padding:8px 12px;display:flex;gap:7px;overflow-x:auto;border-top:1px solid var(--linea);background:var(--bg2)}
+  .chips::-webkit-scrollbar{height:0}
+  .chip{white-space:nowrap;background:var(--bg3);border:1px solid var(--linea);color:var(--txt);font-size:.78rem;padding:7px 13px;border-radius:20px;cursor:pointer;font-family:inherit;flex:0 0 auto;transition:border-color .15s}
+  .chip:hover{border-color:var(--naranjo)}
+  .chip.destaca{border-color:var(--naranjo);color:var(--naranjo-cl)}
+
+  /* Entrada */
+  .entrada{flex:0 0 auto;padding:11px 12px;display:flex;gap:9px;border-top:1px solid var(--linea);background:var(--bg2)}
+  .entrada input{flex:1;background:var(--bg3);border:1px solid var(--linea);border-radius:22px;color:var(--txt);padding:11px 16px;font-size:.92rem;font-family:inherit}
+  .entrada input:focus{outline:none;border-color:var(--naranjo)}
+  .entrada button{flex:0 0 auto;background:var(--naranjo);color:#0d1526;border:none;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:1.1rem;font-weight:800;transition:transform .1s}
+  .entrada button:active{transform:scale(.92)}
+
+  .aviso-api{font-size:.68rem;color:var(--txt2);text-align:center;padding:5px;background:var(--bg2)}
+</style>
+</head>
+<body>
+<header>
+  <svg class="logo" width="42" height="42" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-label="QC Digital">
+    <rect width="512" height="512" rx="100" fill="#0d1526"/>
+    <polygon points="256,66 420.5,161 420.5,351 256,446 91.5,351 91.5,161" fill="none" stroke="#f5851f" stroke-width="10"/>
+    <polygon points="256,106 385.9,181 385.9,331 256,406 126.1,331 126.1,181" fill="none" stroke="#f5851f" stroke-width="18"/>
+    <path d="M181,260 L231,310 L339,194" fill="none" stroke="#f5851f" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div class="h-txt">
+    <h1><span class="p">Piwii</span> · Asistente QC</h1>
+    <p>QC Digital · Industry Quality Suite</p>
+  </div>
+  <div class="estado"><span class="dot"></span>En línea</div>
+</header>
+
+<div class="chat" id="chat"></div>
+
+<div class="chips" id="chips"></div>
+
+<div class="entrada">
+  <input id="input" type="text" placeholder="Formule su consulta de calidad…" autocomplete="off">
+  <button onclick="enviar()" aria-label="Enviar">➤</button>
+</div>
+<div class="aviso-api">Modo Aprendiz: respuestas basadas en la base de conocimiento QC de la faena. El análisis de casos no contemplados requiere integración con la API.</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var chat = document.getElementById("chat");
+  var input = document.getElementById("input");
+  var chipsBar = document.getElementById("chips");
+
+  // ====== BASE DE CONOCIMIENTO ======
+
+  // Módulo de falla RE-1001-1027: clasificación DF / DT
+  var MODULO = [
+    {k:["malla dañada","malla abierta","malla sin instalar","fortificacion incompleta de malla","fortificación incompleta de malla"], clase:"DF", txt:"Malla dañada, abierta o sin instalar es <b>Detención de Frente</b>. La fortificación de avance perno-malla se desfasa en las cajas según la calidad geotécnica (RMR, GSI, Q); malla en techo y springline hasta 2 m sobre el piso."},
+    {k:["malla mal afianzada","mal afianzada"], clase:"DF", txt:"Malla mal afianzada a la sección es <b>Detención de Frente</b>. No se acepta continuar sin reparar previamente la desviación."},
+    {k:["malla cargada"], clase:"DT", txt:"Malla cargada es <b>Detalle de Terminación</b>. Excepción: si hay condición de riesgo se descarga de inmediato; esa condición la levanta supervisión de Operaciones, Calidad, Geomecánica o APR."},
+    {k:["traslape"], clase:"DF", txt:"El traslape de malla es <b>Detención de Frente</b> si no cumple. Debe cumplirse siempre lo indicado en planos: <b>30 a 40 cm</b>, centrado en la parada de pernos."},
+    {k:["perno doblado","perno diagonal","perno sin planchuela","perno sin tuerca","perno largo","perno cortado","perno corto","perno bajo malla","perno sobre gradiente","perno sobregradiente"], clase:"DT", txt:"Pernos con esos defectos (doblado, diagonal, sin planchuela/tuerca, largo, cortado, corto, bajo malla, sobre gradiente) son <b>Detalle de Terminación</b>. Excepción: se acepta máximo <b>10% de pernos fallidos por parada</b>, ingresados como DT."},
+    {k:["perno equivocado","perno instalado equivocado","instalacion de perno equivocado"], clase:"DF", txt:"Instalación de perno equivocado es <b>Detención de Frente</b>. No se acepta continuar sin reparar previamente."},
+    {k:["perno faltante","fortificacion incompleta de perno","perno falta"], clase:"DF", txt:"Fortificación incompleta de perno (perno faltante en la parada) es <b>Detención de Frente</b>. Excepción: se acepta máximo <b>10% de pernos faltantes por parada</b>, ingresados como DT."},
+    {k:["perno cable","largo sobresaliente","fuera de tolerancia","equipo tensor"], clase:"DT", txt:"Pernos cables con largo sobresaliente o fuera de tolerancia son <b>Detalle de Terminación</b>. Se acepta tolerancia máxima de <b>50 cm</b> por motivo de instalación del equipo tensor."},
+    {k:["tuerca sin apriete","tuerca sin ajuste","ausencia de tuerca","sin tuerca"], clase:"DT", txt:"Tuerca sin apriete o ausencia de tuerca es <b>Detalle de Terminación</b>. Excepción: máximo <b>10% de desviación por parada</b>, ingresado como DT."},
+    {k:["ausencia de planchuela","planchuela invertida","planchuelas sueltas","planchuela doblada","planchuela bajo malla","sin planchuela"], clase:"DT", txt:"Problemas de planchuela (ausencia, invertida, suelta, doblada, bajo malla) son <b>Detalle de Terminación</b>. Excepción: máximo <b>10% de desviación por parada</b>, ingresado como DT."},
+    {k:["shotcrete soplado","nidos","soplado"], clase:"DT", txt:"Shotcrete soplado o con nidos es <b>Detalle de Terminación</b>. Excepción: sujeto a evaluación del Inspector de Calidad o Geomecánico, que puede pedir el saneamiento del área como detención de frente."},
+    {k:["shotcrete con grietas","grietas","grieta"], clase:"DT", txt:"Shotcrete con grietas es <b>Detalle de Terminación</b>. Excepción: según la magnitud, Geomecánica evalúa la grieta y puede pedir saneamiento o instalación de medición de convergencia como detención de frente."},
+    {k:["falta de shotcrete","falta shotcrete","sin shotcrete en tramos"], clase:"DF", txt:"Falta de shotcrete en tramos o sectores es <b>Detención de Frente</b>. Cumplir el criterio teórico por frente y tipo de roca; controlar espesor por laboratorio según PIE o colocar método preventivo (calibradores de espesor)."},
+    {k:["shotcrete dañado","shotcrete danado"], clase:"DF", txt:"Shotcrete dañado es <b>Detención de Frente</b>. Se regulariza el sector o labor según diseño o planos de construcción."},
+    {k:["sub-excavacion","sub excavacion","subexcavacion","subexcavación"], clase:"DF", txt:"Sub-excavación es <b>Detención de Frente</b>. Con el levantamiento topográfico se recupera la sección inmediatamente, previo al siguiente avance."},
+    {k:["acuñadura deficiente","acunadura deficiente","acuñadura","acunadura"], clase:"DF", txt:"Acuñadura deficiente es <b>Detención de Frente</b>. No se acepta continuar con el avance si se detecta acuñadura deficiente o condición de riesgo."},
+    {k:["lechada incompleta","lechada","columna completa"], clase:"DF", txt:"Lechada incompleta es <b>Detención de Frente</b>. No se acepta continuar si la lechada no está a columna completa."},
+    {k:["afloramiento de agua","agua en perno","perno no galvanizado"], clase:"DT", txt:"Afloramiento de agua en perno no galvanizado es <b>Detalle de Terminación</b>. Según casos de geomecánicos: reposición de conjunto planchuela-perno galvanizado, o barbacana / canalización de aguas."}
+  ];
+
+  // Criterios con umbral numérico (para evaluar cuando el usuario da un número)
+  var CRITERIOS_NUM = [
+    {k:["traslape"], min:30, unidad:"cm", ok:"El traslape cumple: mínimo 30 cm (rango 30–40 según planos).", falla:"El traslape NO cumple. El mínimo es 30 cm. Esto es Detención de Frente.", clase_falla:"DF"},
+    {k:["angulo","ángulo","perforacion","perforación","desviacion","desviación","inclinacion","inclinación"], max:15, unidad:"°", ok:"El ángulo cumple: la desviación debe ser menor a 15°.", falla:"El ángulo NO cumple. La desviación debe ser menor a 15°.", clase_falla:"DT"},
+    {k:["perno fuera","largo de perno","fuera de la roca"], max:10, unidad:"cm", ok:"El largo del perno fuera de la roca cumple: Ø22 mm debe quedar ≤ 10 cm.", falla:"El largo del perno fuera de la roca NO cumple: debe ser ≤ 10 cm.", clase_falla:"DT"},
+    {k:["recubrimiento","espesor de malla","cubre malla"], min:5, unidad:"cm", ok:"El recubrimiento cumple: no inferior a 5,0 cm (o según planos).", falla:"El recubrimiento NO cumple: no debe ser inferior a 5,0 cm.", clase_falla:"DF"}
+  ];
+
+  var SIGLAS = {
+    "dt":"DT = Detalle de Terminación. Pendiente que se genera en las caminatas y vive en SIC3PRO.",
+    "pnc":"PNC = Producto No Conforme.",
+    "rnc":"RNC = Reporte de No Conformidad.",
+    "art":"ART = Análisis de Riesgo del Trabajo.",
+    "pie":"PIE = Plan de Inspección y Ensayos. Define qué se controla, con qué frecuencia y bajo qué criterio de aceptación.",
+    "sic3pro":"SIC3PRO = sistema donde viven los DT.",
+    "pec":"PEC = Paquete / Carpeta de Entrega por Construcción, donde se archivan los protocolos formales.",
+    "df":"DF = Detención de Frente. La desviación obliga a parar: no se sigue avanzando sin resolver.",
+    "pd":"PD = Punto de Detención en el PIE (control que detiene el proceso).",
+    "po":"PO = Punto de Observación (control sin detención).",
+    "eime":"EIME = Equipo/Instrumento de Medición y Ensayo, con control de calibración vigente.",
+    "ppye":"PPyE = Puntos de Parada y Espera.",
+    "sgdoc":"SGDOC = Sistema de Gestión Documental de la VP de Proyectos de Codelco.",
+    "ppod":"PoD = Planning of Day, minutas diarias de terreno.",
+    "pod":"PoD = Planning of Day, minutas diarias de terreno."
+  };
+
+  var NIVELES = "Niveles de la mina:\n<b>Superiores:</b> NP (Producción), NH (Hundimiento).\n<b>Inferiores:</b> EXS (Extracción), INS (Inyección), ACA (Acarreo).";
+
+  // Los 10 reportes de la suite QC Digital
+  var REPORTES = {
+    "procesos constructivos":{desc:"Informe de Procesos Constructivos. Registra el avance y control de cada proceso ejecutado en el turno.", campos:["Fecha y turno","Nivel/labor y frente","Proceso ejecutado (excavación, fortificación, etc.)","Controles verificados","Observaciones y evidencia fotográfica"]},
+    "diario":{desc:"Reporte Diario. Resumen de lo hecho en el día: frentes, avances y pendientes.", campos:["Fecha y turno","Frentes trabajados","Avance del día","Pendientes / DT generados","Novedades del turno"]},
+    "dt":{desc:"Reporte de Detalle de Terminación (DT). Pendientes detectados en caminatas, que van a SIC3PRO.", campos:["Nivel/labor y frente","Descripción del detalle","Clasificación (¿es DT o DF?)","Responsable","Fecha compromiso de cierre"]},
+    "pnc":{desc:"Reporte PNC/RNC. Producto No Conforme o No Conformidad del proceso.", campos:["Identificación del producto/proceso","Descripción de la no conformidad","Criterio incumplido (referencia PIE / planos)","Disposición (reparar, rechazar, retrabajar)","Firma y seguimiento hasta el cierre"]},
+    "programa semanal":{desc:"Reporte Programa Semanal. Planificación e inspecciones de la semana.", campos:["Semana","Frentes y actividades programadas","Inspecciones y ensayos previstos","Responsables","Estado de cumplimiento"]},
+    "cambio de turno":{desc:"Operativo: Cambio de Turno. Traspaso de novedades entre turnos.", campos:["Turno saliente / entrante","Frentes en curso","Pendientes críticos","Equipos y condiciones","Firma de ambos turnos"]},
+    "caminata de avance":{desc:"Operativo: Caminata de Avance. Inspección formal en terreno que genera los DT.", campos:["Nivel/labor recorrido","Detalles detectados","Clasificación DF / DT de cada uno","Registro fotográfico","Firma del inspector"]},
+    "checklist camioneta":{desc:"Operativo: Checklist Camioneta. Chequeo del vehículo antes de terreno.", campos:["Patente / móvil","Niveles y neumáticos","Luces y frenos","Extintor y elementos de seguridad","Observaciones"]},
+    "ic mi plano":{desc:"Operativo: IC Mi Plano. Ubicación e identificación de labores en plano.", campos:["Nivel","Labor / código WBS","Frente identificado","Referencia de plano","Notas"]},
+    "liberacion de frente":{desc:"Protocolo de Recepción de Fortificación (liberación de frente). Consolida los 13 puntos de control y libera el frente si no hay DF pendiente.", campos:["Identificación (obra, contrato, fechas)","Tipos empleados (perno, malla, shotcrete)","Avance desarrollo (PK) y fortificación","13 puntos de control (Cumple / No cumple)","Doble firma: Inspección y Jefe de Turno"]}
+  };
+
+  // Nombres de visualización (para respetar siglas en mayúscula)
+  var NOMBRE_REPORTE = {
+    "procesos constructivos":"Procesos Constructivos",
+    "diario":"Reporte Diario",
+    "dt":"Reporte DT (Detalle de Terminación)",
+    "pnc":"Reporte PNC / RNC",
+    "programa semanal":"Programa Semanal",
+    "cambio de turno":"Cambio de Turno",
+    "caminata de avance":"Caminata de Avance",
+    "checklist camioneta":"Checklist Camioneta",
+    "ic mi plano":"IC Mi Plano",
+    "liberacion de frente":"Liberación de Frente"
+  };
+  function nombreRep(k){ return NOMBRE_REPORTE[k] || capitaliza(k); }
+
+  // ====== MOTOR ======
+
+  function normaliza(s){
+    return s.toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"") // quita tildes
+      .replace(/[¿?¡!.,;:]/g," ").replace(/\s+/g," ").trim();
+  }
+
+  function extraeNumero(s){
+    var m = s.match(/(\d+([.,]\d+)?)/);
+    return m ? parseFloat(m[1].replace(",",".")) : null;
+  }
+
+  function responder(textoUsuario){
+    var q = normaliza(textoUsuario);
+    var qOrig = textoUsuario;
+
+    // 1) Saludos
+    if(/^(hola|buenas|buenos dias|buenas tardes|hey|que tal|holi)/.test(q)){
+      return {txt:"Piwii, asistente de control de calidad de QC Digital. Apoyo la clasificación de desviaciones (Detención de Frente o Detalle de Terminación), la verificación de criterios de aceptación del PIE, la consulta de siglas y niveles, y la confección guiada de los reportes de la suite. Indíqueme la consulta."};
+    }
+
+    // 2) ¿Qué reportes hay?
+    if(/(que|cuales|lista).*(reporte|informe|herramienta)/.test(q) || q==="reportes" || q==="ayuda"){
+      var lista = Object.keys(REPORTES).map(function(k){ return "• "+nombreRep(k); }).join("\n");
+      return {txt:"Reportes disponibles en QC Digital para confección guiada:\n\n"+lista+"\n\nIndique el reporte requerido y se detallarán sus campos. Ejemplo: \"reporte DT\"."};
+    }
+
+    // 3) Siglas (prioridad sobre guía de reportes: "qué es un DT" = definición)
+    if(/que (es|significa)|significa|sigla/.test(q)){
+      for(var sig in SIGLAS){
+        var reS = new RegExp("(^|\\s)"+sig+"($|\\s)");
+        if(reS.test(q)){ return {txt:SIGLAS[sig], fuente:"Glosario QC"}; }
+      }
+    }
+    // sigla suelta exacta
+    if(SIGLAS[q]){ return {txt:SIGLAS[q], fuente:"Glosario QC"}; }
+
+    // 4) Guía de reporte específico
+    for(var rk in REPORTES){
+      if(q.indexOf(rk)!==-1 || (rk==="dt" && /reporte dt|detalle de terminacion/.test(q)) || (rk==="pnc" && /pnc|rnc|no conformidad/.test(q)) || (rk==="liberacion de frente" && /liberacion|liberar frente|recepcion de fortificacion|protocolo de fortificacion/.test(q))){
+        var r = REPORTES[rk];
+        var pasos = r.campos.map(function(c,i){ return (i+1)+". "+c; }).join("\n");
+        return {txt:"<b>"+nombreRep(rk)+"</b>\n"+r.desc+"\n\nCampos que componen el registro:\n\n"+pasos+"\n\nComplete los campos en orden. Ante cualquier dato que requiera clasificación (por ejemplo, si una desviación corresponde a Detención de Frente o Detalle de Terminación), consúltelo y le indicaré el criterio aplicable.", fuente:"Suite QC Digital"};
+      }
+    }
+
+    // 5) Niveles
+    if(/nivel(es)?/.test(q) && !/liberar|reporte/.test(q)){
+      return {txt:NIVELES, fuente:"Bases Técnicas / WBS"};
+    }
+
+    // 6) Criterio numérico (si hay número + palabra clave de criterio)
+    var num = extraeNumero(q);
+    if(num!==null){
+      for(var i=0;i<CRITERIOS_NUM.length;i++){
+        var c = CRITERIOS_NUM[i];
+        if(c.k.some(function(kw){ return q.indexOf(kw)!==-1; })){
+          var cumple;
+          if(c.min!==undefined) cumple = num >= c.min;
+          if(c.max!==undefined) cumple = num <= c.max;
+          if(cumple){
+            return {txt:"Con "+num+" "+c.unidad+": "+c.ok, badge:"ok", fuente:"PIE / Módulo de falla"};
+          } else {
+            return {txt:"Con "+num+" "+c.unidad+": "+c.falla, badge:(c.clase_falla==="DF"?"df":"dt"), fuente:"PIE / Módulo de falla"};
+          }
+        }
+      }
+    }
+
+    // 7) Módulo de falla (DF / DT) por palabra clave
+    for(var m=0;m<MODULO.length;m++){
+      if(MODULO[m].k.some(function(kw){ return q.indexOf(normaliza(kw))!==-1; })){
+        return {txt:MODULO[m].txt, badge:(MODULO[m].clase==="DF"?"df":"dt"), fuente:"Módulo de falla RE-1001-1027"};
+      }
+    }
+
+    // 8) Pregunta genérica DF/DT sin especificar
+    if(/(df|detencion de frente|detalle de terminacion|dt).*(o|vs|es)/.test(q) || /es (df|dt)/.test(q)){
+      return {txt:"Para determinar si corresponde a <b>Detención de Frente</b> o <b>Detalle de Terminación</b>, especifique la desviación observada. Indique la condición concreta (por ejemplo: \"malla cargada\", \"lechada incompleta\", \"traslape 25 cm\") y se entregará la clasificación según el módulo de falla."};
+    }
+
+    // 9) No sé (honesto)
+    return {txt:"Esa consulta no se encuentra en la base de conocimiento actual, por lo que no se entregará una respuesta para evitar información no verificada.\n\nConsultas disponibles: clasificación de desviaciones (Detención de Frente / Detalle de Terminación), verificación de criterios de aceptación (traslape, ángulo de perforación, recubrimiento, entre otros), glosario técnico, niveles de la mina y confección guiada de los reportes de la suite.\n\nPara análisis de casos no contemplados en la base, se requiere la integración con la API.", fuente:null};
+  }
+
+  function capitaliza(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+  // ====== UI ======
+
+  function burbuja(texto, quien, extra){
+    var div = document.createElement("div");
+    div.className = "msg "+quien;
+    var html = texto;
+    if(extra && extra.badge){
+      var etq = extra.badge==="df"?"df":(extra.badge==="ok"?"ok":"dt");
+      var label = extra.badge==="df"?"Detención de Frente":(extra.badge==="ok"?"Cumple":"Detalle de Terminación");
+      html = '<span class="badge '+etq+'">'+label+'</span><br>'+html;
+    }
+    if(extra && extra.fuente){
+      html += '<span class="fuente">Fuente: '+extra.fuente+'</span>';
+    }
+    div.innerHTML = html;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function escribiendo(){
+    var d = document.createElement("div");
+    d.className = "escribiendo";
+    d.id = "typing";
+    d.innerHTML = "<span></span><span></span><span></span>";
+    chat.appendChild(d);
+    chat.scrollTop = chat.scrollHeight;
+  }
+  function quitaEscribiendo(){ var t = document.getElementById("typing"); if(t) t.remove(); }
+
+  window.enviar = function(texto){
+    var t = (texto!==undefined ? texto : input.value).trim();
+    if(!t) return;
+    burbuja(escapa(t), "user");
+    input.value = "";
+    escribiendo();
+    setTimeout(function(){
+      quitaEscribiendo();
+      var r = responder(t);
+      burbuja(r.txt, "piwii", r);
+    }, 420 + Math.random()*300);
+  };
+
+  function escapa(s){ var d=document.createElement("div"); d.textContent=s; return d.innerHTML; }
+
+  input.addEventListener("keydown", function(e){ if(e.key==="Enter") enviar(); });
+
+  // Chips de acceso rápido
+  var CHIPS = [
+    {t:"Reportes disponibles", q:"¿qué reportes hay?", destaca:true},
+    {t:"Traslape 25 cm", q:"traslape de malla quedó en 25 cm"},
+    {t:"Malla cargada", q:"malla cargada"},
+    {t:"Lechada incompleta", q:"lechada incompleta"},
+    {t:"Definición: DT", q:"qué es un DT"},
+    {t:"Reporte liberación de frente", q:"reporte de liberación de frente"},
+    {t:"Niveles de la mina", q:"niveles de la mina"}
+  ];
+  CHIPS.forEach(function(c){
+    var b = document.createElement("button");
+    b.className = "chip"+(c.destaca?" destaca":"");
+    b.textContent = c.t;
+    b.onclick = function(){ enviar(c.q); };
+    chipsBar.appendChild(b);
+  });
+
+  // Bienvenida
+  setTimeout(function(){
+    burbuja("<b>Piwii</b> — Asistente de Control de Calidad de QC Digital.\n\nOpera en modo Aprendiz sobre la base de conocimiento de la faena: módulo de falla (RE-1001-1027), criterios de aceptación del PIE, glosario técnico y los reportes de la suite.\n\nSeleccione una consulta frecuente o formule su pregunta directamente.", "piwii");
+  }, 300);
+
+})();
+</script>
+</body>
+</html>
