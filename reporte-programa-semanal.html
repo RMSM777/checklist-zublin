@@ -762,13 +762,22 @@ function addChart(doc, id, y, alto){
   doc.addImage(img, 'PNG', izq + (ancho-w)/2, y, w, h);
   return y + h + 4;
 }
-function addTablaPDF(doc, y, head, body, foot){
+function addTablaPDF(doc, y, head, body, foot, estadoCol){
   doc.autoTable({
     startY:y, head:[head], body, foot: foot?[foot]:undefined,
     theme:'grid', margin:{left:12, right:12},
     styles:{fontSize:7.5, cellPadding:1.4, textColor:[40,40,40], lineColor:[210,210,210], lineWidth:.15},
     headStyles:{fillColor:MARCA.colorRGB(), textColor:255, fontStyle:'bold'},
-    footStyles:{fillColor:[240,240,240], textColor:[30,30,30], fontStyle:'bold'}
+    footStyles:{fillColor:[240,240,240], textColor:[30,30,30], fontStyle:'bold'},
+    didParseCell: (typeof estadoCol==='number') ? function(data){
+      if(data.section==='body' && data.column.index===estadoCol){
+        const val = String(data.cell.raw||'').trim().toUpperCase();
+        if(val==='CERRADA'){ data.cell.styles.textColor=[46,125,50]; data.cell.styles.fontStyle='bold'; }
+        else if(val==='ABIERTA'){ data.cell.styles.textColor=[194,127,16]; data.cell.styles.fontStyle='bold'; }
+        else if(val==='ATRASADA'){ data.cell.styles.textColor=[215,38,34]; data.cell.styles.fontStyle='bold'; }
+        else if(val==='NO ENCONTRADO'){ data.cell.styles.textColor=[150,150,150]; data.cell.styles.fontStyle='italic'; }
+      }
+    } : undefined
   });
   return doc.lastAutoTable.finalY + 5;
 }
@@ -874,7 +883,7 @@ async function generarPDF(){
       const rg = R.resumenGrupo[g] || {cerrado:items.filter(x=>x.dentroSemana).length, programado:items.length, pctCumplimiento:0};
       y = subtituloGrupoPDF(doc, y, GRUPOS_DEF[g].nombre + '  (' + rg.cerrado + '/' + rg.programado + ' cerradas \u00b7 ' + rg.pctCumplimiento + '%)');
       const body = items.map(x=>[x.punch, NIVEL_INFO[x.nivel]?NIVEL_INFO[x.nivel].nombre:x.nivel, x.estado, x.fCierre?fmtFecha(x.fCierre):'-', x.dentroSemana?'SI':'NO']);
-      y = addTablaPDF(doc, y, ['N\u00b0 Punch','Nivel','Estado SIC3PRO','Fecha real cierre','Cerrado esta semana'], body);
+      y = addTablaPDF(doc, y, ['N\u00b0 Punch','Nivel','Estado SIC3PRO','Fecha real cierre','Cerrado esta semana'], body, null, 2);
     });
     if(!algo){ y = addTablaPDF(doc, y, ['N\u00b0 Punch','Nivel','Estado SIC3PRO','Fecha real cierre','Cerrado esta semana'], [['-','-','-','-','-']]); }
   }
