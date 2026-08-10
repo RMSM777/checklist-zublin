@@ -86,6 +86,10 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
   table.mini tr.r-cerrada td{ color:var(--verde); font-weight:700; }
   table.mini tr.r-atrasada td{ color:var(--rojo); font-weight:700; }
   table.mini tr.r-noenc td{ color:#999; font-style:italic; }
+  .grupo-bloque{ margin-top:14px; }
+  .grupo-cab{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; background:var(--gris); padding:7px 10px; border-radius:4px; }
+  .grupo-cab .grupo-nom{ font-weight:800; font-size:13px; color:var(--texto); }
+  .grupo-cab .grupo-meta{ font-size:11px; color:#666; font-weight:700; white-space:nowrap; }
   .histfila{ display:flex; align-items:center; justify-content:space-between; font-size:11.5px; padding:6px 8px; border-bottom:1px solid #eee; }
   .histfila button{ background:none; border:none; color:var(--rojo); font-weight:800; font-size:14px; cursor:pointer; padding:2px 8px; }
   #zonaReporte{ display:none; }
@@ -168,12 +172,12 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
       <p class="punto-sub" id="subtituloSemana">Semana de control &middot; Fuente: base SIC3PRO (<span id="fechaDatos1">-</span>)</p>
       <div class="kpis">
         <div class="kpi prog"><div class="num" id="kProg">0</div><div class="lbl">PROGRAMADOS</div></div>
-        <div class="kpi cer"><div class="num" id="kCer">0</div><div class="lbl">CERRADOS (TOTAL)</div></div>
+        <div class="kpi cer"><div class="num" id="kCer">0</div><div class="lbl">CERRADOS DEL PROGRAMA</div></div>
         <div class="kpi cump"><div class="num" id="kCump">0%</div><div class="lbl">% CUMPLIMIENTO</div></div>
         <div class="kpi adhc"><div class="num" id="kAdhC">0</div><div class="lbl">EN ADHERENCIA</div></div>
         <div class="kpi adhp"><div class="num" id="kAdhP">0%</div><div class="lbl">% ADHERENCIA</div></div>
       </div>
-      <p class="leyenda" style="margin-top:8px;">% Cumplimiento = DT cerradas en la semana (de todo el universo SIC3PRO) / Programadas. % Adherencia = de esas cerradas, cu&aacute;ntas correspond&iacute;an efectivamente al listado programado por Operaciones.</p>
+      <p class="leyenda" style="margin-top:8px;">% Cumplimiento = DT del programa cerradas dentro de la semana de control / Total programadas. % Adherencia = de las programadas, cu&aacute;ntas se cerraron efectivamente en la ventana de la semana. Los cierres de DT que no estaban en el programa se reportan aparte en el Punto 4.</p>
     </div>
 
     <div class="punto">
@@ -188,14 +192,15 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 
     <div class="punto">
       <p class="punto-tit">Punto 3 &middot; Detalle del listado programado</p>
-      <p class="punto-sub">Estado actual en SIC3PRO de cada N&deg; de Punch programado esta semana</p>
-      <table class="mini" id="tablaProgramados"></table>
+      <p class="punto-sub">Estado en SIC3PRO de cada N&deg; de Punch programado, separado por Niveles Superiores e Inferiores</p>
+      <table class="mini" id="tablaResumenGrupo" style="margin-bottom:14px;"></table>
+      <div id="tablaProgramados"></div>
     </div>
 
     <div class="punto">
       <p class="punto-tit">Punto 4 &middot; Cierres fuera de programa</p>
-      <p class="punto-sub">DT cerradas esta semana que NO estaban en el listado programado</p>
-      <table class="mini" id="tablaFueraPrograma"></table>
+      <p class="punto-sub">DT cerradas esta semana que NO estaban en el listado programado, separadas por Niveles Superiores e Inferiores</p>
+      <div id="tablaFueraPrograma"></div>
     </div>
   </section>
 
@@ -312,6 +317,45 @@ function fmtFechaISO(iso){
   return d+'-'+m+'-'+y;
 }
 function pct(n, t){ return t>0 ? Math.round(n/t*1000)/10 : 0; }
+
+/* ===== Clasificacion de Nivel y Grupo (identica al Reporte DT) ===== */
+const NIVEL_INFO = {
+  NP:  {nombre:'Producci\u00f3n (NP)', grupo:'SUP'},
+  NH:  {nombre:'Hundimiento (NH)', grupo:'SUP'},
+  EXS: {nombre:'Extracci\u00f3n (EXS)', grupo:'INF'},
+  INS: {nombre:'Inyecci\u00f3n (INS)', grupo:'INF'},
+  ACA: {nombre:'Acarreo (ACA)', grupo:'INF'},
+  OTROS:{nombre:'Otros', grupo:'OTROS'}
+};
+const ORDEN_NIVELES = ['NP','NH','EXS','INS','ACA'];
+function clasificarNivel(area, subarea){
+  const t = norm(area)+' '+norm(subarea);
+  if(t.includes('HUNDIMIENTO')) return 'NH';
+  if(t.includes('PRODUCCION')) return 'NP';
+  if(t.includes('EXTRACCION')) return 'EXS';
+  if(t.includes('INYECCION')) return 'INS';
+  if(t.includes('ACARREO')) return 'ACA';
+  return 'OTROS';
+}
+const GRUPOS_DEF = {
+  SUP:{nombre:'Niveles Superiores', desc:'Accesos, Hundimiento y Producci\u00f3n', color:'#2b5fb8'},
+  INF:{nombre:'Niveles Inferiores', desc:'Inyecci\u00f3n, Extracci\u00f3n y Acarreo', color:'#7a3fbf'},
+  OTROS:{nombre:'Otras \u00c1reas', desc:'', color:'#757575'}
+};
+const ORDEN_GRUPOS = ['SUP','INF','OTROS'];
+const CODIGOS_SUP = ['221300','222700','224200'];
+const CODIGOS_INF = ['224300','224400','224500'];
+function clasificarGrupo(area){
+  const t = norm(area);
+  const m = t.match(/^(\d{6})/);
+  if(m){
+    if(CODIGOS_SUP.includes(m[1])) return 'SUP';
+    if(CODIGOS_INF.includes(m[1])) return 'INF';
+  }
+  if(t.includes('ACCESOS')||t.includes('N52 N1')||t.includes('HUNDIMIENTO')||t.includes('PRODUCCION')) return 'SUP';
+  if(t.includes('INYECCION')||t.includes('EXTRACCION')||t.includes('ACARREO')) return 'INF';
+  return 'OTROS';
+}
 
 /* Semana miercoles a martes */
 function miercolesDe(d){
@@ -450,6 +494,7 @@ function procesarFilas(filas, nombreArchivo){
   }
   const C = {
     punch: col('PUNCH'), desc: col('DESCRIPCION'), ubic: col('UBIC'),
+    area: col('AREA'), sub: col('SUBAREA','SUB\u00c1REA'),
     estado: headers.findIndex(h=>h==='ESTADO'),
     emision: col('EMISION'), realCierre: col('REAL')
   };
@@ -459,9 +504,14 @@ function procesarFilas(filas, nombreArchivo){
     if(!f || f.length<5) continue;
     const estado = norm(f[C.estado]);
     if(!['ABIERTA','CERRADA','ATRASADA'].includes(estado)) continue;
+    const area = C.area>=0 ? (f[C.area]||'') : '';
+    const sub  = C.sub>=0  ? (f[C.sub]||'')  : '';
     registros.push({
       punch: String(f[C.punch]||'').trim(),
       desc: f[C.desc]||'', ubic: f[C.ubic]||'',
+      area, sub,
+      nivel: clasificarNivel(area, sub),
+      grupo: clasificarGrupo(area),
       estado,
       fEmision: parseFecha(f[C.emision]),
       fRealCierre: parseFecha(f[C.realCierre])
@@ -487,21 +537,39 @@ function calcular(){
 
   const detalleProgramados = programados.map(p=>{
     const reg = registros.find(r=>norm(r.punch)===norm(p));
-    if(!reg) return {punch:p, estado:'NO ENCONTRADO', fCierre:null, dentroSemana:false};
+    if(!reg) return {punch:p, estado:'NO ENCONTRADO', fCierre:null, dentroSemana:false, grupo:'OTROS', nivel:'OTROS', desc:'', ubic:''};
     const dentro = reg.estado==='CERRADA' && reg.fRealCierre && reg.fRealCierre>=mie && reg.fRealCierre<=mar;
-    return {punch:p, estado:reg.estado, fCierre:reg.fRealCierre, dentroSemana:dentro};
+    return {punch:p, estado:reg.estado, fCierre:reg.fRealCierre, dentroSemana:dentro, grupo:reg.grupo, nivel:reg.nivel, desc:reg.desc, ubic:reg.ubic};
   });
 
   const cerradosSemana = registros.filter(r=>r.estado==='CERRADA' && r.fRealCierre && r.fRealCierre>=mie && r.fRealCierre<=mar);
-  const cerradoTotal = cerradosSemana.length;
-  const cerradoAdherencia = cerradosSemana.filter(r=>setProg.has(norm(r.punch))).length;
+  const cerradoUniverso = cerradosSemana.length;
+  // Programadas que efectivamente se cerraron dentro de la semana de control
+  const programadosCerradosSemana = detalleProgramados.filter(x=>x.dentroSemana).length;
+  const cerradoAdherencia = programadosCerradosSemana;
   const fueraPrograma = cerradosSemana.filter(r=>!setProg.has(norm(r.punch)));
 
+  // Desglose de cumplimiento por Grupo (Superiores / Inferiores)
+  const resumenGrupo = {};
+  ORDEN_GRUPOS.forEach(g=>{
+    const items = detalleProgramados.filter(x=>x.grupo===g);
+    if(!items.length) return;
+    const cerr = items.filter(x=>x.dentroSemana).length;
+    resumenGrupo[g] = {
+      programado: items.length,
+      cerrado: cerr,
+      pctCumplimiento: pct(cerr, items.length)
+    };
+  });
+
   R = {
-    mie, mar, programado: programados.length, cerradoTotal, cerradoAdherencia,
-    pctCumplimiento: pct(cerradoTotal, programados.length),
+    mie, mar, programado: programados.length,
+    cerradoUniverso,
+    cerradoTotal: programadosCerradosSemana,
+    cerradoAdherencia,
+    pctCumplimiento: pct(programadosCerradosSemana, programados.length),
     pctAdherencia: pct(cerradoAdherencia, programados.length),
-    detalleProgramados, fueraPrograma
+    detalleProgramados, fueraPrograma, resumenGrupo
   };
   document.getElementById('estadoPrograma').className='estado-carga ok';
   document.getElementById('estadoPrograma').textContent = programados.length+' N\u00b0 de Punch programados procesados. Ya puedes generar el PDF.';
@@ -519,19 +587,57 @@ function renderizar(){
   document.getElementById('kAdhC').textContent = R.cerradoAdherencia;
   document.getElementById('kAdhP').textContent = R.pctAdherencia+'%';
 
-  let h1 = '<tr><th>N\u00b0 Punch</th><th>Estado SIC3PRO</th><th>Fecha real cierre</th><th>&iquest;Cerrado esta semana?</th></tr>';
-  R.detalleProgramados.forEach(x=>{
-    const cls = x.estado==='CERRADA' ? 'r-cerrada' : (x.estado==='ATRASADA' ? 'r-atrasada' : (x.estado==='NO ENCONTRADO' ? 'r-noenc' : ''));
-    h1 += '<tr class="'+cls+'"><td>'+x.punch+'</td><td>'+x.estado+'</td><td>'+(x.fCierre?fmtFecha(x.fCierre):'-')+'</td><td>'+(x.dentroSemana?'S\u00cd':'NO')+'</td></tr>';
+  // ----- Mini-resumen de cumplimiento por Grupo (Superiores / Inferiores) -----
+  let hRG = '<tr><th>Grupo de niveles</th><th>Programadas</th><th>Cerradas semana</th><th>% Cumplimiento</th></tr>';
+  ORDEN_GRUPOS.forEach(g=>{
+    const rg = R.resumenGrupo[g];
+    if(!rg) return;
+    hRG += '<tr><td style="text-align:left;"><b>'+GRUPOS_DEF[g].nombre+'</b>'
+        + (GRUPOS_DEF[g].desc?'<br><span style="color:#888;font-size:.9em;">'+GRUPOS_DEF[g].desc+'</span>':'')
+        + '</td><td>'+rg.programado+'</td><td>'+rg.cerrado+'</td><td><b>'+rg.pctCumplimiento+'%</b></td></tr>';
+  });
+  document.getElementById('tablaResumenGrupo').innerHTML = hRG;
+
+  // ----- Punto 3: detalle del programa, tablas separadas por grupo -----
+  const encProg = '<tr><th>N\u00b0 Punch</th><th>Nivel</th><th>Estado SIC3PRO</th><th>Fecha real cierre</th><th>&iquest;Cerrado esta semana?</th></tr>';
+  let h1 = '';
+  ORDEN_GRUPOS.forEach(g=>{
+    const items = R.detalleProgramados.filter(x=>x.grupo===g);
+    if(!items.length) return;
+    const rg = R.resumenGrupo[g] || {programado:items.length, cerrado:items.filter(x=>x.dentroSemana).length, pctCumplimiento:0};
+    h1 += '<div class="grupo-bloque">';
+    h1 += '<div class="grupo-cab" style="border-left:5px solid '+GRUPOS_DEF[g].color+';">'
+        + '<span class="grupo-nom">'+GRUPOS_DEF[g].nombre+'</span>'
+        + '<span class="grupo-meta">'+rg.cerrado+'/'+rg.programado+' cerradas &middot; '+rg.pctCumplimiento+'%</span></div>';
+    let t = '<table class="mini">'+encProg;
+    items.forEach(x=>{
+      const cls = x.estado==='CERRADA' ? 'r-cerrada' : (x.estado==='ATRASADA' ? 'r-atrasada' : (x.estado==='NO ENCONTRADO' ? 'r-noenc' : ''));
+      t += '<tr class="'+cls+'"><td>'+x.punch+'</td><td>'+(NIVEL_INFO[x.nivel]?NIVEL_INFO[x.nivel].nombre:x.nivel)+'</td><td>'+x.estado+'</td><td>'+(x.fCierre?fmtFecha(x.fCierre):'-')+'</td><td>'+(x.dentroSemana?'S\u00cd':'NO')+'</td></tr>';
+    });
+    t += '</table>';
+    h1 += t + '</div>';
   });
   document.getElementById('tablaProgramados').innerHTML = h1;
 
-  let h2 = '<tr><th>N\u00b0 Punch</th><th>Descripci\u00f3n</th><th>Fecha real cierre</th></tr>';
+  // ----- Punto 4: cierres fuera de programa, tablas separadas por grupo -----
+  const encFuera = '<tr><th>N\u00b0 Punch</th><th>Nivel</th><th>Descripci\u00f3n</th><th>Fecha real cierre</th></tr>';
+  let h2 = '';
   if(!R.fueraPrograma.length){
-    h2 += '<tr><td colspan="3" style="text-align:center;color:#888;">Todos los cierres de la semana correspond\u00edan al programa.</td></tr>';
+    h2 = '<table class="mini"><tr><td colspan="4" style="text-align:center;color:#888;">Todos los cierres de la semana correspond\u00edan al programa.</td></tr></table>';
   } else {
-    R.fueraPrograma.forEach(x=>{
-      h2 += '<tr><td>'+x.punch+'</td><td>'+x.desc+'</td><td>'+(x.fRealCierre?fmtFecha(x.fRealCierre):'-')+'</td></tr>';
+    ORDEN_GRUPOS.forEach(g=>{
+      const items = R.fueraPrograma.filter(x=>x.grupo===g);
+      if(!items.length) return;
+      h2 += '<div class="grupo-bloque">';
+      h2 += '<div class="grupo-cab" style="border-left:5px solid '+GRUPOS_DEF[g].color+';">'
+          + '<span class="grupo-nom">'+GRUPOS_DEF[g].nombre+'</span>'
+          + '<span class="grupo-meta">'+items.length+' cierre'+(items.length===1?'':'s')+' fuera de programa</span></div>';
+      let t = '<table class="mini">'+encFuera;
+      items.forEach(x=>{
+        t += '<tr><td>'+x.punch+'</td><td>'+(NIVEL_INFO[x.nivel]?NIVEL_INFO[x.nivel].nombre:x.nivel)+'</td><td>'+x.desc+'</td><td>'+(x.fRealCierre?fmtFecha(x.fRealCierre):'-')+'</td></tr>';
+      });
+      t += '</table>';
+      h2 += t + '</div>';
     });
   }
   document.getElementById('tablaFueraPrograma').innerHTML = h2;
@@ -668,6 +774,13 @@ function puntoTitulo(doc, y, txt){
   doc.setTextColor(30,30,30);
   return y + 6;
 }
+function subtituloGrupoPDF(doc, y, txt){
+  if(y > 262){ doc.addPage(); y = 14; }
+  doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.setTextColor(60,60,60);
+  doc.text(txt, 12, y);
+  doc.setTextColor(30,30,30); doc.setFont(undefined,'normal');
+  return y + 4;
+}
 
 async function generarPDF(){
   try{
@@ -731,19 +844,48 @@ async function generarPDF(){
   });
   y += 18;
 
+  // Resumen de cumplimiento por Grupo (Superiores / Inferiores)
+  {
+    const body = ORDEN_GRUPOS.filter(g=>R.resumenGrupo[g]).map(g=>{
+      const rg = R.resumenGrupo[g];
+      return [GRUPOS_DEF[g].nombre, String(rg.programado), String(rg.cerrado), rg.pctCumplimiento+'%'];
+    });
+    if(body.length){
+      y = addTablaPDF(doc, y, ['Grupo de niveles','Programadas','Cerradas semana','% Cumplimiento'], body);
+    }
+  }
+
   y = puntoTitulo(doc, y, 'Punto 2 - Seguimiento cierres de DT (historico por semana)');
   y = addChart(doc, 'chHistorial', y, 62);
 
   y = puntoTitulo(doc, y, 'Punto 3 - Detalle del listado programado');
   {
-    const body = R.detalleProgramados.map(x=>[x.punch, x.estado, x.fCierre?fmtFecha(x.fCierre):'-', x.dentroSemana?'SI':'NO']);
-    y = addTablaPDF(doc, y, ['N\u00b0 Punch','Estado SIC3PRO','Fecha real cierre','Cerrado esta semana'], body);
+    let algo = false;
+    ORDEN_GRUPOS.forEach(g=>{
+      const items = R.detalleProgramados.filter(x=>x.grupo===g);
+      if(!items.length) return;
+      algo = true;
+      const rg = R.resumenGrupo[g] || {cerrado:items.filter(x=>x.dentroSemana).length, programado:items.length, pctCumplimiento:0};
+      y = subtituloGrupoPDF(doc, y, GRUPOS_DEF[g].nombre + '  (' + rg.cerrado + '/' + rg.programado + ' cerradas \u00b7 ' + rg.pctCumplimiento + '%)');
+      const body = items.map(x=>[x.punch, NIVEL_INFO[x.nivel]?NIVEL_INFO[x.nivel].nombre:x.nivel, x.estado, x.fCierre?fmtFecha(x.fCierre):'-', x.dentroSemana?'SI':'NO']);
+      y = addTablaPDF(doc, y, ['N\u00b0 Punch','Nivel','Estado SIC3PRO','Fecha real cierre','Cerrado esta semana'], body);
+    });
+    if(!algo){ y = addTablaPDF(doc, y, ['N\u00b0 Punch','Nivel','Estado SIC3PRO','Fecha real cierre','Cerrado esta semana'], [['-','-','-','-','-']]); }
   }
 
   y = puntoTitulo(doc, y, 'Punto 4 - Cierres fuera de programa');
   {
-    const body = R.fueraPrograma.length ? R.fueraPrograma.map(x=>[x.punch, x.desc, x.fRealCierre?fmtFecha(x.fRealCierre):'-']) : [['-','Todos los cierres correspondian al programa','-']];
-    y = addTablaPDF(doc, y, ['N\u00b0 Punch','Descripcion','Fecha real cierre'], body);
+    if(!R.fueraPrograma.length){
+      y = addTablaPDF(doc, y, ['N\u00b0 Punch','Nivel','Descripcion','Fecha real cierre'], [['-','-','Todos los cierres correspondian al programa','-']]);
+    } else {
+      ORDEN_GRUPOS.forEach(g=>{
+        const items = R.fueraPrograma.filter(x=>x.grupo===g);
+        if(!items.length) return;
+        y = subtituloGrupoPDF(doc, y, GRUPOS_DEF[g].nombre + '  (' + items.length + ' fuera de programa)');
+        const body = items.map(x=>[x.punch, NIVEL_INFO[x.nivel]?NIVEL_INFO[x.nivel].nombre:x.nivel, x.desc, x.fRealCierre?fmtFecha(x.fRealCierre):'-']);
+        y = addTablaPDF(doc, y, ['N\u00b0 Punch','Nivel','Descripcion','Fecha real cierre'], body);
+      });
+    }
   }
 
   if(v('obs')){
