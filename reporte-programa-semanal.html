@@ -64,7 +64,8 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 
   .semana-info{ font-size:12.5px; background:var(--gris); border-radius:6px; padding:8px 10px; text-align:center; font-weight:700; color:#333; margin-top:4px; }
 
-  .kpis{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:8px 0; }
+  .kpis{ display:grid; grid-template-columns:repeat(6,1fr); gap:6px; margin:8px 0; }
+  @media(max-width:640px){ .kpis{ grid-template-columns:repeat(3,1fr); } }
   .kpi{ background:var(--gris); border-radius:8px; padding:10px 4px; text-align:center; border-top:3px solid #bbb; }
   .kpi .num{ font-size:19px; font-weight:800; }
   .kpi .lbl{ font-size:9px; color:#666; font-weight:600; margin-top:2px; letter-spacing:.2px; }
@@ -73,6 +74,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
   .kpi.cump{ border-top-color:var(--rojo); } .kpi.cump .num{ color:var(--rojo); }
   .kpi.adhc{ border-top-color:var(--naranja); } .kpi.adhc .num{ color:#c07f10; }
   .kpi.adhp{ border-top-color:var(--rojo); } .kpi.adhp .num{ color:var(--rojo); }
+  .kpi.cumpt{ border-top-color:var(--morado); } .kpi.cumpt .num{ color:var(--morado); }
 
   .punto{ border:1px solid #e3e3e3; border-radius:10px; padding:10px 12px; margin-bottom:14px; }
   .punto-tit{ font-size:13px; font-weight:800; color:var(--rojo); margin:0 0 2px; }
@@ -83,9 +85,10 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
   table.mini td{ padding:5px 6px; border-bottom:1px solid #eee; }
   table.mini tr.tot td{ font-weight:800; background:var(--gris); }
   table.mini td.num, table.mini th.num{ text-align:right; }
-  table.mini tr.r-cerrada td{ color:var(--verde); font-weight:700; }
-  table.mini tr.r-atrasada td{ color:var(--rojo); font-weight:700; }
-  table.mini tr.r-noenc td{ color:#999; font-style:italic; }
+  table.mini td .est-cerrada{ color:var(--verde); font-weight:700; }
+  table.mini td .est-atrasada{ color:var(--rojo); font-weight:700; }
+  table.mini td .est-abierta{ color:var(--naranja); font-weight:700; }
+  table.mini td .est-noenc{ color:#999; font-style:italic; }
   .grupo-bloque{ margin-top:14px; }
   .grupo-cab{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; background:var(--gris); padding:7px 10px; border-radius:4px; }
   .grupo-cab .grupo-nom{ font-weight:800; font-size:13px; color:var(--texto); }
@@ -176,8 +179,9 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
         <div class="kpi cump"><div class="num" id="kCump">0%</div><div class="lbl">% CUMPLIMIENTO</div></div>
         <div class="kpi adhc"><div class="num" id="kAdhC">0</div><div class="lbl">EN ADHERENCIA</div></div>
         <div class="kpi adhp"><div class="num" id="kAdhP">0%</div><div class="lbl">% ADHERENCIA</div></div>
+        <div class="kpi cumpt"><div class="num" id="kCumpT">0%</div><div class="lbl">% CUMPLIMIENTO TOTAL</div></div>
       </div>
-      <p class="leyenda" style="margin-top:8px;">% Cumplimiento = DT del programa cerradas dentro de la semana de control / Total programadas. % Adherencia = de las programadas, cu&aacute;ntas se cerraron efectivamente en la ventana de la semana. Los cierres de DT que no estaban en el programa se reportan aparte en el Punto 4.</p>
+      <p class="leyenda" style="margin-top:8px;">% Cumplimiento = DT del programa cerradas dentro de la semana de control / Total programadas. % Adherencia = de las programadas, cu&aacute;ntas se cerraron efectivamente en la ventana de la semana. % Cumplimiento total = (cerradas del programa + cerradas fuera de programa) / Total programadas; puede superar 100% porque incluye los cierres del Punto 4. Los cierres fuera de programa se detallan en el Punto 4.</p>
     </div>
 
     <div class="punto">
@@ -569,6 +573,7 @@ function calcular(){
     cerradoAdherencia,
     pctCumplimiento: pct(programadosCerradosSemana, programados.length),
     pctAdherencia: pct(cerradoAdherencia, programados.length),
+    pctCumplimientoTotal: pct(cerradoUniverso, programados.length),
     detalleProgramados, fueraPrograma, resumenGrupo
   };
   document.getElementById('estadoPrograma').className='estado-carga ok';
@@ -586,6 +591,7 @@ function renderizar(){
   document.getElementById('kCump').textContent = R.pctCumplimiento+'%';
   document.getElementById('kAdhC').textContent = R.cerradoAdherencia;
   document.getElementById('kAdhP').textContent = R.pctAdherencia+'%';
+  document.getElementById('kCumpT').textContent = R.pctCumplimientoTotal+'%';
 
   // ----- Mini-resumen de cumplimiento por Grupo (Superiores / Inferiores) -----
   let hRG = '<tr><th>Grupo de niveles</th><th>Programadas</th><th>Cerradas semana</th><th>% Cumplimiento</th></tr>';
@@ -611,8 +617,8 @@ function renderizar(){
         + '<span class="grupo-meta">'+rg.cerrado+'/'+rg.programado+' cerradas &middot; '+rg.pctCumplimiento+'%</span></div>';
     let t = '<table class="mini">'+encProg;
     items.forEach(x=>{
-      const cls = x.estado==='CERRADA' ? 'r-cerrada' : (x.estado==='ATRASADA' ? 'r-atrasada' : (x.estado==='NO ENCONTRADO' ? 'r-noenc' : ''));
-      t += '<tr class="'+cls+'"><td>'+x.punch+'</td><td>'+(NIVEL_INFO[x.nivel]?NIVEL_INFO[x.nivel].nombre:x.nivel)+'</td><td>'+x.estado+'</td><td>'+(x.fCierre?fmtFecha(x.fCierre):'-')+'</td><td>'+(x.dentroSemana?'S\u00cd':'NO')+'</td></tr>';
+      const estCls = x.estado==='CERRADA' ? 'est-cerrada' : (x.estado==='ATRASADA' ? 'est-atrasada' : (x.estado==='ABIERTA' ? 'est-abierta' : 'est-noenc'));
+      t += '<tr><td>'+x.punch+'</td><td>'+(NIVEL_INFO[x.nivel]?NIVEL_INFO[x.nivel].nombre:x.nivel)+'</td><td><span class="'+estCls+'">'+x.estado+'</span></td><td>'+(x.fCierre?fmtFecha(x.fCierre):'-')+'</td><td>'+(x.dentroSemana?'S\u00cd':'NO')+'</td></tr>';
     });
     t += '</table>';
     h1 += t + '</div>';
@@ -833,13 +839,13 @@ async function generarPDF(){
   y+=2;
 
   y = puntoTitulo(doc, y, 'Punto 1 - Cumplimiento y adherencia de la semana');
-  const kp = [['PROGRAMADOS', R.programado], ['CERRADOS', R.cerradoTotal], ['% CUMPLIMIENTO', R.pctCumplimiento+'%'], ['EN ADHERENCIA', R.cerradoAdherencia], ['% ADHERENCIA', R.pctAdherencia+'%']];
-  const anchoK = ancho/5;
+  const kp = [['PROGRAMADOS', R.programado], ['CERRADOS', R.cerradoTotal], ['% CUMPLIMIENTO', R.pctCumplimiento+'%'], ['EN ADHERENCIA', R.cerradoAdherencia], ['% ADHERENCIA', R.pctAdherencia+'%'], ['% CUMPL. TOTAL', R.pctCumplimientoTotal+'%']];
+  const anchoK = ancho/6;
   kp.forEach((k,i)=>{
     const x = izq + i*anchoK;
     doc.setFillColor(244,244,244); doc.roundedRect(x+1, y, anchoK-2, 14, 1.5, 1.5, 'F');
-    doc.setFontSize(11); doc.setFont(undefined,'bold'); doc.text(String(k[1]), x+anchoK/2, y+6.5, {align:'center'});
-    doc.setFontSize(6.5); doc.setFont(undefined,'normal'); doc.setTextColor(100,100,100);
+    doc.setFontSize(10.5); doc.setFont(undefined,'bold'); doc.text(String(k[1]), x+anchoK/2, y+6.5, {align:'center'});
+    doc.setFontSize(6); doc.setFont(undefined,'normal'); doc.setTextColor(100,100,100);
     doc.text(k[0], x+anchoK/2, y+11.5, {align:'center'}); doc.setTextColor(30,30,30);
   });
   y += 18;
