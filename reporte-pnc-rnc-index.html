@@ -205,7 +205,15 @@ const PREFIJO = M.prefijoCorr || 'RMS';
 document.documentElement.style.setProperty('--marca', COLOR);
 document.documentElement.style.setProperty('--marca2', COLOR2);
 if(document.getElementById('logoImg')) document.getElementById('logoImg').src = M.logo || MARCA_FALLBACK.logo;
-if(M.contrato && document.getElementById('contratoTxt')){ document.getElementById('contratoTxt').innerHTML = M.contrato; }
+/* M.contrato es un getter cuando M es el objeto MARCA real (no el
+   fallback): internamente hace this.empresa.contrato, y en este punto
+   (pintura sincronica, ANTES de que MARCA.iniciar() resuelva) this.empresa
+   todavia es null. Eso lanzaba una excepcion aqui mismo y cortaba TODO el
+   resto del bloque de codigo de este archivo -- por eso nunca se llegaba a
+   MARCA.iniciar().then(...) y el selector de empresa jamas se dibujaba. */
+var contratoInicial = '';
+try{ contratoInicial = M.contrato || ''; }catch(e){ contratoInicial = ''; }
+if(contratoInicial && document.getElementById('contratoTxt')){ document.getElementById('contratoTxt').innerHTML = contratoInicial; }
 if(document.getElementById('footTxt')) document.getElementById('footTxt').textContent = (M.nombre||'QC Digital') + ' - Reporte de PNC y RNC GCC-003';
 
 // Inicializa marca.js (multiempresa): pinta header, selector y refresca colores.
