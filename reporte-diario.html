@@ -955,5 +955,37 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+<script>
+/* Config de llenado conversacional Piwii (motor generico) */
+window.QCD_LLENADO_CONFIG = {
+  campos: [
+    { id:'turno', tipo:'botones', pregunta:'¿Turno día o turno noche?', opciones:[
+      {elId:'btn-dia', palabras:['dia','día']},
+      {elId:'btn-noche', palabras:['noche']}
+    ]},
+    { id:'fecha', tipo:'campo', pregunta:'¿Cuál es la fecha del reporte? (viene con la fecha de hoy; dime otra si corresponde)' },
+    { id:'hora', tipo:'campo', pregunta:'¿A qué hora se cierra el turno? (formato HH:MM)' },
+    { id:'tipocaminata', tipo:'campo', pregunta:'¿Qué tipo de caminata se realizó: Interna, En conjunto con el cliente, Interna + con cliente, o No se realiza caminata?' },
+    { id:'detcaminata', tipo:'campo', pregunta:'¿Cuál es el detalle de las caminatas o frentes recorridos?' },
+    { id:'dtcerrados', tipo:'campo', pregunta:'¿Cuántos DT se cerraron en este turno?' },
+    { id:'prog', tipo:'campo', pregunta:'¿Cuántos DT estaban programados esta semana?' },
+    { id:'cerr', tipo:'campo', pregunta:'¿Cuántos DT se han cerrado esta semana?' },
+    { id:'adhe', tipo:'campo', pregunta:'¿Cuál es el porcentaje de adherencia al programa?' },
+    { id:'obs', tipo:'campo', pregunta:'¿Alguna observación adicional para el turno?' },
+    { id:'firmante1', tipo:'campo', pregunta:'¿Cuál es tu nombre completo, Inspector de Calidad 1?' },
+    { id:'grupo1', tipo:'botones', pregunta:'¿En qué grupo estás — G1, G2, o no aplica?', opciones:[
+      {elId:'g1-1', palabras:['g1','grupo 1','grupo uno']},
+      {elId:'g1-2', palabras:['g2','grupo 2','grupo dos']},
+      {elId:'g1-0', palabras:['no aplica','ninguno']}
+    ]},
+    { id:'firmante2', tipo:'campo', pregunta:'¿Nombre del segundo Inspector de Calidad? (si no aplica, escribe "omitir")' },
+    { id:'grupo2', tipo:'botones', pregunta:'¿En qué grupo está el segundo inspector — G1, G2, o no aplica?', opciones:[
+      {elId:'g2-1', palabras:['g1','grupo 1','grupo uno']},
+      {elId:'g2-2', palabras:['g2','grupo 2','grupo dos']},
+      {elId:'g2-0', palabras:['no aplica','ninguno']}
+    ]}
+  ]
+};
+</script>
 </body>
 </html>

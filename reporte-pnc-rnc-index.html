@@ -566,5 +566,22 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('service-worker.js').catch(console.error); });
 }
 </script>
+<script>
+/* Config de llenado conversacional Piwii (motor generico) */
+window.QCD_LLENADO_CONFIG = {
+  campos: [
+    { id:'obra', tipo:'campo', pregunta:'¿En qué obra o faena estás? (ej: Mina Chuquicamata Subterránea)' },
+    { id:'fecha', tipo:'campo', pregunta:'¿Cuál es la fecha del reporte?' },
+    { id:'turnoT', tipo:'toggle', pregunta:'¿En qué turno estás, día o noche?', contenedorId:'turnoT', valores:[
+      {v:'TURNO DIA', palabras:['dia','día']},
+      {v:'TURNO NOCHE', palabras:['noche']}
+    ]},
+    { id:'fechaDatos', tipo:'campo', pregunta:'¿A qué fecha corresponden los datos de SIC3PRO?' },
+    { id:'nombre', tipo:'campo', pregunta:'¿Cuál es tu nombre y apellido?' },
+    { id:'rut', tipo:'campo', pregunta:'¿Cuál es tu RUT?' },
+    { id:'cargo', tipo:'campo', pregunta:'¿Cuál es tu cargo?' }
+  ]
+};
+</script>
 </body>
 </html>

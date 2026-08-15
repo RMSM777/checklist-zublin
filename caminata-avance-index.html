@@ -942,5 +942,26 @@ async function generarPDF(){
   }
 }
 </script>
+<script>
+/* Config de llenado conversacional Piwii (motor generico) */
+window.QCD_LLENADO_CONFIG = {
+  campos: [
+    { id:'obra', tipo:'campo', pregunta:'¿En qué obra o faena estás? (ya viene con un valor por defecto, confirma o cambia)' },
+    { id:'fecha', tipo:'campo', pregunta:'¿Cuál es la fecha del reporte?' },
+    { id:'turnoT', tipo:'toggle', pregunta:'¿En qué turno estás, día o noche?', contenedorId:'turnoT', valores:[
+      {v:'TURNO DIA', palabras:['dia','día']},
+      {v:'TURNO NOCHE', palabras:['noche']}
+    ]},
+    { id:'movT', tipo:'toggle', pregunta:'¿Se registraron tronaduras o mensuras en este período?', contenedorId:'movT', valores:[
+      {v:'SI', palabras:['si','sí']},
+      {v:'NO', palabras:['no']}
+    ]},
+    { id:'obs', tipo:'campo', pregunta:'¿Quieres agregar alguna observación del período: restricciones, atrasos por tronadura, etc.?' },
+    { id:'nombre', tipo:'campo', pregunta:'¿Cuál es tu nombre completo?' },
+    { id:'rut', tipo:'campo', pregunta:'¿Cuál es tu RUT?' },
+    { id:'cargo', tipo:'campo', pregunta:'¿Cuál es tu cargo?' }
+  ]
+};
+</script>
 </body>
 </html>

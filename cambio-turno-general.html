@@ -844,5 +844,19 @@ agregarFrente();
 agregarEnsayo();
 actualizarFirmantes();
 </script>
+<script>
+/* Config de llenado conversacional Piwii (motor generico) */
+window.QCD_LLENADO_CONFIG = {
+  campos: [
+    { id:'turnoSel', tipo:'toggle', pregunta:'¿Es turno de día o de noche?', contenedorId:'turnoSel', valores:[
+      {v:'DIA', palabras:['dia','día']},
+      {v:'NOCHE', palabras:['noche']}
+    ]},
+    { id:'fechaInicio', tipo:'campo', pregunta:'¿Cuál es la fecha de inicio del turno?' },
+    { id:'fechaTermino', tipo:'campo', pregunta:'¿Cuál es la fecha de término del turno?' },
+    { id:'hora', tipo:'campo', pregunta:'¿A qué hora es el cambio de turno? (formato HH:MM)' }
+  ]
+};
+</script>
 </body>
 </html>

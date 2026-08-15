@@ -1069,5 +1069,33 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+<script>
+/* Config de llenado conversacional Piwii (motor generico) */
+window.QCD_LLENADO_CONFIG = {
+  campos: [
+    { id:'turnoSeleccionado', tipo:'toggle', pregunta:'¿Turno día o turno noche?', contenedorId:'grupoTurno', attr:'data-valor', valores:[
+      {v:'Día', palabras:['dia','día']},
+      {v:'Noche', palabras:['noche']}
+    ]},
+    { id:'grupoSeleccionado', tipo:'toggle', pregunta:'¿Qué grupo eres: G1, G2, G3 o G4?', contenedorId:'grupoGrupo', attr:'data-valor', valores:[
+      {v:'G1', palabras:['g1','grupo 1','grupo uno']},
+      {v:'G2', palabras:['g2','grupo 2','grupo dos']},
+      {v:'G3', palabras:['g3','grupo 3','grupo tres']},
+      {v:'G4', palabras:['g4','grupo 4','grupo cuatro']}
+    ]},
+    { id:'campoRelator', tipo:'campo', pregunta:'¿Quién es el relator o los relatores de la charla?' },
+    { id:'campoSector', tipo:'campo', pregunta:'¿En qué sector se realizó la charla?' },
+    { id:'campoFecha', tipo:'campo', pregunta:'¿Qué fecha tuvo la charla?' },
+    { id:'campoHoraInicio', tipo:'campo', pregunta:'¿A qué hora comenzó la charla? (formato HH:MM)' },
+    { id:'campoHoraTermino', tipo:'campo', pregunta:'¿A qué hora terminó la charla? (formato HH:MM)' },
+    { id:'campoObjetivos', tipo:'campo', pregunta:'¿Cuál fue el objetivo de la charla?' },
+    { id:'campoMaterias', tipo:'campo', pregunta:'¿Qué materias se trataron en la charla?' },
+    { id:'campoDecisiones', tipo:'campo', pregunta:'¿Qué decisiones se tomaron?' },
+    { id:'campoCompromisos', tipo:'campo', pregunta:'¿Qué compromisos quedaron pendientes?' },
+    { id:'campoNombreRelatorFirma', tipo:'campo', pregunta:'¿Cuál es el nombre del relator que firma el cierre del reporte?' },
+    { id:'campoRutRelatorFirma', tipo:'campo', pregunta:'¿Cuál es el RUT del relator? (formato 12.345.678-9)' }
+  ]
+};
+</script>
 </body>
 </html>

@@ -203,6 +203,109 @@
   var faseLlenado = 'inicio';   // inicio -> datos -> equipo_global -> equipo_excepciones -> fin
   var idxDato = 0;
 
+  /* ------------------------------------------------------------
+     MOTOR GENERICO (para los reportes que NO son el checklist
+     camioneta). Se activa si el reporte expone
+     window.QCD_LLENADO_CONFIG = { campos:[ ... ] }.
+
+     Tipos de campo soportados:
+       'campo'   -> input/textarea simple: setCampo(id, texto tal cual)
+       'toggle'  -> boton dentro de un contenedor con data-v (o el
+                    atributo indicado en "attr"), se hace click al
+                    boton cuyo valor calza con palabras clave dichas
+                    por el inspector.
+                    { id, tipo:'toggle', pregunta, contenedorId,
+                      attr:'data-v' (opcional, default 'data-v'),
+                      valores:[{v:'TURNO DIA', palabras:['dia','d\u00eda']}, ...] }
+       'botones' -> igual que toggle pero sin contenedor com\u00fan:
+                    cada opcion es un boton suelto por su propio id.
+                    { id, tipo:'botones', pregunta,
+                      opciones:[{elId:'btn-dia', palabras:['dia']}, ...] }
+     ------------------------------------------------------------ */
+
+  var faseLlenadoGen = 'inicio';   // inicio -> preguntas -> fin
+  var idxCampoGen = 0;
+
+  function campoActualGen(){
+    var cfg = window.QCD_LLENADO_CONFIG;
+    return (cfg && cfg.campos) ? cfg.campos[idxCampoGen] : null;
+  }
+
+  function aplicarToggleCampo(campo, textoOriginal){
+    var q = normalizaL(textoOriginal);
+    var cont = document.getElementById(campo.contenedorId);
+    if(!cont) return false;
+    var candidatos = (campo.valores || []).filter(function(o){
+      return (o.palabras || []).some(function(p){ return q.indexOf(normalizaL(p))!==-1; });
+    });
+    if(!candidatos.length) return false;
+    var attr = campo.attr || 'data-v';
+    var btn = cont.querySelector('button['+attr+'="'+candidatos[0].v+'"]');
+    if(btn){ btn.click(); return true; }
+    return false;
+  }
+
+  function aplicarBotonesCampo(campo, textoOriginal){
+    var q = normalizaL(textoOriginal);
+    var candidatos = (campo.opciones || []).filter(function(o){
+      return (o.palabras || []).some(function(p){ return q.indexOf(normalizaL(p))!==-1; });
+    });
+    if(!candidatos.length) return false;
+    var btn = document.getElementById(candidatos[0].elId);
+    if(btn){ btn.click(); return true; }
+    return false;
+  }
+
+  function aplicarRespuestaCampoGen(campo, textoOriginal){
+    if(campo.tipo === 'toggle')  return aplicarToggleCampo(campo, textoOriginal);
+    if(campo.tipo === 'botones') return aplicarBotonesCampo(campo, textoOriginal);
+    return setCampo(campo.id, textoOriginal.trim());
+  }
+
+  function responderLlenadoGenerico(txt){
+    var q = normalizaL(txt);
+
+    if(faseLlenadoGen === 'inicio'){
+      if(q.indexOf('si')===0 || q==='dale' || q==='ok' || q==='empezar' || q.indexOf('llen')!==-1){
+        faseLlenadoGen = 'preguntas'; idxCampoGen = 0;
+        var c0 = campoActualGen();
+        if(!c0){ faseLlenadoGen = 'fin'; return 'Este reporte todav\u00eda no tiene preguntas configuradas para el llenado asistido.'; }
+        return c0.pregunta;
+      }
+      return 'Cuando quieras partir, escribe "s\u00ed" y te voy preguntando para llenar el reporte. Escribe "cancelar" para cerrar.';
+    }
+
+    if(q === 'cancelar' || q === 'salir'){
+      faseLlenadoGen = 'inicio';
+      return 'Listo, cerramos el llenado asistido. Puedes seguir a mano o volver a empezar cuando quieras.';
+    }
+
+    if(faseLlenadoGen === 'preguntas'){
+      var campo = campoActualGen();
+      if(campo){
+        // "no" solo se trata como "omitir campo" en campos de texto: en
+        // toggles/botones "no" puede ser una opcion valida (ej: "¿hubo
+        // movimientos?" -> "no"), asi que ahi solo "omitir"/"saltar" saltan.
+        var esToggleOBotones = (campo.tipo === 'toggle' || campo.tipo === 'botones');
+        var esOmitir = esToggleOBotones ? (q==='omitir' || q==='saltar') : (q==='no' || q==='omitir' || q==='saltar');
+        if(!esOmitir){ aplicarRespuestaCampoGen(campo, txt); }
+        idxCampoGen++;
+      }
+      var siguiente = campoActualGen();
+      if(siguiente){
+        return '\u2713 Anotado. ' + siguiente.pregunta;
+      }
+      faseLlenadoGen = 'fin';
+      return '\u2713 Listo, complet\u00e9 los campos b\u00e1sicos del reporte.\n\nLo que falta (fotos, archivos subidos, tablas de detalle y firma) qued\u00f3 para que lo hagas a mano. Revisa todo antes de cerrar el reporte. \u00a1Buen turno!';
+    }
+
+    if(faseLlenadoGen === 'fin'){
+      return 'El llenado asistido termin\u00f3. Si quieres volver a empezar, escribe "empezar".';
+    }
+
+    return 'No te entend\u00ed. Escribe "cancelar" para cerrar el asistente.';
+  }
+
   function setCampo(id, valor){
     var el = document.getElementById(id);
     if(el){ el.value = valor; el.dispatchEvent(new Event('input', {bubbles:true})); return true; }
@@ -324,8 +427,22 @@
      PARTE 3 - UI: boton + panel embebido con pestanas
      ============================================================ */
 
-  // El modo Llenar solo existe si el reporte expone window.estados.
-  function llenadoDisponible(){ return !!window.estados; }
+  // El modo Llenar existe si el reporte expone window.estados (checklist
+  // camioneta, motor especifico) O window.QCD_LLENADO_CONFIG con campos
+  // (motor generico, para el resto de los reportes de la suite).
+  function llenadoDisponible(){
+    return !!window.estados
+        || !!(window.QCD_LLENADO_CONFIG && window.QCD_LLENADO_CONFIG.campos && window.QCD_LLENADO_CONFIG.campos.length);
+  }
+
+  // Enruta al motor especifico del checklist camioneta o al generico,
+  // segun lo que exponga el reporte. window.estados tiene prioridad
+  // (asi el checklist camioneta sigue igual que siempre).
+  function responderLlenadoDispatch(txt){
+    if(window.estados) return responderLlenado(txt);
+    if(window.QCD_LLENADO_CONFIG) return responderLlenadoGenerico(txt);
+    return 'Este reporte no tiene llenado conversacional configurado todavía.';
+  }
 
   var modoActivo = 'consulta';   // 'consulta' | 'llenado'
   var llenadoIniciado = false;   // para lanzar el saludo del guion una sola vez
@@ -493,6 +610,7 @@
     if(m==='llenado' && !llenadoIniciado){
       llenadoIniciado = true;
       faseLlenado = 'inicio';
+      faseLlenadoGen = 'inicio'; idxCampoGen = 0;
       burbuja('Hola, soy <b>Piwii</b>. Te ayudo a llenar el checklist conversando.\n\n'
             + 'Voy preguntando y marco los campos por ti. Al final revisas y firmas.\n\n'
             + '\u00bfEmpezamos? (escribe "s\u00ed")', 'p', {origen:'Llenar'});
@@ -511,7 +629,7 @@
         r.origen = 'Consulta';
         burbuja(r.txt, 'p', r);
       } else {
-        var txt = responderLlenado(t);
+        var txt = responderLlenadoDispatch(t);
         burbuja(txt, 'p', {origen:'Llenar'});
       }
     }, 220);

@@ -967,5 +967,28 @@ async function generarPDF(){
   }
 }
 </script>
+<script>
+/* Config de llenado conversacional Piwii (motor generico) */
+window.QCD_LLENADO_CONFIG = {
+  campos: [
+    { id:'obra', tipo:'campo', pregunta:'¿En qué obra o faena estás? (ej: Mina Chuquicamata Subterránea)' },
+    { id:'fecha', tipo:'campo', pregunta:'¿Cuál es la fecha del reporte?' },
+    { id:'hora', tipo:'campo', pregunta:'¿A qué hora se hace el reporte? (formato HH:MM)' },
+    { id:'semanaBase', tipo:'campo', pregunta:'¿Qué semana de control quieres revisar? Dime cualquier día de esa semana' },
+    { id:'turnoT', tipo:'toggle', pregunta:'¿En qué turno estás, día o noche?', contenedorId:'turnoT', valores:[
+      {v:'TURNO DIA', palabras:['dia','día']},
+      {v:'TURNO NOCHE', palabras:['noche']}
+    ]},
+    { id:'movT', tipo:'toggle', pregunta:'¿Se registraron movimientos en el período (cierres de DT en SIC3PRO)?', contenedorId:'movT', valores:[
+      {v:'SI', palabras:['si','sí']},
+      {v:'NO', palabras:['no']}
+    ]},
+    { id:'obs', tipo:'campo', pregunta:'¿Quieres agregar alguna observación, compromiso o restricción del período?' },
+    { id:'nombre', tipo:'campo', pregunta:'¿Cuál es tu nombre completo?' },
+    { id:'rut', tipo:'campo', pregunta:'¿Cuál es tu RUT?' },
+    { id:'cargo', tipo:'campo', pregunta:'¿Cuál es tu cargo?' }
+  ]
+};
+</script>
 </body>
 </html>

@@ -690,5 +690,31 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+<script>
+/* Config de llenado conversacional Piwii (motor generico) */
+window.QCD_LLENADO_CONFIG = {
+  campos: [
+    { id:'tituloInf', tipo:'campo', pregunta:'¿Cuál es el título del informe? (ej: Informe devolución shotcrete)' },
+    { id:'fecha', tipo:'campo', pregunta:'¿Qué fecha corresponde al informe?' },
+    { id:'hora', tipo:'campo', pregunta:'¿A qué hora corresponde el informe? (formato HH:MM)' },
+    { id:'area', tipo:'campo', pregunta:'¿En qué área se realizó el proceso?' },
+    { id:'proceso', tipo:'campo', pregunta:'¿Cuál es el proceso o etapa constructiva?' },
+    { id:'sector', tipo:'campo', pregunta:'¿Cuál es el sector o PK? (si no aplica, escribe "omitir")' },
+    { id:'turno', tipo:'toggle', pregunta:'¿Turno día o turno noche?', contenedorId:'turnoT', valores:[
+      {v:'TURNO DIA', palabras:['dia','día']},
+      {v:'TURNO NOCHE', palabras:['noche']}
+    ]},
+    { id:'grupo', tipo:'toggle', pregunta:'¿A qué grupo corresponde: G1, G2, G3 o G4?', contenedorId:'grupoT', valores:[
+      {v:'GRUPO 1', palabras:['g1','grupo 1','grupo uno']},
+      {v:'GRUPO 2', palabras:['g2','grupo 2','grupo dos']},
+      {v:'GRUPO 3', palabras:['g3','grupo 3','grupo tres']},
+      {v:'GRUPO 4', palabras:['g4','grupo 4','grupo cuatro']}
+    ]},
+    { id:'objetivo', tipo:'campo', pregunta:'¿Cuál es el objetivo del informe?' },
+    { id:'antecedentes', tipo:'campo', pregunta:'¿Cuáles son los antecedentes o el contexto de la inspección?' },
+    { id:'conclusiones', tipo:'campo', pregunta:'¿Cuáles son las conclusiones?' }
+  ]
+};
+</script>
 </body>
 </html>

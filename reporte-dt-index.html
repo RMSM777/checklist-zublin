@@ -1282,5 +1282,31 @@ window.addEventListener('DOMContentLoaded', ()=>{
 });
 
 </script>
+<script>
+/* Config de llenado conversacional Piwii (motor generico) */
+window.QCD_LLENADO_CONFIG = {
+  campos: [
+    { id:'obra', tipo:'campo', pregunta:'¿En qué obra o faena estás? (ya viene con un valor por defecto, confirma o cambia)' },
+    { id:'fecha', tipo:'campo', pregunta:'¿Qué fecha tiene el reporte?' },
+    { id:'turnoT', tipo:'toggle', pregunta:'¿Turno día o turno noche?', contenedorId:'turnoT', valores:[
+      {v:'TURNO DIA', palabras:['dia','día']},
+      {v:'TURNO NOCHE', palabras:['noche']}
+    ]},
+    { id:'movT', tipo:'toggle', pregunta:'¿Hubo movimientos en el período (cierres de DT o nuevas desviaciones en SIC3PRO)?', contenedorId:'movT', valores:[
+      {v:'SI', palabras:['si','sí']},
+      {v:'NO', palabras:['no']}
+    ]},
+    { id:'obs', tipo:'campo', pregunta:'¿Alguna observación del período: compromisos, restricciones de acceso, etc.?' },
+    { id:'nombre', tipo:'campo', pregunta:'¿Cuál es tu nombre?' },
+    { id:'rut', tipo:'campo', pregunta:'¿Cuál es tu RUT?' },
+    { id:'cargo', tipo:'campo', pregunta:'¿Cuál es tu cargo?' },
+    { id:'cargadoPor', tipo:'campo', pregunta:'¿Quién carga el archivo hoy?' },
+    { id:'vistaListadoT', tipo:'toggle', pregunta:'¿Separar el listado por nivel o por grupo?', contenedorId:'vistaListadoT', valores:[
+      {v:'NIVEL', palabras:['nivel']},
+      {v:'GRUPO', palabras:['grupo']}
+    ]}
+  ]
+};
+</script>
 </body>
 </html>
