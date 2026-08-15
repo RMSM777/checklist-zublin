@@ -1,7 +1,7 @@
 // Service Worker - Checklist Züblin GCC-003
 // Cachea las páginas y librerías para que la app abra aunque no haya señal.
 
-const CACHE_NAME = 'qcdigital-v12'; // sube este número cuando publiques cambios importantes
+const CACHE_NAME = 'qcdigital-v13'; // sube este número cuando publiques cambios importantes
 
 const ARCHIVOS_PROPIOS = [
   './',
@@ -18,6 +18,9 @@ const ARCHIVOS_PROPIOS = [
   './cambio-turno-general.html',
   './reporte-pnc-rnc-index.html',
   './marca.js',
+  './drive-integration.js',
+  './piwii-unificado.js',
+  './piwii.html',
   './empresas.json',
   './manifest.json',
   './dark-mode.css',
