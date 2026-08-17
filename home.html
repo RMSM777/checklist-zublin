@@ -138,6 +138,11 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
       <div class="info"><p class="num">10</p><p class="tit">Reporte de PNC y RNC</p><p class="sub">Dashboard y detalle de PNC/RNC desde SIC3PRO</p></div>
       <div class="flecha">&#8250;</div>
     </a>
+    <a class="tarjeta" href="reporte-liberacion-frente.html">
+      <div class="icono">&#9878;</div>
+      <div class="info"><p class="num">11</p><p class="tit">Liberaci&oacute;n de frente</p><p class="sub">Protocolo de recepci&oacute;n de fortificaci&oacute;n</p></div>
+      <div class="flecha">&#8250;</div>
+    </a>
   </div>
 
   <footer>
@@ -247,6 +252,12 @@ const REPORTES_CON_BORRADOR = [
     url: 'reporte-pnc-rnc-index.html',
     titulo: 'Reporte de PNC y RNC',
     extraer(estado){ return { generador: estado.autor || estado.nombre || '-', detalle: estado.fecha || '' }; }
+  },
+  {
+    key: 'zublin_liberacionFrente_borrador',
+    url: 'reporte-liberacion-frente.html',
+    titulo: 'Liberación de frente',
+    extraer(estado){ return { generador: estado.nombreInsp || '-', detalle: estado.detalleLabor || estado.fechaFort || '' }; }
   }
 ];
 

@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script>
+try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classList.add('dark'); }catch(e){}
+</script>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#D72622">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Zublin GCC-003">
+<title>Protocolo Recepcion de Fortificacion (Liberacion de Frente) - Zublin GCC-003</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="marca.js?v=1"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="drive-integration.js?v=2"></script>
+<link rel="stylesheet" href="dark-mode.css">
+<script src="dark-mode.js" defer></script>
+<script src="piwii-unificado.js" defer></script>
+<style>
+  :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; --verde:#2e7d32; --naranja:#F2A93B; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; margin:0; background:#e9e9e9; color:var(--texto); font-size:14px; }
+  .wrap{ max-width:720px; margin:0 auto; background:#fff; min-height:100vh; }
+  .header-rojo{ background:var(--rojo); color:#fff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; position:sticky; top:0; z-index:10; }
+  .header-rojo .logo{ display:flex; align-items:center; }
+  .header-rojo .logo img{ height:24px; display:block; }
+  .placa-logo{ background:#fff; border-radius:6px; padding:5px 9px; display:flex; align-items:center; }
+  .header-rojo .codigo{ font-size:11px; text-align:right; line-height:1.4; }
+  .header-contrato{ background:#2a2a2a; color:#eee; font-size:11px; padding:8px 16px; line-height:1.5; }
+  .titulo{ text-align:center; font-weight:700; font-size:14px; padding:10px; background:var(--rojo); color:#fff; }
+  .subtitulo{ text-align:center; font-weight:700; font-size:12px; padding:4px; background:#2a2a2a; color:#fff; letter-spacing:1px; }
+  section{ padding:12px 14px; }
+  .seccion-tit{ background:var(--rojo); color:#fff; font-weight:700; font-size:13px; padding:6px 10px; border-radius:5px; margin:16px 0 8px; }
+  .campo{ margin-bottom:10px; }
+  .campo label{ display:block; font-size:12px; color:#555; margin-bottom:3px; font-weight:600; }
+  input,select,textarea{ width:100%; padding:9px 10px; border:1px solid var(--borde); border-radius:6px; font-size:14px; background:#fff; font-family:inherit; }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--rojo); }
+  textarea{ resize:vertical; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .leyenda{ font-size:11px; color:#666; background:var(--gris); padding:8px 10px; border-radius:6px; margin-bottom:8px; }
+  .acciones{ display:flex; gap:8px; margin-top:10px; }
+  .acciones button{ flex:1; padding:12px; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn-limpiar{ background:#eee; color:#555; }
+  .btn-generar{ background:var(--rojo); color:#fff; }
+  .nota{ font-size:12px; color:#888; text-align:center; margin-top:10px; padding:0 10px; }
+  footer{ text-align:center; padding:16px; font-size:11px; color:#999; }
+  canvas.firma{ width:100%; height:120px; border:1px solid var(--borde); border-radius:6px; background:#fafafa; touch-action:none; display:block; }
+  .toggle{ display:flex; gap:6px; flex-wrap:wrap; }
+  .toggle button{ flex:1; min-width:90px; padding:10px 6px; border:1px solid var(--borde); background:#fff; border-radius:6px; font-size:13px; font-weight:700; color:#666; cursor:pointer; }
+  .toggle button.act{ background:var(--rojo); color:#fff; border-color:var(--rojo); }
+  .toggle button.act-verde{ background:var(--verde); color:#fff; border-color:var(--verde); }
+  .toggle button.act-rojo{ background:var(--rojo); color:#fff; border-color:var(--rojo); }
+  .btn-agregar{ width:100%; padding:10px; border:1px dashed var(--rojo); background:#fff5f5; color:var(--rojo); border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; margin-bottom:4px; }
+  .fila-dyn{ background:var(--gris); border:1px solid #e2e2e2; border-radius:8px; padding:10px; margin-bottom:10px; position:relative; }
+  .fila-dyn .num{ position:absolute; top:-8px; left:10px; background:var(--rojo); color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; }
+  .fila-dyn .quitar{ position:absolute; top:-8px; right:8px; background:#757575; color:#fff; border:none; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; cursor:pointer; }
+  .fila-dyn .campo{ margin-bottom:8px; }
+  .fila-dyn .campo:last-child{ margin-bottom:0; }
+  .fila-dyn .grid2, .fila-dyn .grid3{ margin-bottom:8px; }
+  .control-item{ background:var(--gris); border:1px solid #e2e2e2; border-radius:8px; padding:10px; margin-bottom:10px; }
+  .control-head{ display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+  .control-num{ background:var(--rojo); color:#fff; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; }
+  .control-act{ font-size:12px; font-weight:700; color:#444; }
+  .control-punto{ font-size:13px; font-weight:600; margin-bottom:3px; }
+  .control-criterio{ font-size:11.5px; color:#666; margin-bottom:8px; }
+  .firmante-bloque{ background:var(--gris); border-radius:8px; padding:10px; margin-bottom:10px; }
+  .banner-borrador{ background:#fff3cd; border:1px solid #ffe08a; color:#7a5c00; font-size:12px; padding:10px 14px; display:none; align-items:center; justify-content:space-between; gap:10px; }
+  .banner-borrador button{ border:none; background:#7a5c00; color:#fff; font-size:11px; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div style="background:#2a2a2a;color:#fff;padding:7px 14px;font-size:12px;"><a href="home.html" style="color:#fff;text-decoration:none;">&#8249; Menu principal</a></div>
+<div class="wrap">
+  <div id="bannerBorrador" class="banner-borrador">
+    <span>Hay un borrador guardado de este reporte.</span>
+    <div style="display:flex; gap:6px;">
+      <button onclick="restaurarBorrador()">Restaurar</button>
+      <button onclick="descartarBorrador()" style="background:#999;">Descartar</button>
+    </div>
+  </div>
+  <div class="header-rojo">
+    <div class="logo"><span class="placa-logo"><img id="logoImg" src="" alt="Z&uuml;blin"></span></div>
+    <div class="codigo">C&Oacute;DIGO: INF-GOMS-CL-007 REV.0</div>
+  </div>
+  <div id="selectorEmpresa" style="padding:6px 16px;background:#2a2a2a;"></div>
+  <div class="header-contrato">
+    Contrato N&deg; 4600031460 / GCC-003 &mdash; "Desarrollo y Construcci&oacute;n Nivel Superior e Inferior Mina Norte" &mdash; Divisi&oacute;n Chuquicamata &mdash; Empresa Contratista: Z&Uuml;BLIN
+  </div>
+  <div class="titulo">PROTOCOLO DE RECEPCI&Oacute;N DE FORTIFICACI&Oacute;N</div>
+  <div class="subtitulo">LIBERACI&Oacute;N DE FRENTE</div>
+
+  <section>
+    <div class="seccion-tit">Identificaci&oacute;n</div>
+    <div class="grid2">
+      <div class="campo"><label>Obra</label><input id="obra" type="text" value="Desarrollo y Habilitaci&oacute;n Macro Bloque Continuidad Zona Norte Fase 1 PMCHS"></div>
+      <div class="campo"><label>N&deg; Contrato</label><input id="ncontrato" type="text" value="4600031460 / GCC-003"></div>
+    </div>
+    <div class="grid2">
+      <div class="campo"><label>Fecha fortificaci&oacute;n</label><input id="fechaFort" type="date"></div>
+      <div class="campo"><label>Identificaci&oacute;n detalle labor (Nivel / labor / frente)</label><input id="detalleLabor" type="text" placeholder="Ej: N51 / RAC-A-02 / Frente Sur"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="seccion-tit">Tipos empleados</div>
+    <div class="campo">
+      <label>Tipo de perno</label>
+      <div class="toggle" id="pernoT">
+        <button data-v="P. Helicoidal">P. Helicoidal</button>
+        <button data-v="Perno Cable">Perno Cable</button>
+        <button data-v="Otro">Otro</button>
+      </div>
+      <input id="pernoOtro" type="text" placeholder="Si marcaste Otro, especifica aqu&iacute;" style="margin-top:6px;">
+    </div>
+    <div class="campo">
+      <label>Tipo de malla</label>
+      <div class="toggle" id="mallaT">
+        <button data-v="MFI-3500">MFI-3500</button>
+        <button data-v="Otro">Otro</button>
+      </div>
+      <input id="mallaOtro" type="text" placeholder="Si marcaste Otro, especifica aqu&iacute;" style="margin-top:6px;">
+    </div>
+    <div class="campo">
+      <label>Tipo de shotcrete</label>
+      <div class="toggle" id="shotT">
+        <button data-v="SH SG30(10)-10-22-28">SH SG30(10)-10-22-28</button>
+        <button data-v="Otro">Otro</button>
+      </div>
+      <input id="shotOtro" type="text" placeholder="Si marcaste Otro, especifica aqu&iacute;" style="margin-top:6px;">
+    </div>
+  </section>
+
+  <section>
+    <div class="seccion-tit">Avance desarrollo (PK) y fortificaci&oacute;n</div>
+    <div class="leyenda">Registra cada tramo avanzado en el turno con su fortificaci&oacute;n asociada.</div>
+    <div id="avanceFilas"></div>
+    <button class="btn-agregar" onclick="agregarFilaAvance()">+ Agregar fila</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">Control de proceso (fortificaci&oacute;n)</div>
+    <div class="leyenda">Para cada punto cr&iacute;tico de control marca Cumple o No cumple seg&uacute;n el criterio de aceptaci&oacute;n. Puedes agregar una observaci&oacute;n si corresponde.</div>
+    <div id="controlProceso"></div>
+  </section>
+
+  <section>
+    <div class="seccion-tit">Estado de liberaci&oacute;n</div>
+    <div class="toggle" id="liberacionT">
+      <button data-v="FRENTE LIBERADO">FRENTE LIBERADO</button>
+      <button data-v="FRENTE NO LIBERADO">FRENTE NO LIBERADO</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="seccion-tit">Observaciones</div>
+    <textarea id="obsGenerales" rows="5" placeholder="Observaciones adicionales, puntos pendientes, etc."></textarea>
+  </section>
+
+  <section>
+    <div class="seccion-tit">Firmas digitales</div>
+    <div class="leyenda">Se requieren las 3 firmas para cerrar el reporte.</div>
+    <div class="firmante-bloque">
+      <div class="campo"><label>Inspecci&oacute;n (GOMS / JEJ) &mdash; Nombre</label><input id="nombreInsp" type="text" placeholder="Nombre completo"></div>
+      <canvas id="firma1" class="firma"></canvas>
+      <div class="acciones" style="margin-top:6px;"><button class="btn-limpiar" style="padding:8px;" onclick="firmasFijas.firma1.limpiar()">Limpiar firma</button></div>
+    </div>
+    <div class="firmante-bloque">
+      <div class="campo"><label>Jefe de Turno / Terreno &mdash; Nombre</label><input id="nombreJefe" type="text" placeholder="Nombre completo"></div>
+      <canvas id="firma2" class="firma"></canvas>
+      <div class="acciones" style="margin-top:6px;"><button class="btn-limpiar" style="padding:8px;" onclick="firmasFijas.firma2.limpiar()">Limpiar firma</button></div>
+    </div>
+    <div class="firmante-bloque">
+      <div class="campo"><label>Calidad &mdash; Nombre</label><input id="nombreCalidad" type="text" placeholder="Nombre completo"></div>
+      <canvas id="firma3" class="firma"></canvas>
+      <div class="acciones" style="margin-top:6px;"><button class="btn-limpiar" style="padding:8px;" onclick="firmasFijas.firma3.limpiar()">Limpiar firma</button></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="acciones">
+      <button class="btn-generar" onclick="generarVistaPrevia()">Firmar y ver vista previa</button>
+    </div>
+    <p class="nota" id="nota">Al firmar se muestra la vista previa del protocolo y luego puedes descargar el PDF para compartirlo.</p>
+  </section>
+
+  <div id="modalPrev" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:100; flex-direction:column;">
+    <div style="background:var(--rojo); color:#fff; padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+      <b style="font-size:13px;">Vista previa del protocolo</b>
+      <button onclick="cerrarVista()" style="background:rgba(255,255,255,.2); border:none; color:#fff; font-size:16px; font-weight:800; width:32px; height:32px; border-radius:6px; cursor:pointer;">&times;</button>
+    </div>
+    <iframe id="framePrev" style="flex:1; border:none; background:#525659;"></iframe>
+    <div class="qcd-modal-pie" style="background:#fff; padding:10px 14px; display:flex; gap:8px;">
+      <button class="btn-limpiar" style="flex:1; padding:12px; border:none; border-radius:8px; font-weight:700; cursor:pointer;" onclick="cerrarVista()">Volver a editar</button>
+      <button class="btn-generar" style="flex:2; padding:12px; border:none; border-radius:8px; font-weight:700; cursor:pointer; background:var(--rojo); color:#fff;" onclick="descargarPDF()">Descargar PDF</button>
+    </div>
+  </div>
+
+  <footer>Z&uuml;blin &middot; GCC-003 &middot; Liberaci&oacute;n de Frente &middot; <span id="qcdVersion"></span></footer>
+</div>
+<script>
+/* Blindaje: si marca.js no cargo (por ejemplo, si este archivo se abre
+   suelto sin el resto de la carpeta del sitio), se usa un MARCA de
+   respaldo con Zublin fijo para que el reporte funcione igual, sin
+   selector de empresa ni multi-marca, pero 100% funcional y offline. */
+if(typeof MARCA === 'undefined'){
+  window.MARCA = {
+    empresa: {
+      id:'zublin', nombreCorto:'Züblin', colorPrimarioRGB:[215,38,34],
+      contrato:{ textoCompleto:'Contrato N° 4600031460 / GCC-003 — "Desarrollo y Construcción Nivel Superior e Inferior Mina Norte" — División Chuquicamata — Empresa Contratista: ZÜBLIN' }
+    },
+    logoDataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAmcAAAFFCAMAAACe4LqDAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAAApJREFUeNpjYAAAAAIAAeIhvDMAAAAASUVORK5CYII=",
+    iniciar(){ return Promise.resolve(this); },
+    aplicarCSS(){}, pintarHeaderHTML(id){ const el=document.getElementById(id); if(el) el.src=this.logoDataUrl; }, crearSelector(){},
+    colorRGB(){ return this.empresa.colorPrimarioRGB; },
+    colorHeaderRGB(){ return this.empresa.colorPrimarioRGB; },
+    textoContrato(){ return this.empresa.contrato.textoCompleto; },
+    correlativo(nombre, tipo){ return 'LF-' + new Date().getFullYear() + '-0001'; },
+    dibujarSelloFirma(){ return 0; },
+    VERSION: '(sin marca.js)',
+    pintarVersion(id){ const el=document.getElementById(id||'qcdVersion'); if(el) el.textContent=this.VERSION; }
+  };
+}
+/* MARCA: logo/colores/contrato de la empresa activa. */
+let LOGO = null;
+MARCA.iniciar().then(() => {
+  MARCA.pintarVersion('qcdVersion');
+  MARCA.aplicarCSS();
+  MARCA.pintarHeaderHTML('logoImg');
+  MARCA.crearSelector('selectorEmpresa');
+  LOGO = MARCA.logoDataUrl;
+  const contratoEl = document.querySelector('.header-contrato');
+  if(contratoEl) contratoEl.textContent = MARCA.textoContrato();
+  const footerEl = document.querySelector('footer');
+  if(footerEl){
+    footerEl.textContent = (MARCA.empresa.nombreCorto || 'QC Digital') + ' · GCC-003 · Liberación de Frente';
+  }
+}).catch(err=>{
+  console.error('MARCA.iniciar() falló, usando datos por defecto', err);
+});
+
+const CODIGO_DOC = 'INF-GOMS-CL-007 REV.0';
+const BORRADOR_KEY = 'zublin_liberacionFrente_borrador';
+
+document.getElementById('fechaFort').value = new Date().toISOString().slice(0,10);
+
+/* ============ Toggles de selección única ============ */
+const estadoToggles = { perno:'', malla:'', shot:'', liberacion:'' };
+function initToggleGrupo(contId, key, clsAct){
+  document.querySelectorAll('#'+contId+' button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#'+contId+' button').forEach(b=>b.classList.remove('act','act-verde','act-rojo'));
+      btn.classList.add(clsAct || 'act');
+      estadoToggles[key] = btn.dataset.v;
+      guardarBorrador();
+    });
+  });
+}
+initToggleGrupo('pernoT','perno');
+initToggleGrupo('mallaT','malla');
+initToggleGrupo('shotT','shot');
+initToggleGrupo('liberacionT','liberacion');
+
+/* ============ Avance desarrollo (PK) - filas dinamicas ============ */
+let contAvance = 0;
+function agregarFilaAvance(desde,hasta,total,pl,pn,malla,shot){
+  contAvance++;
+  const id = 'avance-'+contAvance;
+  const div = document.createElement('div');
+  div.className = 'fila-dyn';
+  div.id = id;
+  div.innerHTML = `
+    <span class="num">Fila</span>
+    <button class="quitar" onclick="quitarFila('avanceFilas','${id}')">Quitar</button>
+    <div class="grid3">
+      <div class="campo"><label>Desde (PK)</label><input class="avDesde" type="text" value="${desde||''}"></div>
+      <div class="campo"><label>Hasta (PK)</label><input class="avHasta" type="text" value="${hasta||''}"></div>
+      <div class="campo"><label>Total</label><input class="avTotal" type="text" value="${total||''}"></div>
+    </div>
+    <div class="grid2">
+      <div class="campo"><label>Pernos Long.</label><input class="avPernosLong" type="text" value="${pl||''}"></div>
+      <div class="campo"><label>Pernos N&deg;</label><input class="avPernosN" type="text" value="${pn||''}"></div>
+    </div>
+    <div class="grid2">
+      <div class="campo"><label>Malla [m2]</label><input class="avMalla" type="text" value="${malla||''}"></div>
+      <div class="campo"><label>Shotcrete [m3]</label><input class="avShot" type="text" value="${shot||''}"></div>
+    </div>`;
+  document.getElementById('avanceFilas').appendChild(div);
+  renumerar('avanceFilas');
+}
+function quitarFila(contId, filaId, callback){
+  const el = document.getElementById(filaId);
+  if(el) el.remove();
+  renumerar(contId);
+  if(callback) callback();
+  guardarBorrador();
+}
+function renumerar(contId){
+  const cont = document.getElementById(contId);
+  [...cont.children].forEach((fila,i)=>{
+    const n = fila.querySelector('.num');
+    if(n) n.textContent = 'Fila '+(i+1);
+  });
+}
+
+/* ============ Control de proceso (fortificacion) - 15 puntos fijos ============ */
+const PUNTOS_CONTROL = [
+  {n:1, act:'Saneamiento', punto:'Acuñadura mecanizada y/o manual', criterio:'Frente libre de roca suelta y/o grietas que puedan desprenderse'},
+  {n:2, act:'Saneamiento', punto:'Eliminación restos materiales de fortificación', criterio:'Superficie sin restos de pernos, mallas asociadas al disparo anterior'},
+  {n:3, act:'Control shotcrete (1a capa)', punto:'Limpieza de superficie de la roca', criterio:'Superficie de la roca limpia, acuñada y lavada'},
+  {n:4, act:'Control shotcrete (1a capa)', punto:'Proyección en roca sin escurrimiento de agua', criterio:'No se proyecta shotcrete sobre escurrimiento de agua'},
+  {n:5, act:'Control shotcrete (1a capa)', punto:'Proyección de shotcrete', criterio:'Sin presencia de oquedades y desprendimiento'},
+  {n:6, act:'Marcación pattern', punto:'Distancia entre paradas de pernos según pattern', criterio:'Según plano de diseño'},
+  {n:7, act:'Marcación pattern', punto:'Distancia entre pernos en parada según pattern', criterio:'Según plano de diseño'},
+  {n:8, act:'Inclinación', punto:'Ángulo de perforación', criterio:'Ángulo de desviación menor a 15 grados'},
+  {n:9, act:'Pernos fuera de la roca', punto:'Largo de perno fuera de la roca', criterio:'Pernos D22 mm menor o igual a 10 cm'},
+  {n:10, act:'Instalación de malla', punto:'Estado y revestimiento de malla', criterio:'Sin oxidación, no cargada, roturas e instalada según diseño'},
+  {n:11, act:'Instalación de malla', punto:'Traslape de malla', criterio:'Mínimo 30 cm centrado en la parada de pernos'},
+  {n:12, act:'Instalación planchuela', punto:'Colocación', criterio:'Planchuela en posición correcta'},
+  {n:13, act:'Instalación tuerca', punto:'Ajuste', criterio:'Apriete según diseño'},
+  {n:14, act:'Protocolos topográficos', punto:'Adjuntar protocolos topográficos firmados por cliente', criterio:'Se adjuntan protocolos topográficos firmados por el cliente'},
+  {n:15, act:'Protocolos de construcción', punto:'Adjuntar protocolos de construcción (calidad)', criterio:'Se adjuntan protocolos de construcción (calidad)'}
+];
+const controlResultados = {};
+function pintarControlProceso(){
+  const cont = document.getElementById('controlProceso');
+  cont.innerHTML = '';
+  PUNTOS_CONTROL.forEach(p=>{
+    const div = document.createElement('div');
+    div.className = 'control-item';
+    div.innerHTML = `
+      <div class="control-head"><span class="control-num">${p.n}</span><span class="control-act">${p.act}</span></div>
+      <div class="control-punto">${p.punto}</div>
+      <div class="control-criterio">${p.criterio}</div>
+      <div class="toggle" id="control-toggle-${p.n}">
+        <button data-v="CUMPLE">Cumple</button>
+        <button data-v="NO CUMPLE">No cumple</button>
+      </div>
+      <div class="campo" style="margin-top:6px;"><input class="control-obs" data-n="${p.n}" type="text" placeholder="Observación (opcional)"></div>`;
+    cont.appendChild(div);
+    initToggleControl(p.n);
+  });
+}
+function initToggleControl(n){
+  const contId = 'control-toggle-'+n;
+  document.querySelectorAll('#'+contId+' button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#'+contId+' button').forEach(b=>b.classList.remove('act-verde','act-rojo'));
+      btn.classList.add(btn.dataset.v==='CUMPLE' ? 'act-verde' : 'act-rojo');
+      controlResultados[n] = btn.dataset.v;
+      guardarBorrador();
+    });
+  });
+}
+pintarControlProceso();
+
+/* ============ Firmas fijas (3 firmantes) ============ */
+function crearFirma(canvas){
+  const ctx = canvas.getContext('2d');
+  const obj = { canvas, ctx, hayFirma:false };
+  function ajustar(){
+    const rect = canvas.getBoundingClientRect();
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#222';
+  }
+  obj.ajustar = ajustar;
+  let dibujando=false, ux=0, uy=0;
+  function coord(e){ const r=canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return [t.clientX-r.left, t.clientY-r.top]; }
+  function iniciar(e){ dibujando=true; [ux,uy]=coord(e); e.preventDefault(); }
+  function mover(e){ if(!dibujando)return; const [x,y]=coord(e); ctx.beginPath(); ctx.moveTo(ux,uy); ctx.lineTo(x,y); ctx.stroke(); [ux,uy]=[x,y]; obj.hayFirma=true; e.preventDefault(); }
+  function terminar(){ dibujando=false; }
+  canvas.addEventListener('mousedown',iniciar); canvas.addEventListener('mousemove',mover); window.addEventListener('mouseup',terminar);
+  canvas.addEventListener('touchstart',iniciar,{passive:false}); canvas.addEventListener('touchmove',mover,{passive:false}); canvas.addEventListener('touchend',terminar);
+  obj.limpiar = function(){ ctx.clearRect(0,0,canvas.width,canvas.height); obj.hayFirma=false; };
+  setTimeout(ajustar, 50);
+  return obj;
+}
+const firmasFijas = {
+  firma1: crearFirma(document.getElementById('firma1')),
+  firma2: crearFirma(document.getElementById('firma2')),
+  firma3: crearFirma(document.getElementById('firma3'))
+};
+
+function v(id){ return (document.getElementById(id).value||'').trim(); }
+
+/* ============ Autosave ============ */
+let guardarTimeout = null;
+function recolectarEstado(){
+  return {
+    guardadoEn: new Date().toISOString(),
+    obra: v('obra'), ncontrato: v('ncontrato'), fechaFort: v('fechaFort'), detalleLabor: v('detalleLabor'),
+    perno: estadoToggles.perno, pernoOtro: v('pernoOtro'),
+    malla: estadoToggles.malla, mallaOtro: v('mallaOtro'),
+    shot: estadoToggles.shot, shotOtro: v('shotOtro'),
+    liberacion: estadoToggles.liberacion,
+    obsGenerales: v('obsGenerales'),
+    avance: [...document.querySelectorAll('#avanceFilas .fila-dyn')].map(f=>({
+      desde: f.querySelector('.avDesde').value, hasta: f.querySelector('.avHasta').value, total: f.querySelector('.avTotal').value,
+      pl: f.querySelector('.avPernosLong').value, pn: f.querySelector('.avPernosN').value,
+      malla: f.querySelector('.avMalla').value, shot: f.querySelector('.avShot').value
+    })),
+    controlResultados: controlResultados,
+    controlObs: [...document.querySelectorAll('.control-obs')].reduce((m,el)=>{ m[el.dataset.n]=el.value; return m; },{}),
+    nombreInsp: v('nombreInsp'), nombreJefe: v('nombreJefe'), nombreCalidad: v('nombreCalidad'),
+    firma1: firmasFijas.firma1.hayFirma ? firmasFijas.firma1.canvas.toDataURL('image/png') : null,
+    firma2: firmasFijas.firma2.hayFirma ? firmasFijas.firma2.canvas.toDataURL('image/png') : null,
+    firma3: firmasFijas.firma3.hayFirma ? firmasFijas.firma3.canvas.toDataURL('image/png') : null
+  };
+}
+function guardarBorrador(){
+  clearTimeout(guardarTimeout);
+  guardarTimeout = setTimeout(()=>{
+    try{ localStorage.setItem(BORRADOR_KEY, JSON.stringify(recolectarEstado())); }catch(e){ console.error('No se pudo guardar borrador', e); }
+  }, 800);
+}
+setInterval(()=>{ try{ localStorage.setItem(BORRADOR_KEY, JSON.stringify(recolectarEstado())); }catch(e){} }, 30000);
+document.addEventListener('input', guardarBorrador);
+function borrarBorrador(){ localStorage.removeItem(BORRADOR_KEY); }
+
+function restaurarBorrador(){
+  const raw = localStorage.getItem(BORRADOR_KEY);
+  if(!raw) return;
+  const d = JSON.parse(raw);
+  document.getElementById('obra').value = d.obra || document.getElementById('obra').value;
+  document.getElementById('ncontrato').value = d.ncontrato || document.getElementById('ncontrato').value;
+  document.getElementById('fechaFort').value = d.fechaFort || document.getElementById('fechaFort').value;
+  document.getElementById('detalleLabor').value = d.detalleLabor || '';
+  document.getElementById('pernoOtro').value = d.pernoOtro || '';
+  document.getElementById('mallaOtro').value = d.mallaOtro || '';
+  document.getElementById('shotOtro').value = d.shotOtro || '';
+  document.getElementById('obsGenerales').value = d.obsGenerales || '';
+  document.getElementById('nombreInsp').value = d.nombreInsp || '';
+  document.getElementById('nombreJefe').value = d.nombreJefe || '';
+  document.getElementById('nombreCalidad').value = d.nombreCalidad || '';
+  if(d.perno){ const b=document.querySelector('#pernoT button[data-v="'+d.perno+'"]'); if(b) b.click(); }
+  if(d.malla){ const b=document.querySelector('#mallaT button[data-v="'+d.malla+'"]'); if(b) b.click(); }
+  if(d.shot){ const b=document.querySelector('#shotT button[data-v="'+d.shot+'"]'); if(b) b.click(); }
+  if(d.liberacion){ const b=document.querySelector('#liberacionT button[data-v="'+d.liberacion+'"]'); if(b) b.click(); }
+  document.getElementById('avanceFilas').innerHTML = '';
+  (d.avance||[]).forEach(a=>agregarFilaAvance(a.desde,a.hasta,a.total,a.pl,a.pn,a.malla,a.shot));
+  if((d.avance||[]).length===0) agregarFilaAvance();
+  if(d.controlResultados){
+    Object.keys(d.controlResultados).forEach(n=>{
+      const b = document.querySelector('#control-toggle-'+n+' button[data-v="'+d.controlResultados[n]+'"]');
+      if(b) b.click();
+    });
+  }
+  if(d.controlObs){
+    Object.keys(d.controlObs).forEach(n=>{
+      const el = document.querySelector('.control-obs[data-n="'+n+'"]');
+      if(el) el.value = d.controlObs[n];
+    });
+  }
+  setTimeout(()=>{
+    ['firma1','firma2','firma3'].forEach(k=>{
+      if(d[k]){ const obj=firmasFijas[k]; const img=new Image(); img.onload=()=>{ obj.ctx.drawImage(img,0,0,obj.canvas.width,obj.canvas.height); obj.hayFirma=true; }; img.src=d[k]; }
+    });
+  }, 300);
+  document.getElementById('bannerBorrador').style.display = 'none';
+}
+function descartarBorrador(){ borrarBorrador(); document.getElementById('bannerBorrador').style.display = 'none'; }
+if(localStorage.getItem(BORRADOR_KEY)){
+  let autoFlag = false;
+  try{ autoFlag = sessionStorage.getItem('qcd_auto_restaurar') === '1'; }catch(e){}
+  if(autoFlag){
+    try{ sessionStorage.removeItem('qcd_auto_restaurar'); }catch(e){}
+    restaurarBorrador();
+  } else {
+    document.getElementById('bannerBorrador').style.display = 'flex';
+  }
+}
+if(document.querySelectorAll('#avanceFilas .fila-dyn').length===0) agregarFilaAvance();
+
+/* ============ Generacion de PDF ============ */
+function dibujarEncabezado(doc, tituloDoc, qrDataUrl, codigoDoc){
+  const anchoPagina = doc.internal.pageSize.getWidth();
+  doc.setFillColor(...MARCA.colorHeaderRGB());
+  doc.rect(0,0,anchoPagina,14,'F');
+  doc.setFillColor(255,255,255);
+  doc.roundedRect(6,2.5,30,9,1.2,1.2,'F');
+  try{ doc.addImage(LOGO,'PNG',14.5,4.3,13,6.1); }catch(e){}
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(9); doc.setFont(undefined,'bold');
+  doc.text(tituloDoc, 40, 7);
+  doc.setFontSize(7.5); doc.setFont(undefined,'normal');
+  doc.text('CÓDIGO: ' + (codigoDoc || CODIGO_DOC), anchoPagina-8, 9.5, {align:'right'});
+  doc.setFillColor(45,45,45);
+  doc.rect(0,14,anchoPagina,9,'F');
+  doc.setTextColor(230,230,230); doc.setFontSize(7);
+  const lineasContrato = doc.splitTextToSize(MARCA.textoContrato(), anchoPagina-(qrDataUrl?30:16));
+  doc.text(lineasContrato, 8, 18.5);
+  if(qrDataUrl){ doc.addImage(qrDataUrl,'PNG',anchoPagina-19,14.6,8,8); }
+  doc.setTextColor(30,30,30);
+  return 30;
+}
+function addTablaPDF(doc, y, head, body, foot){
+  doc.autoTable({
+    startY:y, head:[head], body, foot: foot?[foot]:undefined,
+    theme:'grid', margin:{left:12, right:12},
+    styles:{fontSize:7.5, cellPadding:1.4, textColor:[40,40,40], lineColor:[210,210,210], lineWidth:.15},
+    headStyles:{fillColor:MARCA.colorRGB(), textColor:255, fontStyle:'bold'},
+    footStyles:{fillColor:[240,240,240], textColor:[30,30,30], fontStyle:'bold'}
+  });
+  return doc.lastAutoTable.finalY + 5;
+}
+
+async function generarVistaPrevia(){
+  try{
+  if(!v('obra')){ alert('Ingresa la obra o faena.'); return; }
+  if(!v('fechaFort')){ alert('Ingresa la fecha de fortificación.'); return; }
+  if(!v('detalleLabor')){ alert('Ingresa la identificación del detalle de la labor.'); return; }
+  if(!estadoToggles.liberacion){ alert('Selecciona el estado de liberación (Frente liberado / Frente no liberado).'); return; }
+  if(!v('nombreInsp') || !firmasFijas.firma1.hayFirma){ alert('Falta el nombre o la firma de Inspección (GOMS / JEJ).'); return; }
+  if(!v('nombreJefe') || !firmasFijas.firma2.hayFirma){ alert('Falta el nombre o la firma del Jefe de Turno / Terreno.'); return; }
+  if(!v('nombreCalidad') || !firmasFijas.firma3.hayFirma){ alert('Falta el nombre o la firma de Calidad.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
+  const doc = new jsPDF({unit:'mm', format:'a4'});
+  const izq = 14, der = 196;
+  let y = 10;
+
+  const corr = MARCA.correlativo(v('nombreInsp'), 'LIBFRENTE');
+
+  let qrUrl = null;
+  try{
+    const qrData = 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr);
+    const qr = new QRious({ value: qrData, size: 200, level:'M' });
+    qrUrl = qr.toDataURL();
+  }catch(e){}
+
+  function saltoSiNecesario(alto){ if(y + alto > 285){ doc.addPage(); y = dibujarEncabezado(doc, 'PROTOCOLO DE RECEPCION DE FORTIFICACION', qrUrl, CODIGO_DOC); } }
+  function tituloSeccion(txt){
+    saltoSiNecesario(12);
+    doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.setTextColor(...MARCA.colorRGB());
+    doc.text(txt, izq, y);
+    doc.setDrawColor(...MARCA.colorRGB()); doc.setLineWidth(0.4); doc.line(izq, y+1.5, der, y+1.5);
+    doc.setTextColor(0,0,0); doc.setFont(undefined,'normal');
+    y += 7;
+  }
+  function parrafo(txt, tam){
+    tam = tam || 8.5; doc.setFontSize(tam);
+    const lineas = doc.splitTextToSize(txt || '(sin datos)', der-izq);
+    lineas.forEach(l=>{ saltoSiNecesario(5); doc.text(l, izq, y); y += 4.3; });
+    y += 2;
+  }
+
+  y = dibujarEncabezado(doc, 'PROTOCOLO DE RECEPCION DE FORTIFICACION', qrUrl, CODIGO_DOC);
+  doc.setFontSize(9); doc.setFont(undefined,'bold'); doc.setTextColor(...MARCA.colorRGB());
+  doc.text('LIBERACION DE FRENTE', izq, y);
+  doc.setTextColor(0,0,0); doc.setFont(undefined,'normal');
+  y += 7;
+
+  tituloSeccion('Identificación');
+  {
+    const fechaDMY = v('fechaFort').split('-').reverse().join('-');
+    const datos = [['Obra/Faena', v('obra')], ['N° Contrato', v('ncontrato')], ['Fecha fortificación', fechaDMY], ['Detalle labor', v('detalleLabor')]];
+    doc.setFontSize(9);
+    for(let i=0;i<datos.length;i+=2){
+      saltoSiNecesario(7);
+      doc.setFont(undefined,'bold'); doc.text(datos[i][0]+':', izq, y);
+      doc.setFont(undefined,'normal'); doc.text(String(datos[i][1]||'-'), izq+40, y);
+      if(datos[i+1]){ doc.setFont(undefined,'bold'); doc.text(datos[i+1][0]+':', izq+95, y); doc.setFont(undefined,'normal'); doc.text(String(datos[i+1][1]||'-'), izq+130, y); }
+      y += 6;
+    }
+    y += 3;
+  }
+
+  tituloSeccion('Tipos empleados');
+  parrafo('Tipo de perno: ' + (estadoToggles.perno||'-') + (v('pernoOtro') ? ' (' + v('pernoOtro') + ')' : ''));
+  parrafo('Tipo de malla: ' + (estadoToggles.malla||'-') + (v('mallaOtro') ? ' (' + v('mallaOtro') + ')' : ''));
+  parrafo('Tipo de shotcrete: ' + (estadoToggles.shot||'-') + (v('shotOtro') ? ' (' + v('shotOtro') + ')' : ''));
+
+  tituloSeccion('Avance desarrollo (PK) y fortificación');
+  {
+    const filas = [...document.querySelectorAll('#avanceFilas .fila-dyn')];
+    if(filas.length===0){ parrafo('(sin datos)'); }
+    else{
+      const body = filas.map(f=>[
+        f.querySelector('.avDesde').value||'-', f.querySelector('.avHasta').value||'-', f.querySelector('.avTotal').value||'-',
+        f.querySelector('.avPernosLong').value||'-', f.querySelector('.avPernosN').value||'-',
+        f.querySelector('.avMalla').value||'-', f.querySelector('.avShot').value||'-'
+      ]);
+      y = addTablaPDF(doc, y, ['Desde PK','Hasta PK','Total','Pernos Long.','Pernos N°','Malla [m2]','Shotcrete [m3]'], body);
+    }
+  }
+
+  tituloSeccion('Control de proceso (fortificación)');
+  {
+    const body = PUNTOS_CONTROL.map(p=>{
+      const res = controlResultados[p.n]==='CUMPLE' ? 'Cumple' : (controlResultados[p.n]==='NO CUMPLE' ? 'No cumple' : '-');
+      const obsEl = document.querySelector('.control-obs[data-n="'+p.n+'"]');
+      const obs = obsEl ? (obsEl.value||'') : '';
+      return [p.n, p.act, p.punto, p.criterio, res, obs];
+    });
+    y = addTablaPDF(doc, y, ['N°','Actividad','Punto crítico','Criterio de aceptación','Resultado','Observación'], body);
+  }
+
+  tituloSeccion('Estado de liberación');
+  {
+    saltoSiNecesario(14);
+    const liberado = estadoToggles.liberacion === 'FRENTE LIBERADO';
+    doc.setFillColor(...(liberado ? [46,125,50] : [215,38,34]));
+    doc.roundedRect(izq, y, der-izq, 10, 1.5, 1.5, 'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(10); doc.setFont(undefined,'bold');
+    doc.text(estadoToggles.liberacion, izq+(der-izq)/2, y+6.5, {align:'center'});
+    doc.setTextColor(30,30,30); doc.setFont(undefined,'normal');
+    y += 15;
+  }
+
+  tituloSeccion('Observaciones');
+  parrafo(v('obsGenerales') || '(sin observaciones)');
+
+  tituloSeccion('Firmas digitales');
+  y += 2;
+  {
+    saltoSiNecesario(90);
+    const ahoraF = new Date();
+    const fechaF = ahoraF.toLocaleDateString('es-CL');
+    const horaF = ahoraF.toLocaleTimeString('es-CL', {hour:'2-digit', minute:'2-digit'});
+    y = MARCA.dibujarSelloFirma(doc, {
+      x: izq, y: y, ancho: der-izq,
+      firmantes: [
+        { nombre: v('nombreInsp'), cargo:'Inspección (GOMS / JEJ)', firmaDataUrl: firmasFijas.firma1.canvas.toDataURL('image/png'), etiquetaFirma:'Firma inspección' },
+        { nombre: v('nombreJefe'), cargo:'Jefe de Turno / Terreno', firmaDataUrl: firmasFijas.firma2.canvas.toDataURL('image/png'), etiquetaFirma:'Firma jefe de turno' },
+        { nombre: v('nombreCalidad'), cargo:'Calidad', firmaDataUrl: firmasFijas.firma3.canvas.toDataURL('image/png'), etiquetaFirma:'Firma calidad' }
+      ],
+      qrDataUrl: qrUrl, fecha: fechaF, hora: horaF, correlativo: corr,
+      sinLeyenda: true, compacto: true
+    });
+    y += 2;
+  }
+
+  saltoSiNecesario(8);
+  doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(140,140,140);
+  doc.text((MARCA.empresa && MARCA.empresa.nombreCorto ? MARCA.empresa.nombreCorto : 'QC Digital') +
+    ' · Industry Quality Suite — documento trazable, generado automáticamente · código de verificación en el QR.',
+    izq, y);
+  doc.setTextColor(30,30,30); y += 5;
+
+  const totalPag = doc.internal.getNumberOfPages();
+  const marcaPie = 'Generado por: '+v('nombreInsp')+'  |  '+new Date().toLocaleDateString('es-CL')+'  |  Liberación de Frente  |  N° '+corr;
+  for(let p=1; p<=totalPag; p++){
+    doc.setPage(p);
+    doc.setFontSize(7); doc.setTextColor(120,120,120);
+    doc.text(marcaPie, izq, 292);
+    doc.text('Página '+p+' de '+totalPag, der, 292, {align:'right'});
+  }
+
+  window._pdfDocGenerado = doc;
+  doc._qcdCorrelativo = corr;
+  doc._qcdGeneradoPor = v('nombreInsp');
+  document.getElementById('framePrev').src = doc.output('bloburl');
+  document.getElementById('modalPrev').style.display = 'flex';
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Liberación de Frente): ' + (err && err.message ? err.message : err));
+  }
+}
+function cerrarVista(){ document.getElementById('modalPrev').style.display = 'none'; }
+async function descargarPDF(){
+  try{
+  if(!window._pdfDocGenerado) return;
+  const fecha = v('fechaFort').replace(/-/g,'');
+  const labor = v('detalleLabor').replace(/[^a-zA-Z0-9]+/g,'_').slice(0,40);
+  const nombreArch = 'LiberacionFrente_'+fecha+(labor?('_'+labor):'')+'.pdf';
+  cerrarVista();
+
+  let notaEl = document.getElementById('notaDrive');
+  if(!notaEl){
+    notaEl = document.createElement('div');
+    notaEl.id = 'notaDrive';
+    notaEl.className = 'qcd-nota-flotante';
+    document.body.appendChild(notaEl);
+  }
+  if(window.QCD_DRIVE){
+    const docRef = window._pdfDocGenerado;
+    notaEl.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
+    try{
+      const res = await QCD_DRIVE.subirConReintento({
+        blob: docRef.output('blob'),
+        nombreArchivo: nombreArch,
+        tipoReporte: 'Liberación de Frente',
+        correlativo: docRef._qcdCorrelativo,
+        empresa: MARCA.empresa.nombreCorto,
+        generadoPor: docRef._qcdGeneradoPor
+      });
+      notaEl.innerHTML = '<a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>';
+    }catch(err){
+      console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
+      notaEl.innerHTML = '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>';
+    }
+  }
+  window._pdfDocGenerado.save(nombreArch);
+  borrarBorrador();
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Liberación de Frente - descarga): ' + (err && err.message ? err.message : err));
+  }
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(console.error);
+  });
+}
+</script>
+<script>
+/* Config de llenado conversacional Piwii (motor generico) */
+window.QCD_LLENADO_CONFIG = {
+  campos: [
+    { id:'obra', tipo:'campo', pregunta:'¿En qué obra o faena estás? (ya viene con un valor por defecto, confirma o cambia)' },
+    { id:'fechaFort', tipo:'campo', pregunta:'¿Cuál es la fecha de fortificación?' },
+    { id:'detalleLabor', tipo:'campo', pregunta:'¿Cuál es el nivel, labor o frente? (ej: N51 / RAC-A-02 / Frente Sur)' },
+    { id:'perno', tipo:'toggle', pregunta:'¿Qué tipo de perno se empleó: helicoidal, cable u otro?', contenedorId:'pernoT', valores:[
+      {v:'P. Helicoidal', palabras:['helicoidal']},
+      {v:'Perno Cable', palabras:['cable']},
+      {v:'Otro', palabras:['otro']}
+    ]},
+    { id:'pernoOtro', tipo:'campo', pregunta:'Si marcaste "Otro" en el tipo de perno, especifícalo (si no aplica, escribe "omitir")' },
+    { id:'malla', tipo:'toggle', pregunta:'¿Qué tipo de malla se empleó: MFI-3500 u otro?', contenedorId:'mallaT', valores:[
+      {v:'MFI-3500', palabras:['mfi', 'mfi-3500', 'mfi 3500']},
+      {v:'Otro', palabras:['otro']}
+    ]},
+    { id:'mallaOtro', tipo:'campo', pregunta:'Si marcaste "Otro" en el tipo de malla, especifícalo (si no aplica, escribe "omitir")' },
+    { id:'shot', tipo:'toggle', pregunta:'¿Qué tipo de shotcrete se empleó: SH SG30 u otro?', contenedorId:'shotT', valores:[
+      {v:'SH SG30(10)-10-22-28', palabras:['sh sg30', 'sg30', 'standard']},
+      {v:'Otro', palabras:['otro']}
+    ]},
+    { id:'shotOtro', tipo:'campo', pregunta:'Si marcaste "Otro" en el tipo de shotcrete, especifícalo (si no aplica, escribe "omitir")' },
+    { id:'liberacion', tipo:'toggle', pregunta:'¿Cuál es el estado de liberación: frente liberado o frente no liberado?', contenedorId:'liberacionT', valores:[
+      {v:'FRENTE LIBERADO', palabras:['liberado','si liberado']},
+      {v:'FRENTE NO LIBERADO', palabras:['no liberado','no']}
+    ]},
+    { id:'obsGenerales', tipo:'campo', pregunta:'¿Alguna observación general? (si no hay, escribe "omitir")' },
+    { id:'nombreInsp', tipo:'campo', pregunta:'¿Nombre completo del Inspector de Calidad (GOMS / JEJ) que firma?' },
+    { id:'nombreJefe', tipo:'campo', pregunta:'¿Nombre completo del Jefe de Turno / Terreno que firma?' },
+    { id:'nombreCalidad', tipo:'campo', pregunta:'¿Nombre completo de quien firma por Calidad?' }
+  ]
+};
+</script>
+</body>
+</html>
