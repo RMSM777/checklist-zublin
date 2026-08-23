@@ -238,6 +238,33 @@ MARCA.iniciar().then(() => {
 const CODIGO_DOC = 'INF-GOMS-CL-006 REV.0';
 const BORRADOR_KEY = 'zublin_cambioTurno_borrador';
 
+/* ============ Encabezado PDF ============ */
+// Antes esta funcion no existia en este archivo (se llamaba encabezado(),
+// que nunca estuvo definida, y el catch silencioso mostraba un error en
+// vez de generar el PDF). Se copia el patron ya usado en los otros
+// reportes (dibujarEncabezado(doc, tituloDoc, qrDataUrl, codigoDoc)).
+function dibujarEncabezado(doc, tituloDoc, qrDataUrl, codigoDoc){
+  const anchoPagina = doc.internal.pageSize.getWidth();
+  doc.setFillColor(...MARCA.colorHeaderRGB());
+  doc.rect(0,0,anchoPagina,14,'F');
+  doc.setFillColor(255,255,255);
+  doc.roundedRect(6,2.5,30,9,1.2,1.2,'F');
+  try{ doc.addImage(LOGO,'PNG',8,4,26,6); }catch(e){}
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(9); doc.setFont(undefined,'bold');
+  doc.text(tituloDoc, 40, 7);
+  doc.setFontSize(7.5); doc.setFont(undefined,'normal');
+  doc.text('CÓDIGO: ' + (codigoDoc || CODIGO_DOC), anchoPagina-8, 9.5, {align:'right'});
+  doc.setFillColor(45,45,45);
+  doc.rect(0,14,anchoPagina,9,'F');
+  doc.setTextColor(230,230,230); doc.setFontSize(7);
+  const lineasContrato = doc.splitTextToSize(MARCA.textoContrato(), anchoPagina-(qrDataUrl?30:16));
+  doc.text(lineasContrato, 8, 18.5);
+  if(qrDataUrl){ doc.addImage(qrDataUrl,'PNG',anchoPagina-19,14.6,8,8); }
+  doc.setTextColor(30,30,30);
+  return 30;
+}
+
 document.getElementById('fechaInicio').value = new Date().toISOString().slice(0,10);
 document.getElementById('fechaTermino').value = new Date().toISOString().slice(0,10);
 
@@ -666,7 +693,7 @@ async function generarVistaPrevia(){
   }catch(e){}
 
 
-  function saltoSiNecesario(alto){ if(y + alto > 285){ doc.addPage(); encabezado(); } }
+  function saltoSiNecesario(alto){ if(y + alto > 285){ doc.addPage(); y = dibujarEncabezado(doc, 'CAMBIO DE TURNO GENERAL', qrUrl, CODIGO_DOC); } }
   function tituloSeccion(txt){
     saltoSiNecesario(12);
     doc.setFontSize(10); doc.setFont(undefined,'bold'); doc.setTextColor(...MARCA.colorRGB());
@@ -682,7 +709,7 @@ async function generarVistaPrevia(){
     y += 2;
   }
 
-  encabezado();
+  y = dibujarEncabezado(doc, 'CAMBIO DE TURNO GENERAL', qrUrl, CODIGO_DOC);
 
   doc.setFontSize(9); doc.setFont(undefined,'bold');
   parrafo('FECHA: '+(document.getElementById('fechaInicio').value||'-')+' AL '+(document.getElementById('fechaTermino').value||'-')+'   HORA: '+(document.getElementById('hora').value||'-')+'   TURNO: '+(turno==='DIA'?'D\u00eda':'Noche'), 9);
