@@ -15,33 +15,34 @@
      estaba organizado a mano) y agrega una fila a la Google Sheet
      "QC Digital - Repositorio".
 
-   CONFIGURACION REQUERIDA ANTES DE QUE ESTO FUNCIONE:
-   1) CLIENT_ID: crear un "ID de cliente de OAuth 2.0" tipo
-      "Aplicacion web" en Google Cloud Console > APIs y servicios >
-      Credenciales, del mismo proyecto/cuenta de Google
-      (ro.moragasm@gmail.com) donde ya viven la carpeta "QC Digital"
-      y las Sheets de respaldo. Agregar como "Origenes de JavaScript
-      autorizados": https://reportes.qcdigital.cl y
-      https://romoragasm777.github.io
-      Habilitar tambien "Google Drive API" y "Google Sheets API" en
-      ese mismo proyecto (APIs y servicios > Biblioteca).
-      Si la app queda en modo "Prueba" (Testing) en la pantalla de
-      consentimiento OAuth, agregar como "Usuarios de prueba" los
-      correos Google de cada inspector que vaya a generar reportes
-      (hasta 100). Pegar el Client ID resultante abajo.
-   2) Revisar SPREADSHEET_ID y QC_DIGITAL_ROOT_FOLDER_ID mas abajo:
-      ya estan completados apuntando a los recursos reales que se
-      encontraron en Drive (carpeta "QC Digital" y la Sheet
-      "QC Digital - Repositorio" con mas movimiento). Si prefieres
-      usar otra carpeta/Sheet, reemplaza los ID (se sacan de la URL:
-      drive.google.com/drive/folders/AQUI  o
-      docs.google.com/spreadsheets/d/AQUI/edit).
+   CONFIGURACION: ya completada, no hay nada que rellenar.
+   - CLIENT_ID: se recupero el cliente OAuth que ya existia en el
+     proyecto de Google Cloud "QC Digital" (qc-digital-504403),
+     creado el 3-ago-2026 ("QC Digital Web Client"). Sus origenes
+     de JavaScript autorizados ya incluian qcdigital.cl,
+     www.qcdigital.cl y reportes.qcdigital.cl, asi que no hubo que
+     tocar nada en Cloud Console.
+   - Google Drive API y Google Sheets API ya estaban habilitadas en
+     ese mismo proyecto.
+   - Si en algun momento hay que revisarlo o rotarlo: Google Cloud
+     Console > proyecto "QC Digital" > Google Auth Platform >
+     Clientes > "QC Digital Web Client".
+   - Si la pantalla de consentimiento OAuth esta en modo "Prueba",
+     cada inspector nuevo que vaya a generar reportes debe agregarse
+     como "Usuario de prueba" ahi (Google Auth Platform > Publico),
+     o el login le va a fallar con "app no verificada / acceso
+     bloqueado".
+   - SPREADSHEET_ID y QC_DIGITAL_ROOT_FOLDER_ID mas abajo apuntan a
+     los recursos reales que ya existian en Drive (carpeta
+     "QC Digital" y la Sheet "QC Digital - Repositorio" con mas
+     movimiento). Si prefieres usar otra carpeta/Sheet, reemplaza
+     los ID (se sacan de la URL: drive.google.com/drive/folders/AQUI
+     o docs.google.com/spreadsheets/d/AQUI/edit).
    ============================================================ */
 (function () {
   'use strict';
 
-  // --- COMPLETAR ---
-  const CLIENT_ID = ''; // <-- pegar aqui el Client ID de Google Cloud Console
+  const CLIENT_ID = '222108340553-3bvhd6qko8f2i8g943eblk98tckkq51v.apps.googleusercontent.com';
 
   // --- Ya completados con los recursos reales encontrados en Drive ---
   const SPREADSHEET_ID = '1YTi7y50sFsj3RPHIqRuHPbzxyctflSKBl_jue6FyaRs';
