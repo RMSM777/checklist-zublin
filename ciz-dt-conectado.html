@@ -205,6 +205,12 @@
   .aviso-plantilla.ver{ display:block; }
 </style>
 </head>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1526">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="QC Digital">
 <script src="marca.js"></script>
 <body>
 
@@ -238,6 +244,7 @@
     <span class="crece"></span>
     <span id="be_pend"></span>
     <span id="selectorEmpresa"></span>
+    <button id="btnInstalar" onclick="instalarApp()" style="display:none;">Instalar en el teléfono</button>
     <button id="be_sync" onclick="sincronizarAhora()" style="display:none;">Sincronizar</button>
     <button onclick="salir()">Salir</button>
   </div>
@@ -528,6 +535,38 @@ const almacen = (function(){
   };
 })();
 
+/* Lee la respuesta con cuidado: si NO es JSON, casi siempre significa que
+   algo se metio en el camino — el service worker sin senal, una pantalla
+   de login de Cloudflare Access vencida, o un portal cautivo de la faena.
+   Sin esto, la app muestra "Unexpected token" en vez de decir que pasa. */
+/* fetch() lanza TypeError cuando no hay red. Se traduce al mismo codigo
+   que usa el resto de la app para "sin senal", asi el mensaje al inspector
+   es el correcto y no un "Failed to fetch" en ingles. */
+async function pedirRed(url, opts){
+  try {
+    return await fetch(url, opts);
+  } catch(e){
+    const err = new Error('__SIN_SENAL__');
+    err.red = true;
+    throw err;
+  }
+}
+
+async function leerJSON(r){
+  const txt = await r.text();
+  if(txt === '') return null;
+  try { return JSON.parse(txt); }
+  catch(e){
+    const sinSenal = !navigator.onLine || r.status === 503 || r.status === 0;
+    const err = new Error(sinSenal
+      ? '__SIN_SENAL__'
+      : 'La respuesta no vino de la base. Puede que la sesión de acceso haya vencido: vuelve a entrar cuando tengas señal.');
+    err.noEsJson = true;
+    err.estado = r.status;
+    throw err;
+  }
+}
+
 const SB = {
   ses: null,
 
@@ -544,13 +583,13 @@ const SB = {
   },
 
   async login(email, password){
-    const r = await fetch(SB_URL + '/auth/v1/token?grant_type=password', {
+    const r = await pedirRed(SB_URL + '/auth/v1/token?grant_type=password', {
       method:'POST',
       headers:{ 'apikey': SB_KEY, 'Content-Type':'application/json' },
       body: JSON.stringify({ email: email, password: password })
     });
-    const j = await r.json();
-    if(!r.ok) throw new Error(j.error_description || j.msg || j.message || 'No se pudo iniciar sesion');
+    const j = await leerJSON(r);
+    if(!r.ok) throw new Error((j && (j.error_description || j.msg || j.message)) || 'No se pudo iniciar sesion');
     this.ses = { access: j.access_token, refresh: j.refresh_token, email: (j.user && j.user.email) || email,
                  uid: j.user && j.user.id, vence: Date.now() + ((j.expires_in || 3600) * 1000) };
     this.persistir();
@@ -559,12 +598,12 @@ const SB = {
 
   async refrescar(){
     if(!this.ses || !this.ses.refresh) throw new Error('Sin sesion');
-    const r = await fetch(SB_URL + '/auth/v1/token?grant_type=refresh_token', {
+    const r = await pedirRed(SB_URL + '/auth/v1/token?grant_type=refresh_token', {
       method:'POST',
       headers:{ 'apikey': SB_KEY, 'Content-Type':'application/json' },
       body: JSON.stringify({ refresh_token: this.ses.refresh })
     });
-    const j = await r.json();
+    const j = await leerJSON(r);
     if(!r.ok) throw new Error('Sesion expirada');
     this.ses.access = j.access_token;
     this.ses.refresh = j.refresh_token || this.ses.refresh;
@@ -583,7 +622,7 @@ const SB = {
     if(this.ses && this.ses.vence && Date.now() > this.ses.vence - 60000 && !yaReintento){
       try { await this.refrescar(); } catch(e){}
     }
-    const r = await fetch(url, opts);
+    const r = await pedirRed(url, opts);
     if(r.status === 401 && !yaReintento){
       await this.refrescar();
       const o2 = Object.assign({}, opts);
@@ -599,8 +638,8 @@ const SB = {
       headers: this.cabeceras({ 'Content-Type':'application/json', 'Prefer':'return=representation' }),
       body: JSON.stringify(filas)
     });
-    const j = await r.json();
-    if(!r.ok) throw new Error(j.message || j.hint || ('Error al guardar en ' + tabla));
+    const j = await leerJSON(r);
+    if(!r.ok) throw new Error((j && (j.message || j.hint)) || ('Error al guardar en ' + tabla));
     return j;
   },
 
@@ -610,8 +649,8 @@ const SB = {
       headers: this.cabeceras({ 'Content-Type':'application/json', 'Prefer':'return=representation' }),
       body: JSON.stringify(cambios)
     });
-    const j = await r.json();
-    if(!r.ok) throw new Error(j.message || ('Error al actualizar ' + tabla));
+    const j = await leerJSON(r);
+    if(!r.ok) throw new Error((j && j.message) || ('Error al actualizar ' + tabla));
     return j;
   },
 
@@ -619,8 +658,8 @@ const SB = {
     const r = await this.pedir(SB_URL + '/rest/v1/' + tabla + '?' + query, {
       method:'GET', headers: this.cabeceras()
     });
-    const j = await r.json();
-    if(!r.ok) throw new Error(j.message || ('Error al leer ' + tabla));
+    const j = await leerJSON(r);
+    if(!r.ok) throw new Error((j && j.message) || ('Error al leer ' + tabla));
     return j;
   },
 
@@ -718,6 +757,12 @@ async function sincronizarAhora(){
    ====================================================================== */
 async function subirCaminata(op){
   const cam = await SB.insertar('avances_caminata', [op.caminata]);
+  /* PostgREST devuelve un arreglo vacio cuando RLS bloquea el insert sin
+     dar error. Sin esta comprobacion, el inspector veria un mensaje
+     incomprensible de JavaScript en vez de saber que es un permiso. */
+  if(!cam || !cam.length || !cam[0].id){
+    throw new Error('La base no registró la caminata. Puede que tu cuenta no esté asignada al contrato: avisa para revisarlo.');
+  }
   const camId = cam[0].id;
 
   const filas = op.hallazgos.map(h => ({
@@ -737,6 +782,9 @@ async function subirCaminata(op){
     originador: op.caminata.inspectores || op.caminata.iniciales_inspector || null
   }));
   const dts = await SB.insertar('detalles_terminacion', filas);
+  if(!dts || dts.length !== filas.length){
+    throw new Error('La base registró la caminata pero no todos los hallazgos. Revisa antes de volver a guardar para no duplicar.');
+  }
 
   for(let i=0; i<dts.length; i++){
     const fotos = (op.hallazgos[i] && op.hallazgos[i].fotosApertura) || [];
@@ -817,7 +865,13 @@ function avisar(id, texto, clase){
   if(clase === 'ok') setTimeout(()=>{ el.className = 'aviso-linea'; }, 6000);
 }
 
-window.addEventListener('online',  ()=>{ pintarEstado(); sincronizarAhora(); });
+window.addEventListener('online', async ()=>{
+  pintarEstado();
+  /* Al volver la senal, lo primero es renovar el token: puede llevar
+     horas vencido si el turno fue largo. Recien despues se sincroniza. */
+  try { if(SB.ses && SB.ses.refresh) await SB.refrescar(); } catch(e){}
+  sincronizarAhora();
+});
 window.addEventListener('offline', pintarEstado);
 
 /* ======================================================================
@@ -839,8 +893,10 @@ async function entrar(){
     await SB.login(mail, pass);
     await iniciarApp();
   } catch(e){
-    msg.textContent = e.message === 'Invalid login credentials'
-      ? 'Correo o contraseña incorrectos.' : (e.message || 'No se pudo entrar.');
+    msg.textContent =
+      e.message === '__SIN_SENAL__' ? 'Sin conexión: para entrar la primera vez necesitas señal. Hazlo antes de bajar.'
+      : e.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos.'
+      : (e.message || 'No se pudo entrar.');
     msg.className = 'login-msg err';
   }
   btn.disabled = false; btn.textContent = 'Entrar';
@@ -873,17 +929,33 @@ async function iniciarApp(){
     }
   } catch(e){ console.warn('No se pudo leer el contrato:', e && e.message); }
   try { await cargarDesdeBase(); }
-  catch(e){ avisar('a_aviso', 'No se pudieron leer los DT de la base: ' + (e.message||e), 'err'); }
+  catch(e){
+    avisar('a_aviso', e.message === '__SIN_SENAL__'
+      ? 'Sin señal: se muestran los DT que alcanzaste a bajar. Lo que registres queda en cola y se sube al recuperar conexión.'
+      : 'No se pudieron leer los DT de la base: ' + (e.message || e), 'err');
+  }
   if(COLA.cuantos()) sincronizarAhora();
 }
 
 /* Arranque: si ya hay sesion guardada, entra directo */
 (async function(){
   SB.cargar();
-  if(SB.ses && SB.ses.refresh){
-    try { await SB.refrescar(); await iniciarApp(); }
-    catch(e){ SB.limpiar(); }
+  if(!SB.ses || !SB.ses.refresh) return;   /* sin sesion guardada -> pantalla de login */
+
+  /* La comprobacion de sesion es LOCAL, no contra el servidor. Bajo tierra
+     no hay a quien preguntarle, y pedir login sin senal dejaria al
+     inspector fuera de la app justo cuando la necesita.
+     Solo se borra la sesion si el servidor la RECHAZO explicitamente;
+     si simplemente no hubo red, se entra igual y se renueva al subir. */
+  if(navigator.onLine){
+    try {
+      await SB.refrescar();
+    } catch(e){
+      if(e && e.message === 'Sesion expirada'){ SB.limpiar(); return; }
+      /* cualquier otro error = problema de red: seguimos adelante */
+    }
   }
+  await iniciarApp();
 })();
 
 
@@ -1459,6 +1531,36 @@ function protegerCambioDeEmpresa(){
   }, true);
 }
 
+
+/* ======================================================================
+   PWA — se engancha al service worker que ya existe en el repo.
+   Con esto la app queda instalable en el telefono y abre sin senal:
+   el service worker sirve el archivo desde el cache del dispositivo.
+   ====================================================================== */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(console.error);
+  });
+}
+
+/* Aviso de instalacion: la primera vez, ofrece dejarla en la pantalla de
+   inicio. Es lo que hace que funcione bajo tierra sin abrir el navegador. */
+let promptInstalar = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  promptInstalar = e;
+  const b = document.getElementById('btnInstalar');
+  if(b) b.style.display = '';
+});
+async function instalarApp(){
+  if(!promptInstalar) return;
+  promptInstalar.prompt();
+  await promptInstalar.userChoice;
+  promptInstalar = null;
+  const b = document.getElementById('btnInstalar');
+  if(b) b.style.display = 'none';
+}
+
 /* El arranque real ocurre tras el login (iniciarApp) */
 renderTodo();
 pintarEstado();
@@ -1469,7 +1571,7 @@ aplicarMarca();
    ====================================================================== */
 function norm(s){
   return String(s==null?'':s)
-    .replace(/ /g,'')
+    .replace(/�/g,'')
     .normalize('NFD').replace(/[̀-ͯ]/g,'')
     .replace(/\s+/g,' ')
     .trim().toUpperCase();
