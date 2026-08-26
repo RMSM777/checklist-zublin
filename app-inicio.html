@@ -181,6 +181,15 @@
               font-weight:600; margin-top:2px; }
   .piwii-txt{ font-size:13.5px; color:var(--tenue); line-height:1.5; margin:12px auto 0; max-width:34ch; }
 
+  .btn-secundario{
+    display:block; width:100%; text-align:center; background:var(--tarjeta);
+    color:var(--texto); font-weight:700; font-size:14.5px; padding:13px;
+    border-radius:11px; border:1px solid var(--linea); cursor:pointer;
+    margin-top:9px; font-family:inherit;
+  }
+  .btn-secundario:disabled{ opacity:.6; cursor:not-allowed; }
+  .nota-exp{ font-size:11.5px; color:var(--tenue); text-align:center; line-height:1.45; margin:8px 4px 0; }
+
   /* ---------- Perfil ---------- */
   .perfil-fila{
     background:var(--tarjeta); border:1px solid var(--linea); border-radius:11px;
@@ -310,6 +319,8 @@
       <p class="titulillo">&Uacute;ltimos DT</p>
       <div class="lista" id="listaDT"><div class="vacio">Cargando&hellip;</div></div>
       <a class="btn-grande" href="ciz-dt-conectado.html">Abrir o cerrar un DT</a>
+      <button class="btn-secundario" onclick="exportarCSV()">&#11015; Descargar planilla de DT</button>
+      <p class="nota-exp" id="notaExp">Genera la misma planilla que llevaban a mano, con los datos de ahora. Se abre directo en Excel.</p>
     </section>
   </div>
 
@@ -468,6 +479,7 @@ function cuantosPendientes(){
 
 /* ====================================================================== */
 let CONTRATO = null;
+let DT_CACHE = [];   /* los DT ya leidos: sirven para exportar sin volver a pedirlos */
 
 function irA(p){
   document.querySelectorAll('.panel').forEach(x => x.classList.remove('act'));
@@ -611,6 +623,77 @@ function pintarFrentes(dts){
     + '</span><span class="pill ABIERTA">'+v.n+'</span></div>').join('');
 }
 
+
+/* ======================================================================
+   EXPORTAR LA PLANILLA
+   Se arma en CSV a proposito, no en .xlsx: un .xlsx de verdad obliga a
+   cargar una libreria desde internet, y esta app tiene que poder exportar
+   tambien bajo tierra, sin senal. El CSV se abre directo en Excel.
+
+   Las columnas van en el MISMO orden que el Excel que llevaba el equipo,
+   para que a nadie le cambie el mapa. Las columnas nuevas van al final.
+   ====================================================================== */
+
+const COLS = [
+  ['&Iacute;tem',            (d,i) => i + 1],
+  ['N° Punch',               d => d.numero_punch || ''],
+  ['Área',                   d => d.area || ''],
+  ['Sistema',                d => d.sistema || ''],
+  ['SubSistema',             d => d.subsistema || ''],
+  ['Ubic.',                  d => d.ubicacion || ''],
+  ['Originador',             d => d.originador || ''],
+  ['PK CAMINADOS',           d => (d.pk_inicio != null && d.pk_termino != null) ? ('PK ' + d.pk_inicio + '-' + d.pk_termino) : ''],
+  ['Descripción',            d => d.descripcion || ''],
+  ['Fecha Emisión',          d => fmtCorta(d.fecha_emision)],
+  ['Estado',                 d => d.estado_visual || d.estado || ''],
+  ['Fecha Comp. Cierre',     d => fmtCorta(d.fecha_compromiso_cierre)],
+  ['TURNO',                  d => d.turno || ''],
+  /* --- lo que el Excel manual no tenia --- */
+  ['Código caminata',        d => d.codigo_caminata || ''],
+  ['Metros caminados',       d => (d.metros_caminados != null ? d.metros_caminados : '')],
+  ['Fecha real de cierre',   d => fmtCorta(d.fecha_real_cierre)],
+  ['Días de atraso',         d => (d.dias_atraso != null ? d.dias_atraso : '')],
+  ['Prioridad',              d => d.prioridad || ''],
+];
+
+function celdaCSV(v){
+  const s = (v == null ? '' : String(v));
+  /* Excel en Chile separa con punto y coma. Se entrecomilla si el texto
+     trae el separador, comillas o un salto de linea. */
+  return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportarCSV(){
+  const nota = document.getElementById('notaExp');
+  if(!DT_CACHE.length){
+    nota.textContent = 'Todavía no hay DT cargados para exportar.';
+    return;
+  }
+  const enc = document.createElement('div');
+  const titulos = COLS.map(c => { enc.innerHTML = c[0]; return celdaCSV(enc.textContent); }).join(';');
+  const filas = DT_CACHE.map((d, i) => COLS.map(c => celdaCSV(c[1](d, i))).join(';'));
+
+  /* El ﻿ del principio es lo que hace que Excel respete los acentos.
+     Sin eso, "Descripción" llega como "DescripciÃ³n". */
+  const csv = '﻿' + [titulos].concat(filas).join('\r\n');
+
+  const hoy = new Date();
+  const stamp = hoy.getFullYear() + String(hoy.getMonth()+1).padStart(2,'0') + String(hoy.getDate()).padStart(2,'0');
+  const nombre = 'DT_' + (CONTRATO && CONTRATO.codigo ? CONTRATO.codigo.replace(/[^A-Za-z0-9-]/g,'') : 'QCDigital') + '_' + stamp + '.csv';
+
+  try {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nombre;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    nota.textContent = 'Descargado: ' + nombre + ' · ' + DT_CACHE.length + ' DT';
+  } catch(e){
+    nota.textContent = 'No se pudo descargar en este navegador. Ábrela desde Chrome o Safari.';
+  }
+}
+
 function fmtCorta(iso){ if(!iso) return ''; const [y,m,d] = iso.split('-'); return d+'/'+m+'/'+y.slice(2); }
 
 function filaHTML(r){
@@ -680,6 +763,7 @@ async function cargarTodo(){
   document.getElementById('hDetalle').textContent =
     ce + ' de ' + dts.length + ' DT cerrados · ' + caminatas.size + ' caminata(s) este mes';
 
+  DT_CACHE = dts;
   pintarGrafico(dts);
   pintarFrentes(dts);
 
