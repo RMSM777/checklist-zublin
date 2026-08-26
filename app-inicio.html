@@ -115,6 +115,72 @@
     font-family:inherit;
   }
 
+
+  /* ---------- Lista de herramientas ---------- */
+  .lista-herr{ display:flex; flex-direction:column; gap:7px; }
+  .nota-herr{ font-size:12px; color:var(--tenue); margin:-4px 0 9px; line-height:1.45; }
+  .herr{
+    background:var(--tarjeta); border:1px solid var(--linea); border-radius:11px;
+    padding:11px 13px; display:flex; align-items:center; gap:11px;
+    text-decoration:none; color:inherit;
+  }
+  .herr .num{ font-size:10.5px; font-weight:800; color:var(--tenue);
+              font-variant-numeric:tabular-nums; flex:none; width:16px; }
+  .herr .emo{ font-size:18px; flex:none; line-height:1; }
+  .herr .cuerpo{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .herr .nom{ font-size:13.5px; font-weight:600; line-height:1.3; }
+  .herr .sub{ font-size:11px; color:var(--tenue); line-height:1.35; margin-top:1px; }
+  .herr .flecha{ color:var(--tenue); font-size:20px; flex:none; line-height:1; }
+  .herr.destacada{ border-color:var(--acento); border-left:3px solid var(--acento); }
+  .herr.destacada .num{ color:var(--acento); }
+
+
+  /* ---------- Hero de la vista general ---------- */
+  .hero-fila{ display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
+  .hero-der{ text-align:right; }
+  .hero .cifra.chica{ font-size:24px; }
+  .barra{ height:6px; background:var(--linea); border-radius:99px; overflow:hidden; margin:11px 0 4px; }
+  .barra-fill{ height:100%; width:0%; background:var(--ok); border-radius:99px; transition:width .5s ease; }
+  @media (prefers-reduced-motion: reduce){ .barra-fill{ transition:none; } }
+
+  .tiles{ grid-template-columns:repeat(4,1fr) !important; }
+  .tile.to{ border-top-color:var(--tenue); }
+  .tile .n{ font-size:21px !important; }
+  .tile .l{ font-size:9px !important; }
+
+  /* ---------- Gráfico ---------- */
+  .tarjeta-graf{ background:var(--tarjeta); border:1px solid var(--linea); border-radius:12px; padding:13px 12px 9px; }
+  #grafWrap{ overflow-x:auto; }
+  #grafDias{ width:100%; min-width:290px; height:auto; display:block; }
+  .graf-pie{ font-size:11px; color:var(--tenue); text-align:center; margin-top:6px; min-height:15px; }
+
+  /* ---------- Lista de herramientas ---------- */
+  .lista-herr{ display:flex; flex-direction:column; gap:7px; }
+  .nota-herr{ font-size:12px; color:var(--tenue); margin:-4px 0 9px; line-height:1.45; }
+  .herr{
+    background:var(--tarjeta); border:1px solid var(--linea); border-radius:11px;
+    padding:11px 13px; display:flex; align-items:center; gap:11px;
+    text-decoration:none; color:inherit;
+  }
+  .herr .num{ font-size:10.5px; font-weight:800; color:var(--tenue);
+              font-variant-numeric:tabular-nums; flex:none; width:16px; }
+  .herr .emo{ font-size:18px; flex:none; line-height:1; }
+  .herr .cuerpo{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .herr .nom{ font-size:13.5px; font-weight:600; line-height:1.3; }
+  .herr .sub{ font-size:11px; color:var(--tenue); line-height:1.35; margin-top:1px; }
+  .herr .flecha{ color:var(--tenue); font-size:20px; flex:none; line-height:1; }
+  .herr.destacada{ border-color:var(--acento); border-left:3px solid var(--acento); padding:13px; }
+  .herr.destacada .emo{ font-size:20px; }
+
+  /* ---------- Piwii ---------- */
+  .piwii-caja{ background:var(--tarjeta); border:1px solid var(--linea); border-radius:14px;
+               padding:28px 20px; text-align:center; }
+  .piwii-emo{ font-size:38px; line-height:1; }
+  .piwii-nom{ font-size:22px; font-weight:800; margin-top:8px; }
+  .piwii-sub{ font-size:12px; color:var(--tenue); letter-spacing:.04em; text-transform:uppercase;
+              font-weight:600; margin-top:2px; }
+  .piwii-txt{ font-size:13.5px; color:var(--tenue); line-height:1.5; margin:12px auto 0; max-width:34ch; }
+
   /* ---------- Perfil ---------- */
   .perfil-fila{
     background:var(--tarjeta); border:1px solid var(--linea); border-radius:11px;
@@ -204,53 +270,84 @@
   <div class="panel act" id="p-inicio">
     <section>
       <div class="hero">
-        <div class="rot">Caminado este mes</div>
-        <div class="cifra" id="hMetros">—<small>m</small></div>
-        <div class="detalle" id="hDetalle">Cargando…</div>
+        <div class="hero-fila">
+          <div>
+            <div class="rot">Cierre del contrato</div>
+            <div class="cifra" id="hPct">&mdash;<small>%</small></div>
+          </div>
+          <div class="hero-der">
+            <div class="rot">Caminado este mes</div>
+            <div class="cifra chica" id="hMetros">&mdash;<small>m</small></div>
+          </div>
+        </div>
+        <div class="barra"><div class="barra-fill" id="hBarra"></div></div>
+        <div class="detalle" id="hDetalle">Cargando&hellip;</div>
       </div>
 
       <div class="tiles">
-        <div class="tile ab"><div class="n" id="tAb">—</div><div class="l">Abiertos</div></div>
-        <div class="tile at"><div class="n" id="tAt">—</div><div class="l">Atrasados</div></div>
-        <div class="tile ce"><div class="n" id="tCe">—</div><div class="l">Cerrados</div></div>
+        <div class="tile to"><div class="n" id="tTo">&mdash;</div><div class="l">Total</div></div>
+        <div class="tile ab"><div class="n" id="tAb">&mdash;</div><div class="l">Abiertos</div></div>
+        <div class="tile at"><div class="n" id="tAt">&mdash;</div><div class="l">Atrasados</div></div>
+        <div class="tile ce"><div class="n" id="tCe">&mdash;</div><div class="l">Cerrados</div></div>
       </div>
+    </section>
 
+    <section style="padding-top:4px;">
+      <p class="titulillo">DT emitidos por d&iacute;a</p>
+      <div class="tarjeta-graf">
+        <div id="grafWrap"><svg id="grafDias" viewBox="0 0 320 120" role="img"
+             aria-label="DT emitidos por dia en las ultimas dos semanas"></svg></div>
+        <div class="graf-pie" id="grafPie">&nbsp;</div>
+      </div>
+    </section>
+
+    <section style="padding-top:4px;">
+      <p class="titulillo">Frentes con m&aacute;s DT abiertos</p>
+      <div class="lista" id="listaFrentes"><div class="vacio">Cargando&hellip;</div></div>
+    </section>
+
+    <section style="padding-top:4px;">
+      <p class="titulillo">&Uacute;ltimos DT</p>
+      <div class="lista" id="listaDT"><div class="vacio">Cargando&hellip;</div></div>
       <a class="btn-grande" href="ciz-dt-conectado.html">Abrir o cerrar un DT</a>
     </section>
-
-    <section style="padding-top:0;">
-      <p class="titulillo">Últimos DT</p>
-      <div class="lista" id="listaDT"><div class="vacio">Cargando…</div></div>
-    </section>
   </div>
 
-  <!-- ============ REPORTES ============ -->
   <div class="panel" id="p-reportes">
     <section>
-      <p class="titulillo">Herramientas</p>
-      <div class="lista">
-        <a class="fila" href="ciz-dt-conectado.html" style="text-decoration:none;color:inherit;">
-          <span class="punch">DT</span>
-          <span class="cuerpo"><span class="desc">Caminatas · Detalles de Terminación</span>
-          <span class="meta" style="display:block;">Abrir y cerrar DT · funciona sin señal</span></span>
-        </a>
-        <a class="fila" href="home.html" style="text-decoration:none;color:inherit;">
-          <span class="punch">···</span>
-          <span class="cuerpo"><span class="desc">Todas las demás herramientas</span>
-          <span class="meta" style="display:block;">Checklists, reportes e informes de la suite</span></span>
-        </a>
+      <p class="titulillo">Herramienta con base de datos</p>
+      <div class="lista-herr">
+        <a class="herr destacada" href="ciz-dt-conectado.html"><span class="emo">&#128506;</span><span class="cuerpo"><span class="nom">Caminatas &middot; Detalles de Terminaci&oacute;n</span><span class="sub">Abrir y cerrar DT &middot; base compartida &middot; funciona sin se&ntilde;al</span></span><span class="flecha">&rsaquo;</span></a>
+      </div>
+
+      <p class="titulillo" style="margin-top:20px;">Los 11 reportes de terreno</p>
+      <p class="nota-herr">Generan su documento y lo entregan al momento. No necesitan cuenta ni conexi&oacute;n.</p>
+      <div class="lista-herr">
+        <a class="herr" href="checklist-camioneta.html"><span class="num">01</span><span class="emo">&#128663;</span><span class="cuerpo"><span class="nom">Checklist camioneta</span><span class="sub">Inicio de turno</span></span><span class="flecha">&rsaquo;</span></a>
+        <a class="herr" href="reporte-diario.html"><span class="num">02</span><span class="emo">&#128203;</span><span class="cuerpo"><span class="nom">Reporte diario</span><span class="sub">Registro de actividades del d&iacute;a</span></span><span class="flecha">&rsaquo;</span></a>
+        <a class="herr" href="reporte-dt-index.html"><span class="num">03</span><span class="emo">&#128196;</span><span class="cuerpo"><span class="nom">Reporte DT</span><span class="sub">Control de DT desde el export de SIC3PRO</span></span><span class="flecha">&rsaquo;</span></a>
+        <a class="herr" href="informe-procesos-constructivos.html"><span class="num">04</span><span class="emo">&#127959;</span><span class="cuerpo"><span class="nom">Informe procesos constructivos</span><span class="sub">Seguimiento de obra</span></span><span class="flecha">&rsaquo;</span></a>
+        <a class="herr" href="listado-firmas-digitales.html"><span class="num">05</span><span class="emo">&#9997;</span><span class="cuerpo"><span class="nom">Listado de firmas digitales</span><span class="sub">Registro de charla / reuni&oacute;n</span></span><span class="flecha">&rsaquo;</span></a>
+        <a class="herr" href="reporte-programa-semanal.html"><span class="num">06</span><span class="emo">&#128200;</span><span class="cuerpo"><span class="nom">Adherencia programa semanal DT</span><span class="sub">Cumplimiento y adherencia al programa</span></span><span class="flecha">&rsaquo;</span></a>
+        <a class="herr" href="caminata-avance-index.html"><span class="num">07</span><span class="emo">&#128506;</span><span class="cuerpo"><span class="nom">Reporte gerencial de avance</span><span class="sub">Caminata de avance (tronaduras / mensura)</span></span><span class="flecha">&rsaquo;</span></a>
+        <a class="herr" href="ic-mi-plano-index.html"><span class="num">08</span><span class="emo">&#128207;</span><span class="cuerpo"><span class="nom">Avance caminado IC Miner&iacute;a</span><span class="sub">Reporte de avance sobre plano</span></span><span class="flecha">&rsaquo;</span></a>
+        <a class="herr" href="cambio-turno-general.html"><span class="num">09</span><span class="emo">&#128260;</span><span class="cuerpo"><span class="nom">Cambio de turno general</span><span class="sub">Ciclo 10 d&iacute;as, DT y protocolizaci&oacute;n</span></span><span class="flecha">&rsaquo;</span></a>
+        <a class="herr" href="reporte-pnc-rnc-index.html"><span class="num">10</span><span class="emo">&#128202;</span><span class="cuerpo"><span class="nom">Reporte de PNC y RNC</span><span class="sub">Dashboard y detalle desde SIC3PRO</span></span><span class="flecha">&rsaquo;</span></a>
+        <a class="herr" href="reporte-liberacion-frente.html"><span class="num">11</span><span class="emo">&#9878;</span><span class="cuerpo"><span class="nom">Liberaci&oacute;n de frente</span><span class="sub">Protocolo de recepci&oacute;n de fortificaci&oacute;n</span></span><span class="flecha">&rsaquo;</span></a>
       </div>
     </section>
   </div>
 
-  <!-- ============ HUD ============ -->
-  <div class="panel" id="p-hud">
+  <!-- ============ PIWII ============ -->
+  <div class="panel" id="p-piwii">
     <section>
-      <p class="titulillo">HUD · Panel</p>
-      <div class="vacio">
-        El panel se construye cuando cada familia tenga quién la alimente.<br><br>
-        Hoy sólo <b>Detalles de Terminación</b> tiene datos reales; Inspección, Materiales
-        y Laboratorio todavía no tienen dónde capturarlos, así que saldrían en cero.
+      <div class="piwii-caja">
+        <div class="piwii-emo">&#10024;</div>
+        <div class="piwii-nom">Piwii</div>
+        <div class="piwii-sub">Asistente QC Digital</div>
+        <p class="piwii-txt">Ayuda a completar los reportes y a resolver dudas de calidad
+        sin tener que buscar en el procedimiento.</p>
+        <a class="btn-grande" href="piwii.html" style="margin-top:14px;">Abrir Piwii</a>
       </div>
     </section>
   </div>
@@ -279,9 +376,9 @@
   <button data-p="reportes" onclick="irA('reportes')">
     <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6M10 17h6"/></svg>
     Reportes</button>
-  <button data-p="hud" onclick="irA('hud')">
-    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11"/><path d="M12 20V4"/><path d="M19 20v-6"/></svg>
-    HUD</button>
+  <button data-p="piwii" onclick="irA('piwii')">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>
+    Piwii</button>
   <button data-p="perfil" onclick="irA('perfil')">
     <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
     Perfil</button>
@@ -405,6 +502,115 @@ async function aplicarMarca(){
   if(cont){ cont.innerHTML = ''; try { MARCA.crearSelector('selectorEmpresa'); } catch(e){} }
 }
 
+
+/* ======================================================================
+   VISTA GENERAL
+   Se calcula sobre los DT que ya se leyeron, sin pedir nada extra a la
+   base: asi la pantalla sigue sirviendo aunque se abra sin senal con los
+   datos que alcanzaron a bajar.
+   ====================================================================== */
+
+function pintarGrafico(dts){
+  const svg = document.getElementById('grafDias');
+  const pie = document.getElementById('grafPie');
+  if(!svg) return;
+
+  /* Ultimos 14 dias, contando por fecha de emision */
+  const dias = [];
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  for(let i=13; i>=0; i--){
+    const d = new Date(hoy); d.setDate(d.getDate()-i);
+    const iso = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    dias.push({ iso, dia: d.getDate(), n: 0 });
+  }
+  const idx = {}; dias.forEach((d,i)=> idx[d.iso] = i);
+  let fuera = 0;
+  dts.forEach(t => {
+    const f = (t.fecha_emision || '').slice(0,10);
+    if(f in idx) dias[idx[f]].n++; else if(f) fuera++;
+  });
+
+  const max = Math.max(1, ...dias.map(d=>d.n));
+  const W = 320, H = 120, top = 8, bot = 22, izq = 4, der = 4;
+  const alto = H - top - bot;
+  const paso = (W - izq - der) / dias.length;
+  const ancho = Math.max(6, paso - 5);
+
+  let g = '';
+  /* Rejilla discreta: dos lineas de referencia, nada mas */
+  [0.5, 1].forEach(f => {
+    const y = top + alto * (1 - f);
+    g += '<line x1="'+izq+'" y1="'+y.toFixed(1)+'" x2="'+(W-der)+'" y2="'+y.toFixed(1)+
+         '" stroke="currentColor" stroke-width="1" opacity=".10"/>';
+  });
+
+  dias.forEach((d,i) => {
+    const x = izq + i*paso + (paso-ancho)/2;
+    const h = d.n === 0 ? 0 : Math.max(3, alto * d.n / max);
+    const y = top + alto - h;
+    if(h > 0){
+      const r = Math.min(3, h/2, ancho/2);
+      g += '<path d="M'+x.toFixed(1)+' '+(y+h).toFixed(1)+
+           ' L'+x.toFixed(1)+' '+(y+r).toFixed(1)+
+           ' Q'+x.toFixed(1)+' '+y.toFixed(1)+' '+(x+r).toFixed(1)+' '+y.toFixed(1)+
+           ' L'+(x+ancho-r).toFixed(1)+' '+y.toFixed(1)+
+           ' Q'+(x+ancho).toFixed(1)+' '+y.toFixed(1)+' '+(x+ancho).toFixed(1)+' '+(y+r).toFixed(1)+
+           ' L'+(x+ancho).toFixed(1)+' '+(y+h).toFixed(1)+' Z" fill="var(--acento)"/>';
+      g += '<text x="'+(x+ancho/2).toFixed(1)+'" y="'+(y-2.5).toFixed(1)+
+           '" text-anchor="middle" font-size="7.5" font-weight="700" fill="currentColor" opacity=".55">'+d.n+'</text>';
+    }
+    /* zona sensible al toque, mas ancha que la barra */
+    g += '<rect x="'+(izq+i*paso).toFixed(1)+'" y="'+top+'" width="'+paso.toFixed(1)+'" height="'+alto+
+         '" fill="transparent" style="cursor:pointer" data-d="'+d.iso+'" data-n="'+d.n+'"></rect>';
+    if(i % 2 === 0){
+      g += '<text x="'+(x+ancho/2).toFixed(1)+'" y="'+(H-7)+
+           '" text-anchor="middle" font-size="8" fill="currentColor" opacity=".45">'+d.dia+'</text>';
+    }
+  });
+
+  svg.innerHTML = g;
+  svg.querySelectorAll('rect[data-d]').forEach(r => {
+    const mostrar = () => {
+      const [y,m,dd] = r.dataset.d.split('-');
+      pie.textContent = dd+'/'+m+' · '+r.dataset.n+' DT emitido'+(r.dataset.n==='1'?'':'s');
+    };
+    r.addEventListener('mouseenter', mostrar);
+    r.addEventListener('touchstart', mostrar, {passive:true});
+  });
+  svg.addEventListener('mouseleave', ()=>{ pie.innerHTML = base(); });
+
+  function base(){
+    const suma = dias.reduce((a,d)=>a+d.n,0);
+    return suma
+      ? 'Últimas 2 semanas: <b>'+suma+'</b> DT' + (fuera ? ' · '+fuera+' más antiguos' : '')
+      : 'Sin DT emitidos en las últimas 2 semanas' + (fuera ? ' · '+fuera+' anteriores' : '');
+  }
+  pie.innerHTML = base();
+}
+
+function pintarFrentes(dts){
+  const cont = document.getElementById('listaFrentes');
+  if(!cont) return;
+  const abiertos = dts.filter(d => (d.estado_visual || d.estado) !== 'CERRADA');
+  const m = new Map();
+  abiertos.forEach(d => {
+    const k = d.ubicacion || '(sin labor)';
+    if(!m.has(k)) m.set(k, { n:0, at:0 });
+    const v = m.get(k); v.n++;
+    if((d.estado_visual || d.estado) === 'ATRASADA') v.at++;
+  });
+  const top = [...m.entries()].sort((a,b)=> b[1].n - a[1].n).slice(0,5);
+  if(!top.length){ cont.innerHTML = '<div class="vacio">No hay DT abiertos.</div>'; return; }
+  const may = top[0][1].n;
+  cont.innerHTML = top.map(([nom,v]) =>
+    '<div class="fila"><span class="cuerpo">'
+    + '<span class="desc">'+nom+'</span>'
+    + '<span class="barra" style="margin:6px 0 0;"><span class="barra-fill" style="width:'
+    + Math.round(v.n/may*100)+'%;background:var(--alerta);display:block;height:100%"></span></span>'
+    + (v.at ? '<span class="meta" style="display:block;color:var(--critico);font-weight:600;">'+v.at+' atrasado(s)</span>' : '')
+    + '</span><span class="pill ABIERTA">'+v.n+'</span></div>').join('');
+}
+
 function fmtCorta(iso){ if(!iso) return ''; const [y,m,d] = iso.split('-'); return d+'/'+m+'/'+y.slice(2); }
 
 function filaHTML(r){
@@ -443,17 +649,23 @@ async function cargarTodo(){
         ? 'Sin señal. Al recuperar conexión se actualiza solo.'
         : 'No se pudieron leer los DT.') + '</div>';
     document.getElementById('hDetalle').textContent = 'Sin datos por ahora';
+    document.getElementById('listaFrentes').innerHTML = '<div class="vacio">Sin datos por ahora.</div>';
     return;
   }
 
   const ab = dts.filter(d => (d.estado_visual || d.estado) === 'ABIERTA').length;
   const at = dts.filter(d => (d.estado_visual || d.estado) === 'ATRASADA').length;
   const ce = dts.filter(d => d.estado === 'CERRADA').length;
+  document.getElementById('tTo').textContent = dts.length;
   document.getElementById('tAb').textContent = ab;
   document.getElementById('tAt').textContent = at;
   document.getElementById('tCe').textContent = ce;
 
-  /* Metros del mes: se cuenta cada caminata UNA vez, aunque haya dejado
+  const pct = dts.length ? Math.round(ce / dts.length * 1000) / 10 : 0;
+  document.getElementById('hPct').innerHTML = String(pct).replace('.', ',') + '<small>%</small>';
+  document.getElementById('hBarra').style.width = pct + '%';
+
+  /* Metros del mes: cada caminata cuenta UNA vez, aunque haya dejado
      varios DT. Sumar por DT multiplicaria los metros por los hallazgos. */
   const hoy = new Date();
   const mes = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0');
@@ -465,9 +677,11 @@ async function cargarTodo(){
   });
   let metros = 0; caminatas.forEach(v => metros += v);
   document.getElementById('hMetros').innerHTML = Math.round(metros) + '<small>m</small>';
-  document.getElementById('hDetalle').textContent = caminatas.size
-    ? caminatas.size + ' caminata(s) este mes · ' + dts.length + ' DT en total'
-    : 'Todavía no hay caminatas registradas este mes';
+  document.getElementById('hDetalle').textContent =
+    ce + ' de ' + dts.length + ' DT cerrados · ' + caminatas.size + ' caminata(s) este mes';
+
+  pintarGrafico(dts);
+  pintarFrentes(dts);
 
   document.getElementById('listaDT').innerHTML = dts.length
     ? dts.slice(0,6).map(filaHTML).join('')
