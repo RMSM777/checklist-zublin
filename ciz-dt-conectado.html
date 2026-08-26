@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>QC Digital - Caminatas y Detalles de Terminacion</title>
+<style>
+  :root{ --rojo:#0d1526; --gris:#f4f4f4; --borde:#ccc; --texto:#222; --verde:#2e7d32; --naranja:#F2A93B; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; margin:0; background:#e9e9e9; color:var(--texto); font-size:14px; }
+  .wrap{ max-width:720px; margin:0 auto; background:#fff; min-height:100vh; }
+  .header-rojo{ background:var(--rojo); color:#fff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; position:sticky; top:0; z-index:10; }
+  .header-rojo .logo{ display:flex; align-items:center; }
+  .header-rojo .logo img{ height:24px; display:block; }
+  .placa-logo{ background:#fff; border-radius:6px; padding:5px 9px; display:flex; align-items:center; }
+  .header-rojo .codigo{ font-size:11px; text-align:right; line-height:1.4; }
+  .header-contrato{ background:#2a2a2a; color:#eee; font-size:11px; padding:8px 16px; line-height:1.5; }
+  .titulo{ text-align:center; font-weight:700; font-size:13.5px; padding:10px; background:var(--rojo); color:#fff; }
+  .contrato{ text-align:center; font-size:12px; color:#555; padding:8px 14px; background:var(--gris); border-bottom:1px solid #ddd; line-height:1.5; }
+  section{ padding:12px 14px; }
+  .seccion-tit{ background:var(--acento); color:#fff; font-weight:700; font-size:13px; padding:6px 10px; border-radius:5px; margin:16px 0 8px; }
+  .campo{ margin-bottom:10px; }
+  .campo label{ display:block; font-size:12px; color:#555; margin-bottom:3px; font-weight:600; }
+  input,select,textarea{ width:100%; padding:9px 10px; border:1px solid var(--borde); border-radius:6px; font-size:14px; background:#fff; font-family:inherit; }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--acento); }
+  input[readonly]{ background:#f4f4f4; color:#777; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .leyenda{ font-size:11.5px; color:#666; background:var(--gris); padding:8px 10px; border-radius:6px; margin-bottom:8px; line-height:1.45; }
+  .acciones{ display:flex; gap:8px; margin-top:10px; }
+  .acciones button{ flex:1; padding:12px; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn-limpiar{ background:#eee; color:#555; }
+  .btn-generar{ background:var(--acento); color:#fff; }
+  .btn-generar:disabled{ background:#e0a3a1; cursor:not-allowed; }
+  .btn-secundario{ background:#555; color:#fff; }
+  .nota{ font-size:11.5px; color:#888; text-align:center; margin-top:8px; padding:0 6px; }
+  footer{ text-align:center; padding:16px; font-size:11px; color:#999; }
+
+  .banner-proto{ background:#fff8e1; border:1px solid #ffca28; border-radius:8px; padding:10px 12px; margin:12px 14px 0; font-size:12px; color:#7a5c00; line-height:1.5; }
+  .banner-proto b{ color:#5c4400; }
+
+  .toggle{ display:flex; gap:6px; }
+  .toggle button{ flex:1; padding:10px 4px; border:1px solid var(--borde); background:#fff; border-radius:6px; font-size:12px; font-weight:700; color:#666; cursor:pointer; }
+  .toggle button.act{ background:var(--acento); color:#fff; border-color:var(--acento); }
+  .toggle.chico button{ padding:7px 4px; font-size:11px; }
+
+  .tabs{ display:flex; gap:6px; padding:10px 14px 0; }
+  .tabs button{ flex:1; padding:10px 4px; border:1px solid var(--borde); background:#fff; border-radius:8px 8px 0 0; font-size:11.5px; font-weight:800; color:#777; cursor:pointer; border-bottom:none; }
+  .tabs button.act{ background:var(--acento); color:#fff; border-color:var(--acento); }
+  .tabpanel{ display:none; }
+  .tabpanel.act{ display:block; }
+
+  .dropzone{ border:2px dashed var(--borde); border-radius:10px; padding:16px 14px; text-align:center; color:#777; font-size:13px; cursor:pointer; transition:border-color .15s; display:block; }
+  .dropzone.ok{ border-color:var(--verde); background:#f2f9f2; color:var(--verde); font-weight:600; }
+  .dropzone input{ display:none; }
+  .estado-carga{ font-size:12px; margin-top:8px; text-align:center; color:#888; }
+  .estado-carga.err{ color:var(--peligro); font-weight:600; }
+  .estado-carga.ok{ color:var(--verde); font-weight:600; }
+
+  .kpis{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:8px 0; }
+  .kpi{ background:var(--gris); border-radius:8px; padding:10px 4px; text-align:center; border-top:3px solid #bbb; }
+  .kpi .num{ font-size:19px; font-weight:800; }
+  .kpi .lbl{ font-size:9px; color:#666; font-weight:600; margin-top:2px; letter-spacing:.3px; }
+  .kpi.total{ border-top-color:#444; }
+  .kpi.abiertas{ border-top-color:var(--naranja); } .kpi.abiertas .num{ color:#c07f10; }
+  .kpi.atrasadas{ border-top-color:var(--peligro); } .kpi.atrasadas .num{ color:var(--rojo); }
+  .kpi.cerradas{ border-top-color:var(--verde); } .kpi.cerradas .num{ color:var(--verde); }
+  .kpi.cierre{ border-top-color:var(--acento); }
+
+  .fotobtn{ display:inline-flex; align-items:center; gap:6px; background:#fff; border:1.5px dashed var(--acento); color:var(--acento); font-weight:700; font-size:12.5px; padding:10px 12px; border-radius:8px; cursor:pointer; width:100%; justify-content:center; }
+  .fotobtn input{ display:none; }
+  .galeria{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; }
+  .foto-card{ position:relative; border:1px solid #e3e3e3; border-radius:8px; overflow:hidden; background:#fafafa; }
+  .foto-card img{ width:100%; height:80px; object-fit:cover; display:block; }
+  .foto-card .peso{ font-size:8.5px; text-align:center; padding:3px 2px; background:#fff; color:#555; line-height:1.3; }
+  .foto-card .peso b{ color:var(--verde); }
+  .foto-card .quitar{ position:absolute; top:3px; right:3px; background:rgba(0,0,0,.6); color:#fff; border:none; border-radius:50%; width:18px; height:18px; font-size:11px; line-height:18px; text-align:center; cursor:pointer; padding:0; }
+
+  .tarjeta{ border:1px solid #e3e3e3; border-radius:10px; padding:10px 12px; margin-bottom:8px; background:#fff; }
+  .tarjeta .fila-top{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .tarjeta .corr{ font-weight:800; font-size:12.5px; color:var(--acento); }
+  .tarjeta .estado-pill{ font-size:10px; font-weight:800; padding:2px 8px; border-radius:20px; color:#fff; }
+  .tarjeta .estado-pill.ABIERTA{ background:var(--naranja); color:#5c3d00; }
+  .tarjeta .estado-pill.CERRADA{ background:var(--verde); }
+  .tarjeta .desc{ font-size:12.5px; color:#444; margin:5px 0 3px; }
+  .tarjeta .meta{ font-size:10.5px; color:#888; }
+  .tarjeta .atraso{ font-size:10.5px; font-weight:700; margin-top:4px; }
+  .tarjeta .atraso.si{ color:var(--peligro); }
+  .tarjeta .atraso.no{ color:var(--verde); }
+  .vacio{ font-size:12px; color:#999; text-align:center; padding:14px 8px; }
+
+  .cam-card{ border:1.5px solid var(--acento); border-radius:10px; padding:8px 10px 10px; margin-bottom:12px; background:#fff8f8; }
+  .cam-tit{ font-size:11.5px; font-weight:800; color:var(--acento); margin-bottom:6px; line-height:1.4; }
+  .tarjeta-chica{ border-top:1px dashed #e8c9c8; padding:6px 0 0; margin-top:6px; }
+  .tarjeta-chica .fila-top{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .tarjeta-chica .corr{ font-weight:800; font-size:11.5px; color:var(--acento); }
+  .tarjeta-chica .desc{ font-size:12px; color:#444; margin:2px 0; }
+
+  .pk-preview{ background:var(--gris); border-radius:6px; padding:8px 10px; font-size:12.5px; text-align:center; font-weight:700; margin-top:2px; }
+  .pk-preview b{ color:var(--acento); }
+
+  .labor-wrap{ position:relative; }
+  .labor-resultados{ position:absolute; z-index:20; left:0; right:0; top:100%; background:#fff; border:1px solid var(--borde); border-top:none; border-radius:0 0 8px 8px; max-height:220px; overflow-y:auto; box-shadow:0 6px 14px rgba(0,0,0,.12); display:none; }
+  .labor-resultados.act{ display:block; }
+  .labor-item{ padding:8px 10px; border-bottom:1px solid #eee; cursor:pointer; font-size:12px; }
+  .labor-item:last-child{ border-bottom:none; }
+  .labor-item:hover, .labor-item.hover{ background:var(--gris); }
+  .labor-item b{ color:var(--acento); display:block; font-size:11.5px; }
+  .labor-info{ background:#f2f9f2; border:1px solid #cfe8cf; border-radius:6px; padding:8px 10px; font-size:11px; color:#3a5a3a; margin-top:6px; line-height:1.5; display:none; }
+  .labor-info.act{ display:block; }
+  .labor-manual-link{ font-size:11px; color:#888; display:inline-block; margin-top:5px; cursor:pointer; text-decoration:underline; }
+  .labor-chip{ display:inline-flex; align-items:center; gap:6px; background:var(--verde); color:#fff; font-size:11.5px; font-weight:700; padding:6px 10px; border-radius:6px; margin-top:4px; }
+  .labor-chip button{ background:none; border:none; color:#fff; font-size:14px; cursor:pointer; padding:0; line-height:1; }
+
+  .hallazgo-mini{ display:flex; justify-content:space-between; align-items:center; gap:8px; border:1px solid #e3e3e3; border-radius:8px; padding:7px 10px; margin-bottom:6px; background:#fafafa; }
+  .hallazgo-mini .htxt{ font-size:12px; color:#333; }
+  .hallazgo-mini .htxt b{ color:var(--acento); }
+  .hallazgo-mini button{ background:none; border:none; color:#999; font-size:16px; cursor:pointer; padding:0 4px; }
+  .contador-hallazgos{ font-size:11.5px; color:#666; margin:8px 0 6px; font-weight:700; }
+
+  .detalle-sel{ border:1px solid #e3e3e3; border-radius:10px; padding:10px 12px; margin-bottom:10px; background:var(--gris); }
+  .detalle-sel .thumbs{ display:flex; gap:6px; margin-top:6px; }
+  .detalle-sel .thumbs img{ width:52px; height:52px; object-fit:cover; border-radius:6px; border:1px solid #ddd; }
+
+  .miniKpi{ display:flex; gap:8px; margin:10px 0 4px; }
+  .miniKpi div{ flex:1; background:var(--gris); border-radius:8px; padding:7px 4px; text-align:center; }
+  .miniKpi .n{ font-weight:800; font-size:15px; }
+  .miniKpi .l{ font-size:9px; color:#777; font-weight:600; }
+
+  .punto{ border:1px solid #e3e3e3; border-radius:10px; padding:10px 12px; margin-bottom:14px; }
+  .punto-tit{ font-size:13px; font-weight:800; color:var(--acento); margin:0 0 2px; }
+  .punto-sub{ font-size:11px; color:#888; margin:0 0 8px; }
+  .donut-wrap{ display:flex; align-items:center; gap:16px; }
+  .donut-leg{ font-size:11.5px; flex:1; }
+  .donut-leg div{ display:flex; align-items:center; gap:6px; margin-bottom:5px; }
+  .donut-leg span.dot{ width:10px; height:10px; border-radius:3px; display:inline-block; flex-shrink:0; }
+  table.mini{ width:100%; border-collapse:collapse; font-size:11.5px; margin-top:4px; }
+  table.mini th{ background:var(--acento); color:#fff; padding:5px 6px; text-align:left; font-size:10.5px; }
+  table.mini td{ padding:5px 6px; border-bottom:1px solid #eee; }
+  table.mini td.num, table.mini th.num{ text-align:right; }
+
+  /* ---------- Login ---------- */
+  .login-capa{ position:fixed; inset:0; background:#e9e9e9; z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .login-caja{ background:#fff; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,.18); width:100%; max-width:380px; overflow:hidden; }
+  .login-top{ background:var(--rojo); padding:16px; text-align:center; }
+  .login-top img{ height:26px; background:#fff; border-radius:6px; padding:5px 9px; }
+  .login-cuerpo{ padding:20px 18px 22px; }
+  .login-cuerpo h2{ margin:0 0 4px; font-size:16px; }
+  .login-cuerpo .sub{ font-size:12px; color:#777; margin:0 0 16px; line-height:1.5; }
+  .login-cuerpo .campo{ margin-bottom:12px; }
+  .login-btn{ width:100%; padding:13px; border:none; border-radius:8px; background:var(--rojo); color:#fff; font-size:15px; font-weight:700; cursor:pointer; }
+  .login-btn:disabled{ background:#e0a3a1; cursor:not-allowed; }
+  .login-msg{ font-size:12.5px; margin-top:12px; padding:9px 11px; border-radius:6px; display:none; line-height:1.5; }
+  .login-msg.err{ display:block; background:#fdecea; color:#a3201c; border:1px solid #f5c6c3; }
+  .login-msg.info{ display:block; background:var(--gris); color:#666; border:1px solid var(--borde); }
+  .login-pie{ font-size:10.5px; color:#999; text-align:center; padding:0 18px 16px; line-height:1.5; }
+
+  /* ---------- Barra de estado de conexion ---------- */
+  .barra-estado{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:7px 14px; font-size:11.5px; background:#f0f7f0; border-bottom:1px solid #dbe8db; color:#2b5c2e; }
+  .barra-estado.offline{ background:#fff4e5; border-bottom-color:#f0dcc0; color:#8a5a08; }
+  .barra-estado .punto{ width:8px; height:8px; border-radius:50%; background:var(--verde); flex:none; }
+  .barra-estado.offline .punto{ background:var(--naranja); }
+  .barra-estado .quien{ font-weight:700; }
+  .barra-estado .sep{ opacity:.4; }
+  .barra-estado .crece{ flex:1; }
+  .barra-estado button{ border:1px solid currentColor; background:transparent; color:inherit; font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:5px; cursor:pointer; font-family:inherit; }
+  .barra-estado button:disabled{ opacity:.5; cursor:not-allowed; }
+  .pend-chip{ background:var(--naranja); color:#5c3d00; font-weight:800; padding:2px 8px; border-radius:20px; font-size:10.5px; }
+
+  .pill-sync{ font-size:9.5px; font-weight:800; padding:2px 7px; border-radius:20px; background:var(--naranja); color:#5c3d00; margin-left:6px; }
+  .aviso-linea{ font-size:11.5px; padding:8px 10px; border-radius:6px; margin-bottom:8px; line-height:1.45; display:none; }
+  .aviso-linea.ok{ display:block; background:#f2f9f2; color:#2b5c2e; border:1px solid #cfe6d0; }
+  .aviso-linea.err{ display:block; background:#fdecea; color:#a3201c; border:1px solid #f5c6c3; }
+
+  /* La marca la aplica marca.js en tiempo de ejecucion:
+       --rojo   -> color de fondo del header (rojo en Zublin, navy en QC Digital)
+       --acento -> color de acento de la empresa (rojo / naranja)
+     --peligro NO sigue a la marca: "atrasada" y los errores tienen que
+     verse rojos aunque la empresa activa sea azul. */
+  :root{ --acento:#f5851f; --peligro:#C62828; }
+
+  #logoImg, #logoLogin{ max-height:24px; display:block; }
+  #logoImg:not([src]), #logoLogin:not([src]){ display:none; }
+  #logoLogin{ max-height:26px; background:#fff; border-radius:6px; padding:5px 9px; margin:0 auto; }
+
+  /* marca.js pinta el selector con estilos en linea pensados para un
+     header oscuro. Aqui vive en una barra clara, asi que hay que
+     forzarlos para que se lea. */
+  #selectorEmpresa{ display:inline-flex; align-items:center; gap:5px; }
+  #selectorEmpresa label{
+    color:inherit !important; font-size:10px !important; font-weight:700 !important;
+    display:inline !important; margin:0 !important; opacity:.75; white-space:nowrap;
+  }
+  #selectorEmpresa select{
+    width:auto !important; font-size:10.5px !important; padding:3px 6px !important;
+    border-radius:5px !important; border:1px solid currentColor !important;
+    background:transparent !important; color:inherit !important;
+    font-family:inherit !important; font-weight:700 !important;
+  }
+  #selectorEmpresa select option{ color:#222; background:#fff; }
+
+  .aviso-plantilla{
+    background:#fff8e1; border:1px solid #ffca28; color:#7a5c00;
+    font-size:11.5px; padding:8px 14px; line-height:1.5; display:none;
+  }
+  .aviso-plantilla.ver{ display:block; }
+</style>
+</head>
+<script src="marca.js"></script>
+<body>
+
+<div class="login-capa" id="loginCapa">
+  <div class="login-caja">
+    <div class="login-top"><img id="logoLogin" alt=""></div>
+    <div class="login-cuerpo">
+      <h2 id="lgTitulo">Caminatas &middot; DT</h2>
+      <p class="sub" id="lgSub">Ingresa con el correo registrado en el sistema.</p>
+      <div class="campo"><label>Correo</label><input id="lg_mail" type="email" autocomplete="username" placeholder="nombre@correo.cl"></div>
+      <div class="campo"><label>Contrase&ntilde;a</label><input id="lg_pass" type="password" autocomplete="current-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"></div>
+      <button class="login-btn" id="lg_btn" onclick="entrar()">Entrar</button>
+      <div class="login-msg" id="lg_msg"></div>
+    </div>
+    <div class="login-pie" id="lgPie">&nbsp;</div>
+  </div>
+</div>
+<div class="wrap">
+  <div class="header-rojo">
+    <div class="logo"><span class="placa-logo"><img id="logoImg" alt=""></span></div>
+    <div class="codigo" id="hdrCodigo">&nbsp;</div>
+  </div>
+  <div class="header-contrato" id="hdrContrato">&nbsp;</div>
+  <div class="titulo" id="hdrTitulo">CAMINATAS &middot; DETALLES DE TERMINACI&Oacute;N</div>
+
+<div class="barra-estado" id="barraEstado">
+    <span class="punto"></span>
+    <span id="be_estado">Conectado</span>
+    <span class="sep">&middot;</span>
+    <span class="quien" id="be_quien">&mdash;</span>
+    <span class="crece"></span>
+    <span id="be_pend"></span>
+    <span id="selectorEmpresa"></span>
+    <button id="be_sync" onclick="sincronizarAhora()" style="display:none;">Sincronizar</button>
+    <button onclick="salir()">Salir</button>
+  </div>
+
+  <div class="aviso-plantilla" id="avisoPlantilla">Modo plantilla (QC Digital): sin datos de contrato cargados. Elige la empresa en el selector de arriba.</div>
+
+  <div class="tabs">
+    <button class="tabbtn act" data-tab="abrir">ABRIR DT</button>
+    <button class="tabbtn" data-tab="cerrar">CERRAR DT</button>
+    <button class="tabbtn" data-tab="dash">DASHBOARD KPI</button>
+  </div>
+
+  <!-- =================== TAB 1: ABRIR DT (por caminata) =================== -->
+  <div class="tabpanel act" id="tab-abrir">
+    <section style="padding-top:10px;">
+      <div class="leyenda">Una caminata suele dejar varios hallazgos, no uno solo. Primero llena los datos de <b>la caminata</b> (una vez); despu&eacute;s agrega cada hallazgo a la lista de abajo. Ambos identificadores los asigna <b>la base de datos</b>, no este tel&eacute;fono: el <b>N&deg; Punch</b> (correlativo simple, el del d&iacute;a a d&iacute;a) y el <b>c&oacute;digo CIZ de caminata</b> del inspector, que es el mismo para todos los hallazgos de esta caminata (ej. RMSM-CIZ-0001) y sube a RMSM-CIZ-0002 al pasar a otra labor.</div>
+
+      <div class="grid2">
+        <div class="campo"><label>Fecha de la caminata</label><input id="a_fecha" type="date"></div>
+        <div class="campo"><label>Turno</label>
+          <select id="a_turno"><option value="">&mdash;</option><option value="G3">G3</option><option value="G4">G4</option></select>
+        </div>
+      </div>
+      <div class="campo labor-wrap">
+        <label>Labor (busca por c&oacute;digo o nombre &mdash; ej: RAC-A-01, N52, C-51)</label>
+        <input id="a_laborBuscar" type="text" placeholder="Escribe para buscar en las 146 labores del WBS..." autocomplete="off">
+        <div class="labor-resultados" id="a_laborResultados"></div>
+        <div class="labor-info" id="a_laborInfo"></div>
+        <span class="labor-manual-link" id="a_laborManualLink" onclick="activarLaborManual()">&iquest;No aparece la labor? Escribirla a mano</span>
+        <input id="a_laborManualInput" type="text" placeholder="Ej: RAC-A-01 / N52 (labor nueva, a&uacute;n no est&aacute; en el WBS)" style="display:none; margin-top:6px;">
+      </div>
+      <div class="campo"><label>Iniciales inspector(es)</label><input id="a_iniciales" type="text" placeholder="Ej: CF/JC" style="text-transform:uppercase"></div>
+      <div class="grid2">
+        <div class="campo"><label>PK inicio (m)</label><input id="a_pkini" type="number" step="1" placeholder="Ej: 52"></div>
+        <div class="campo"><label>PK t&eacute;rmino (m)</label><input id="a_pkfin" type="number" step="1" placeholder="Ej: 126"></div>
+      </div>
+      <div class="pk-preview" id="a_pkPreview">Metros caminados: <b>--</b></div>
+    </section>
+
+    <section>
+      <div class="seccion-tit">Hallazgos de esta caminata</div>
+      <div class="grid2">
+        <div class="campo"><label>Prioridad</label>
+          <select id="h_prioridad">
+            <option value="P1">P1</option><option value="P2" selected>P2</option>
+            <option value="P3">P3</option><option value="P4">P4</option><option value="P5">P5</option>
+          </select>
+        </div>
+        <div class="campo"><label>Fecha compromiso de cierre</label><input id="h_fcompromiso" type="date"></div>
+      </div>
+      <div class="campo"><label>Descripci&oacute;n del hallazgo</label><textarea id="h_desc" rows="2" placeholder="Ej: Parada 12, perno 3 suelto"></textarea></div>
+
+      <div class="leyenda">Foto <b>opcional</b>: si en el momento no hay buena luz, señal o tiempo para sacarla y comprimirla, se puede dejar sin foto y seguir &mdash; no bloquea el guardado.</div>
+      <div class="toggle chico" id="h_calidadT">
+        <button data-v="baja" class="act">BAJA (recomendada)</button>
+        <button data-v="media">MEDIA</button>
+        <button data-v="alta">ALTA</button>
+      </div>
+      <label class="fotobtn" style="margin-top:10px;">
+        &#128247; Agregar foto del hallazgo (opcional)
+        <input type="file" id="h_fotoInput" accept="image/*" capture="environment" multiple>
+      </label>
+      <div class="galeria" id="h_galeria"></div>
+
+      <div class="acciones" style="margin-top:12px;">
+        <button class="btn-secundario" onclick="agregarHallazgo()">+ Agregar hallazgo a la lista</button>
+      </div>
+
+      <div class="contador-hallazgos" id="h_contador">Sin hallazgos agregados todav&iacute;a.</div>
+      <div id="h_lista"></div>
+    </section>
+
+    <section>
+      <div class="aviso-linea" id="a_aviso"></div>
+      <div class="aviso-linea" id="c_aviso"></div>
+        <div class="acciones">
+        <button class="btn-limpiar" onclick="limpiarCaminata()">Limpiar todo</button>
+        <button class="btn-generar" id="btnGuardarCaminata" onclick="guardarCaminata()" disabled>Guardar caminata</button>
+      </div>
+      <div class="nota">Esto crea una fila de caminata y un DT por cada hallazgo, todos enlazados &mdash; as&iacute; el 30% mensual se calcula sobre los metros de la caminata una sola vez, no una vez por cada hallazgo que sali&oacute; de ah&iacute;.</div>
+    </section>
+
+    <section>
+      <div class="seccion-tit">DT abiertos</div>
+      <div class="miniKpi">
+        <div><div class="n" id="mk_abiertas">0</div><div class="l">ABIERTOS</div></div>
+        <div><div class="n" id="mk_cerradas">0</div><div class="l">CERRADOS</div></div>
+      </div>
+      <div id="lista_abiertos"></div>
+    </section>
+  </div>
+
+  <!-- =================== TAB 2: CERRAR DT =================== -->
+  <div class="tabpanel" id="tab-cerrar">
+    <section style="padding-top:10px;">
+      <div class="leyenda">Selecciona un DT abierto para subsanarlo y dejar la evidencia de cierre. Los DT vienen de la base compartida, as&iacute; que aqu&iacute; aparecen tambi&eacute;n los que abri&oacute; otro inspector.</div>
+      <div class="campo"><label>DT a cerrar</label><select id="c_select" onchange="mostrarDetalleCerrar()"></select></div>
+      <div id="c_detalle"></div>
+    </section>
+
+    <section id="c_form" style="display:none;">
+      <div class="seccion-tit">Datos del cierre</div>
+      <div class="grid2">
+        <div class="campo"><label>Fecha real de cierre</label><input id="c_frealcierre" type="date"></div>
+        <div class="campo"><label>Resp. Cierre</label><input id="c_resp" type="text" placeholder="Nombre de qui&eacute;n subsan&oacute;"></div>
+      </div>
+      <div class="campo"><label>Clasificaci&oacute;n de la desviaci&oacute;n</label><input id="c_clasif" type="text" placeholder="Ej: Ejecuci&oacute;n / Materiales / Dise&ntilde;o"></div>
+
+      <div class="seccion-tit">Foto del cierre (evidencia de subsanaci&oacute;n)</div>
+      <div class="leyenda">Tambi&eacute;n <b>opcional</b>, por la misma raz&oacute;n: no siempre hay una buena foto disponible en el momento del cierre.</div>
+      <div class="toggle chico" id="c_calidadT">
+        <button data-v="baja" class="act">BAJA (recomendada)</button>
+        <button data-v="media">MEDIA</button>
+        <button data-v="alta">ALTA</button>
+      </div>
+      <label class="fotobtn" style="margin-top:10px;">
+        &#128247; Agregar foto(s) del cierre (opcional)
+        <input type="file" id="c_fotoInput" accept="image/*" capture="environment" multiple>
+      </label>
+      <div class="galeria" id="c_galeria"></div>
+
+      <div class="acciones" style="margin-top:12px;">
+        <button class="btn-generar" id="btnGuardarCierre" onclick="guardarCierre()">Guardar cierre</button>
+      </div>
+    </section>
+
+    <section>
+      <div class="seccion-tit">DT cerrados</div>
+      <div id="lista_cerrados"></div>
+    </section>
+  </div>
+
+  <!-- =================== TAB 3: DASHBOARD KPI =================== -->
+  <div class="tabpanel" id="tab-dash">
+    <section style="padding-top:10px;">
+      <div class="leyenda">Carga el mismo listado DT que descargas hoy desde SIC3PRO (.xls). Esto usa exactamente el mismo lector que ya tienes en <b>reporte-dt-index.html</b>, para probar que los KPI no cambian aunque cambie de d&oacute;nde viene el dato.</div>
+      <label class="dropzone" id="d_dz">
+        <span id="d_dzTxt">Tocar aqu&iacute; para seleccionar el archivo Excel de SIC3PRO</span>
+        <input type="file" id="d_archivo" accept=".xls,.xlsx,.htm,.html">
+      </label>
+      <div class="estado-carga" id="d_estado">A&uacute;n no se ha cargado ning&uacute;n archivo.</div>
+    </section>
+
+    <section id="d_zona" style="display:none;">
+      <div class="punto">
+        <p class="punto-tit">Resumen general del contrato</p>
+        <p class="punto-sub">Mismo c&aacute;lculo que el reporte actual &middot; fuente: export SIC3PRO (<span id="d_fecha">-</span>)</p>
+        <div class="kpis">
+          <div class="kpi total"><div class="num" id="d_kTotal">0</div><div class="lbl">TOTAL DT</div></div>
+          <div class="kpi abiertas"><div class="num" id="d_kAbiertas">0</div><div class="lbl">ABIERTAS</div></div>
+          <div class="kpi atrasadas"><div class="num" id="d_kAtrasadas">0</div><div class="lbl">ATRASADAS</div></div>
+          <div class="kpi cerradas"><div class="num" id="d_kCerradas">0</div><div class="lbl">CERRADAS</div></div>
+          <div class="kpi cierre"><div class="num" id="d_kCierre">0%</div><div class="lbl">% CIERRE</div></div>
+        </div>
+      </div>
+
+      <div class="punto">
+        <p class="punto-tit">Distribuci&oacute;n por estado</p>
+        <p class="punto-sub">Del universo cargado</p>
+        <div class="donut-wrap">
+          <svg id="d_donut" width="120" height="120" viewBox="0 0 120 120"></svg>
+          <div class="donut-leg" id="d_leyenda"></div>
+        </div>
+      </div>
+
+      <div class="punto">
+        <p class="punto-tit">Top 6 SubArea con m&aacute;s pendientes</p>
+        <p class="punto-sub">Abiertas + Atrasadas, para priorizar el pr&oacute;ximo cierre</p>
+        <table class="mini" id="d_tablaSub"></table>
+      </div>
+
+      <div class="nota">Cuando este dashboard lea directo de la base compartida en vez de este Excel, estos mismos n&uacute;meros quedan en vivo &mdash; sin tener que volver a SIC3PRO a descargar nada.</div>
+    </section>
+  </div>
+
+  <footer><span id="pieApp"></span></footer>
+</div>
+
+<script>
+/* ======================================================================
+   Utilidades compartidas
+   ====================================================================== */
+function hoyISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function sumarDias(iso, n){ const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function diffDias(isoA, isoB){ const a=new Date(isoA+'T00:00:00'), b=new Date(isoB+'T00:00:00'); return Math.round((b-a)/86400000); }
+function fmtCorta(iso){ if(!iso) return '-'; const [y,m,d]=iso.split('-'); return d+'/'+m+'/'+y.slice(2); }
+function fmtKB(bytes){ return (bytes/1024).toFixed(0)+' KB'; }
+
+/* ======================================================================
+   Compresion de fotos (canvas) - el nucleo de lo que pediste probar
+   ====================================================================== */
+const PRESETS_CALIDAD = {
+  baja:  { maxDim: 900,  calidad: 0.40 },
+  media: { maxDim: 1280, calidad: 0.60 },
+  alta:  { maxDim: 1600, calidad: 0.80 }
+};
+
+function comprimirImagen(file, preset){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        const maxDim = preset.maxDim;
+        if(w > h){ if(w > maxDim){ h = Math.round(h * maxDim / w); w = maxDim; } }
+        else { if(h > maxDim){ w = Math.round(w * maxDim / h); h = maxDim; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', preset.calidad);
+        const compBytes = Math.round(dataUrl.length * 0.75);
+        resolve({ dataUrl, originalBytes: file.size, compBytes, w, h });
+      };
+      img.onerror = ()=> reject(new Error('No se pudo leer la imagen'));
+      img.src = e.target.result;
+    };
+    reader.onerror = ()=> reject(new Error('No se pudo leer el archivo'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function wireCalidadToggle(contId, stateGetterSetter){
+  const cont = document.getElementById(contId);
+  cont.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      cont.querySelectorAll('button').forEach(x=>x.classList.remove('act'));
+      b.classList.add('act');
+      stateGetterSetter(b.dataset.v);
+    });
+  });
+}
+
+function renderGaleria(contId, fotos, onQuitar){
+  const cont = document.getElementById(contId);
+  cont.innerHTML = fotos.map((f, i)=>(
+    '<div class="foto-card">'+
+      '<img src="'+f.dataUrl+'" alt="foto">'+
+      '<div class="peso">'+fmtKB(f.originalBytes)+' &rarr; <b>'+fmtKB(f.compBytes)+'</b></div>'+
+      '<button class="quitar" onclick="'+onQuitar+'('+i+')">&times;</button>'+
+    '</div>'
+  )).join('');
+}
+
+/* ======================================================================
+   Tabs
+   ====================================================================== */
+document.querySelectorAll('.tabbtn').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.tabbtn').forEach(x=>x.classList.remove('act'));
+    document.querySelectorAll('.tabpanel').forEach(x=>x.classList.remove('act'));
+    b.classList.add('act');
+    document.getElementById('tab-'+b.dataset.tab).classList.add('act');
+  });
+});
+
+/* ======================================================================
+   Estado de la sesion (en memoria, se pierde al recargar - es a proposito)
+   ====================================================================== */
+const sesion = { registros: [] };
+let camCounter = 0;
+
+/* ======================================================================
+   CAPA DE CONEXION A SUPABASE
+   Sin librerias externas: la API de Supabase es HTTP, asi que se habla
+   con fetch() directo. Esto mantiene el archivo autocontenido (igual que
+   el resto de la suite) y evita depender de un CDN que en interior mina
+   puede no cargar.
+   ====================================================================== */
+
+const SB_URL = 'https://wbdmlwmnmompoamvlant.supabase.co';
+const SB_KEY = 'sb_publishable_0SWuQqmBvxJYNKIal8MQNQ_NbyEMCCe';   /* <-- pega aqui la anon / publishable key */
+
+const BUCKET = 'fotos-dt';
+
+/* Almacen con degradacion: usa localStorage si el navegador lo permite y,
+   si no (ventana privada, previsualizacion, permisos), cae a memoria. La
+   app funciona igual; lo unico que se pierde es recordar la sesion. */
+const almacen = (function(){
+  let mem = {}, ok = false;
+  try { window.localStorage.setItem('__t','1'); window.localStorage.removeItem('__t'); ok = true; } catch(e){ ok = false; }
+  return {
+    disponible: ok,
+    get(k){ try { return ok ? window.localStorage.getItem(k) : (k in mem ? mem[k] : null); } catch(e){ return k in mem ? mem[k] : null; } },
+    set(k,v){ try { if(ok) window.localStorage.setItem(k,v); else mem[k]=v; } catch(e){ mem[k]=v; throw e; } },
+    del(k){ try { if(ok) window.localStorage.removeItem(k); else delete mem[k]; } catch(e){ delete mem[k]; } }
+  };
+})();
+
+const SB = {
+  ses: null,
+
+  cargar(){
+    try { this.ses = JSON.parse(almacen.get('cizdt_sesion') || 'null'); } catch(e){ this.ses = null; }
+    return this.ses;
+  },
+  persistir(){
+    try { almacen.set('cizdt_sesion', JSON.stringify(this.ses)); } catch(e){}
+  },
+  limpiar(){
+    this.ses = null;
+    almacen.del('cizdt_sesion');
+  },
+
+  async login(email, password){
+    const r = await fetch(SB_URL + '/auth/v1/token?grant_type=password', {
+      method:'POST',
+      headers:{ 'apikey': SB_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ email: email, password: password })
+    });
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.error_description || j.msg || j.message || 'No se pudo iniciar sesion');
+    this.ses = { access: j.access_token, refresh: j.refresh_token, email: (j.user && j.user.email) || email,
+                 uid: j.user && j.user.id, vence: Date.now() + ((j.expires_in || 3600) * 1000) };
+    this.persistir();
+    return this.ses;
+  },
+
+  async refrescar(){
+    if(!this.ses || !this.ses.refresh) throw new Error('Sin sesion');
+    const r = await fetch(SB_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method:'POST',
+      headers:{ 'apikey': SB_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ refresh_token: this.ses.refresh })
+    });
+    const j = await r.json();
+    if(!r.ok) throw new Error('Sesion expirada');
+    this.ses.access = j.access_token;
+    this.ses.refresh = j.refresh_token || this.ses.refresh;
+    this.ses.vence = Date.now() + ((j.expires_in || 3600) * 1000);
+    this.persistir();
+    return this.ses;
+  },
+
+  cabeceras(extra){
+    const h = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (this.ses ? this.ses.access : '') };
+    return Object.assign(h, extra || {});
+  },
+
+  /* Hace la peticion y, si el token vencio, lo refresca una vez y reintenta. */
+  async pedir(url, opts, yaReintento){
+    if(this.ses && this.ses.vence && Date.now() > this.ses.vence - 60000 && !yaReintento){
+      try { await this.refrescar(); } catch(e){}
+    }
+    const r = await fetch(url, opts);
+    if(r.status === 401 && !yaReintento){
+      await this.refrescar();
+      const o2 = Object.assign({}, opts);
+      o2.headers = Object.assign({}, opts.headers, { 'Authorization': 'Bearer ' + this.ses.access });
+      return this.pedir(url, o2, true);
+    }
+    return r;
+  },
+
+  async insertar(tabla, filas){
+    const r = await this.pedir(SB_URL + '/rest/v1/' + tabla, {
+      method:'POST',
+      headers: this.cabeceras({ 'Content-Type':'application/json', 'Prefer':'return=representation' }),
+      body: JSON.stringify(filas)
+    });
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.message || j.hint || ('Error al guardar en ' + tabla));
+    return j;
+  },
+
+  async actualizar(tabla, filtro, cambios){
+    const r = await this.pedir(SB_URL + '/rest/v1/' + tabla + '?' + filtro, {
+      method:'PATCH',
+      headers: this.cabeceras({ 'Content-Type':'application/json', 'Prefer':'return=representation' }),
+      body: JSON.stringify(cambios)
+    });
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.message || ('Error al actualizar ' + tabla));
+    return j;
+  },
+
+  async consultar(tabla, query){
+    const r = await this.pedir(SB_URL + '/rest/v1/' + tabla + '?' + query, {
+      method:'GET', headers: this.cabeceras()
+    });
+    const j = await r.json();
+    if(!r.ok) throw new Error(j.message || ('Error al leer ' + tabla));
+    return j;
+  },
+
+  async subirFoto(ruta, blob){
+    const r = await this.pedir(SB_URL + '/storage/v1/object/' + BUCKET + '/' + ruta, {
+      method:'POST',
+      headers: this.cabeceras({ 'Content-Type': blob.type || 'image/jpeg', 'x-upsert':'true' }),
+      body: blob
+    });
+    if(!r.ok){
+      let t = ''; try { t = JSON.stringify(await r.json()); } catch(e){ t = r.status; }
+      throw new Error('No se pudo subir la foto: ' + t);
+    }
+    return ruta;
+  }
+};
+
+/* dataURL -> Blob, para poder subir la foto ya comprimida */
+function dataURLaBlob(dataURL){
+  const partes = dataURL.split(',');
+  const mime = (partes[0].match(/:(.*?);/) || [null,'image/jpeg'])[1];
+  const bin = atob(partes[1]);
+  const arr = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+function nombreFoto(punchOTmp, etapa, i){
+  const t = new Date();
+  const stamp = t.getFullYear() + String(t.getMonth()+1).padStart(2,'0') + String(t.getDate()).padStart(2,'0')
+              + '-' + String(t.getHours()).padStart(2,'0') + String(t.getMinutes()).padStart(2,'0') + String(t.getSeconds()).padStart(2,'0');
+  return etapa.toLowerCase() + '/' + punchOTmp + '_' + stamp + '_' + i + '.jpg';
+}
+
+/* ======================================================================
+   COLA DE PENDIENTES (sin senal en interior mina)
+   Si al guardar no hay conexion, la operacion queda encolada y se
+   reintenta despues. Un DT encolado TODAVIA NO TIENE N Punch: ese numero
+   lo asigna la base al subir, y es justamente lo que evita que dos
+   inspectores generen el mismo numero.
+   ====================================================================== */
+const COLA = {
+  clave: 'cizdt_cola_v1',
+  leer(){ try { return JSON.parse(almacen.get(this.clave) || '[]'); } catch(e){ return []; } },
+  escribir(a){ try { almacen.set(this.clave, JSON.stringify(a)); return true; } catch(e){ return false; } },
+  agregar(op){
+    const a = this.leer(); a.push(op);
+    if(!this.escribir(a)){
+      /* Cupo lleno: casi siempre por las fotos. Se reintenta sin ellas
+         antes que perder el DT completo. */
+      const sinFotos = JSON.parse(JSON.stringify(op));
+      let perdidas = 0;
+      if(sinFotos.hallazgos) sinFotos.hallazgos.forEach(h=>{ perdidas += (h.fotosApertura||[]).length; h.fotosApertura = []; });
+      if(sinFotos.fotos){ perdidas += sinFotos.fotos.length; sinFotos.fotos = []; }
+      sinFotos.fotosPerdidas = perdidas;
+      const b = this.leer(); b.push(sinFotos);
+      if(this.escribir(b)) return { ok:true, fotosPerdidas: perdidas };
+      return { ok:false };
+    }
+    return { ok:true, fotosPerdidas:0 };
+  },
+  quitarPrimero(){ const a = this.leer(); a.shift(); this.escribir(a); },
+  cuantos(){ return this.leer().length; }
+};
+
+let sincronizando = false;
+
+async function sincronizarAhora(){
+  if(sincronizando || !navigator.onLine || !SB.ses) return;
+  sincronizando = true; pintarEstado();
+  let subidas = 0, fallo = null;
+  try {
+    while(COLA.cuantos() > 0){
+      const op = COLA.leer()[0];
+      if(op.tipo === 'caminata') await subirCaminata(op);
+      else if(op.tipo === 'cierre') await subirCierre(op);
+      COLA.quitarPrimero();
+      subidas++;
+    }
+  } catch(e){
+    fallo = e.message || String(e);
+  }
+  sincronizando = false;
+  if(subidas) await cargarDesdeBase();
+  pintarEstado();
+  if(fallo) avisar('a_aviso', 'No se pudo sincronizar todo: ' + fallo + '. Lo pendiente sigue guardado.', 'err');
+  else if(subidas) avisar('a_aviso', 'Sincronizado: ' + subidas + ' registro(s) subidos a la base.', 'ok');
+}
+
+/* ======================================================================
+   SUBIDA REAL
+   Ojo con lo que NO se manda: numero_punch y codigo_caminata quedan
+   fuera del insert a proposito. Los asigna la base. Si se generaran aqui,
+   dos celulares en terreno producirian el mismo numero.
+   ====================================================================== */
+async function subirCaminata(op){
+  const cam = await SB.insertar('avances_caminata', [op.caminata]);
+  const camId = cam[0].id;
+
+  const filas = op.hallazgos.map(h => ({
+    caminata_id: camId,
+    descripcion: h.desc,
+    prioridad: h.prioridad,
+    fecha_emision: op.caminata.fecha,
+    fecha_compromiso_cierre: h.fcompromiso || null,
+    turno: op.caminata.turno || null,
+    ubicacion: op.caminata.frente,
+    wbs: op.caminata.wbs || null,
+    area: op.caminata.area || null,
+    subarea: op.caminata.subarea || null,
+    sistema: op.caminata.sistema || null,
+    subsistema: op.caminata.subsistema || null,
+    plano: op.caminata.plano || null,
+    originador: op.caminata.inspectores || op.caminata.iniciales_inspector || null
+  }));
+  const dts = await SB.insertar('detalles_terminacion', filas);
+
+  for(let i=0; i<dts.length; i++){
+    const fotos = (op.hallazgos[i] && op.hallazgos[i].fotosApertura) || [];
+    for(let k=0; k<fotos.length; k++){
+      const ruta = nombreFoto(dts[i].numero_punch, 'APERTURA', k);
+      await SB.subirFoto(ruta, dataURLaBlob(fotos[k].dataURL));
+      await SB.insertar('fotos_dt', [{ dt_id: dts[i].id, etapa:'APERTURA', storage_path: ruta }]);
+    }
+  }
+  return dts;
+}
+
+async function subirCierre(op){
+  const dts = await SB.actualizar('detalles_terminacion', 'id=eq.' + op.dtId, op.cambios);
+  const punch = (dts[0] && dts[0].numero_punch) || op.dtId;
+  for(let k=0; k<(op.fotos||[]).length; k++){
+    const ruta = nombreFoto(punch, 'CIERRE', k);
+    await SB.subirFoto(ruta, dataURLaBlob(op.fotos[k].dataURL));
+    await SB.insertar('fotos_dt', [{ dt_id: op.dtId, etapa:'CIERRE', storage_path: ruta }]);
+  }
+}
+
+/* ======================================================================
+   CARGA DESDE LA BASE
+   Se lee la vista v_detalles_terminacion, que ya trae el codigo de
+   caminata y los metros caminados unidos al DT.
+   ====================================================================== */
+async function cargarDesdeBase(){
+  const filas = await SB.consultar('v_detalles_terminacion', 'select=*&order=numero_punch.desc&limit=1000');
+  sesion.registros = filas.map(f => ({
+    dbId: f.id,
+    numeroPunch: f.numero_punch,
+    codigoCaminata: f.codigo_caminata,
+    camId: f.caminata_id ? ('cam' + f.caminata_id) : null,
+    ejemplo: false,
+    frente: f.ubicacion, ubicacion: f.ubicacion,
+    wbs: f.wbs, area: f.area, subarea: f.subarea, sistema: f.sistema, subsistema: f.subsistema, plano: f.plano,
+    pkIni: f.pk_inicio, pkFin: f.pk_termino, metrosCaminados: f.metros_caminados,
+    fechaCaminata: f.fecha_emision, turno: f.turno,
+    prioridad: f.prioridad,
+    desc: f.descripcion,
+    femision: f.fecha_emision,
+    fcompromiso: f.fecha_compromiso_cierre,
+    frealcierre: f.fecha_real_cierre,
+    respCierre: f.resp_cierre,
+    clasifDesviacion: f.clasificacion_desviacion,
+    estado: f.estado,
+    atrasoDias: f.dias_atraso,
+    fotosApertura: [], fotosCierre: []
+  }));
+  renderTodo();
+}
+
+/* ======================================================================
+   ESTADO VISIBLE
+   ====================================================================== */
+function pintarEstado(){
+  const barra = document.getElementById('barraEstado');
+  if(!barra) return;
+  const online = navigator.onLine;
+  const pend = COLA.cuantos();
+  barra.classList.toggle('offline', !online || pend > 0);
+  document.getElementById('be_estado').textContent =
+    sincronizando ? 'Sincronizando...' : (online ? 'Conectado' : 'Sin señal');
+  document.getElementById('be_quien').textContent = SB.ses ? SB.ses.email : '—';
+  document.getElementById('be_pend').innerHTML = pend
+    ? '<span class="pend-chip">' + pend + ' por subir</span>' : '';
+  const b = document.getElementById('be_sync');
+  b.style.display = pend ? '' : 'none';
+  b.disabled = sincronizando || !online;
+}
+
+function avisar(id, texto, clase){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.textContent = texto;
+  el.className = 'aviso-linea ' + clase;
+  if(clase === 'ok') setTimeout(()=>{ el.className = 'aviso-linea'; }, 6000);
+}
+
+window.addEventListener('online',  ()=>{ pintarEstado(); sincronizarAhora(); });
+window.addEventListener('offline', pintarEstado);
+
+/* ======================================================================
+   LOGIN / LOGOUT
+   ====================================================================== */
+async function entrar(){
+  const mail = document.getElementById('lg_mail').value.trim();
+  const pass = document.getElementById('lg_pass').value;
+  const btn  = document.getElementById('lg_btn');
+  const msg  = document.getElementById('lg_msg');
+  if(!mail || !pass){ msg.textContent = 'Falta el correo o la contraseña.'; msg.className='login-msg err'; return; }
+  if(SB_KEY.indexOf('___') === 0 || SB_KEY.length < 20){
+    msg.textContent = 'Falta pegar la anon key en el archivo (constante SB_KEY, cerca del inicio del <script>).';
+    msg.className = 'login-msg err'; return;
+  }
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  msg.className = 'login-msg';
+  try {
+    await SB.login(mail, pass);
+    await iniciarApp();
+  } catch(e){
+    msg.textContent = e.message === 'Invalid login credentials'
+      ? 'Correo o contraseña incorrectos.' : (e.message || 'No se pudo entrar.');
+    msg.className = 'login-msg err';
+  }
+  btn.disabled = false; btn.textContent = 'Entrar';
+}
+
+function salir(){
+  if(COLA.cuantos() > 0 && !confirm('Quedan ' + COLA.cuantos() + ' registro(s) sin subir. Si sales igual, se mantienen guardados en este dispositivo hasta que vuelvas a entrar. ¿Salir?')) return;
+  SB.limpiar();
+  location.reload();
+}
+
+async function iniciarApp(){
+  document.getElementById('loginCapa').style.display = 'none';
+  pintarEstado();
+
+  /* El contrato del usuario decide el sufijo del correlativo (CIZ) y el
+     codigo que se muestra. No viene escrito en el archivo: viene de la
+     cuenta con que entro. */
+  try {
+    const c = await SB.consultar('v_mi_contrato', 'select=*&limit=1');
+    if(c && c[0]){
+      CONTRATO.codigo = c[0].codigo || CONTRATO.codigo;
+      CONTRATO.sufijo = c[0].sufijo_caminata || CONTRATO.sufijo;
+      CONTRATO.nombre = c[0].nombre || '';
+      if(c[0].iniciales){
+        const ini = document.getElementById('a_iniciales');
+        if(ini && !ini.value) ini.value = c[0].iniciales;
+      }
+      await aplicarMarca();
+    }
+  } catch(e){ console.warn('No se pudo leer el contrato:', e && e.message); }
+  try { await cargarDesdeBase(); }
+  catch(e){ avisar('a_aviso', 'No se pudieron leer los DT de la base: ' + (e.message||e), 'err'); }
+  if(COLA.cuantos()) sincronizarAhora();
+}
+
+/* Arranque: si ya hay sesion guardada, entra directo */
+(async function(){
+  SB.cargar();
+  if(SB.ses && SB.ses.refresh){
+    try { await SB.refrescar(); await iniciarApp(); }
+    catch(e){ SB.limpiar(); }
+  }
+})();
+
+
+/* ======================================================================
+   Catalogo de labores (146 registros del WBS oficial: Wbs > Area >
+   SubArea > Sistema > SubSistema). Se busca por codigo o nombre y, al
+   elegir, se auto-completan los campos jerarquicos — asi se evita
+   tipear a mano el nombre de la labor, que es donde salen mas errores.
+   ====================================================================== */
+const CATALOGO_LABORES = [{"codigo":"221161F-01-01","nombre":"CRUZADO PRINCIPAL DE PRODUCCION NORTE, INCLUYE FRONTONES","wbs":"221000 [INFRAESTRUCTURA DE NIVEL]","area":"221100 [INFRAESTRUCTURA DE NIVEL]","subarea":"221160F [ACCESO DE NIVEL]","sistema":"221161F-01 [CRUZADO PRINCIPAL DE PRODUCCION NORTE ]","subsistema":"221161F-01-01 [CRUZADO PRINCIPAL DE PRODUCCION NORTE, INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65505_221161F-01-01.pdf"},{"codigo":"221162F-01-01","nombre":"GALERIAS DE CARGA Y DESCARGA, ESTACIONAMIENTO, TALLERES, OFICINAS,BAÑOS Y COMEDOR MB N06 , INCLUYE FRONTONES","wbs":"221000 [INFRAESTRUCTURA DE NIVEL]","area":"221100 [INFRAESTRUCTURA DE NIVEL]","subarea":"221160F [ACCESO DE NIVEL]","sistema":"221162F-01 [ACCESO A BARRIO INDUSTRIAL SUBTE NORTE ]","subsistema":"221162F-01-01 [GALERIAS DE CARGA Y DESCARGA, ESTACIONAMIENTO, TALLERES, OFICINAS,BAÑOS Y COMEDOR MB N06 , INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65506_221162F-01-01.pdf"},{"codigo":"221323F-01-01","nombre":"INTERSECCIONES PERNOS CABLES C-45, C-47 NP MB N51","wbs":"221000 [INFRAESTRUCTURA DE NIVEL]","area":"221300 [ACCESOS A SUBNIVELES]","subarea":"221320F [FACILIDADES CONSTRUCTIVA PARA PREPARACION MINERA INICIAL]","sistema":"221323F-01 [ACCESO DESDE RAMPA DE EXPLORACION A SUBNIVEL DE PRODUCCION ]","subsistema":"221323F-01-01 [INTERSECCIONES PERNOS CABLES C-45, C-47 NP MB N51 ]","clasificacion":"Sistema No Operable","plano":"1673_66701_221323F-01-01.pdf"},{"codigo":"221340F-01-06","nombre":"RAMPA ACCESO NP-NH (N52_N06); INCLUYE GALERIA ESTACIONAMIENTO Y CABLES EN INTERSECCIÓN CON XC (CONTINUIDAD)","wbs":"221000 [INFRAESTRUCTURA DE NIVEL]","area":"221300 [ACCESOS A SUBNIVELES]","subarea":"221340F [ACCESOS A SUBNIVEL DE PRODUCCION DESDE XC PRODUCCION PPAL]","sistema":"221340F-01 [ACCESO A SUBNIVEL DE PRODUCCION MB N04-N05 ]","subsistema":"221340F-01-06 [RAMPA ACCESO NP-NH (N52_N06); INCLUYE GALERIA ESTACIONAMIENTO Y CABLES EN INTERSECCIÓN CON XC (CONTINUIDAD) ]","clasificacion":"Sistema No Operable","plano":"1673_64730_221340F-01-06.pdf"},{"codigo":"221345F-02-01","nombre":"C-53-PD-N51-N06 CONTINUIDAD, INCLUYE FRM-P-14 Y FR-SEU-PD-N05-01","wbs":"221000 [INFRAESTRUCTURA DE NIVEL]","area":"221300 [ACCESOS A SUBNIVELES]","subarea":"221340F [ACCESOS A SUBNIVEL DE PRODUCCION DESDE XC PRODUCCION PPAL]","sistema":"221345F-02 [ACCESO A SUBNIVEL DE PRODUCCION 05 ]","subsistema":"221345F-02-01 [C-53-PD-N51-N06 CONTINUIDAD, INCLUYE FRM-P-14 Y FR-SEU-PD-N05-01 ]","clasificacion":"Sistema No Operable","plano":"1673_64728_221345F-02-01.pdf"},{"codigo":"221345F-02-02","nombre":"C-53-PD-N52-N62 CONTINUIDAD, INCLUYE FRM-P-02 Y FRM-P-15","wbs":"221000 [INFRAESTRUCTURA DE NIVEL]","area":"221300 [ACCESOS A SUBNIVELES]","subarea":"221340F [ACCESOS A SUBNIVEL DE PRODUCCION DESDE XC PRODUCCION PPAL]","sistema":"221345F-02 [ACCESO A SUBNIVEL DE PRODUCCION 05 ]","subsistema":"221345F-02-02 [C-53-PD-N52-N62 CONTINUIDAD, INCLUYE FRM-P-02 Y FRM-P-15 ]","clasificacion":"Sistema No Operable","plano":"1673_64754_221345F-02-02.pdf"},{"codigo":"222612F-02-01","nombre":"C-41-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-01 [C-41-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64715_222612F-02-01.pdf"},{"codigo":"222612F-02-02","nombre":"C-43-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-02 [C-43-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64716_222612F-02-02.pdf"},{"codigo":"222612F-02-03","nombre":"C-45-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-03 [C-45-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64717_222612F-02-03.pdf"},{"codigo":"222612F-02-04","nombre":"C-47-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-04 [C-47-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64718_222612F-02-04.pdf"},{"codigo":"222612F-02-05","nombre":"C-49-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-05 [C-49-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64719_222612F-02-05.pdf"},{"codigo":"222612F-02-06","nombre":"C-51-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-06 [C-51-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64740_222612F-02-06.pdf"},{"codigo":"222612F-02-07","nombre":"C-53-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-07 [C-53-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64741_222612F-02-07.pdf"},{"codigo":"222712F-02-01","nombre":"C-41-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-01 [C-41-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64744_222712F-02-01.pdf"},{"codigo":"222712F-02-02","nombre":"C-43-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-02 [C-43-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64745_222712F-02-02.pdf"},{"codigo":"222712F-02-03","nombre":"C-45-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-03 [C-45-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64746_222712F-02-03.pdf"},{"codigo":"222712F-02-04","nombre":"C-47-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-04 [C-47-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64747_222712F-02-04.pdf"},{"codigo":"222712F-02-05","nombre":"C-49-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-05 [C-49-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64723_222712F-02-05.pdf"},{"codigo":"222712F-02-06","nombre":"C-51-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-06 [C-51-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64748_222712F-02-06.pdf"},{"codigo":"222712F-02-07","nombre":"C-53-NH-N52 CONTINUIDAD, INCLUYE FRM-H-03","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-07 [C-53-NH-N52 CONTINUIDAD, INCLUYE FRM-H-03 ]","clasificacion":"Sistema No Operable","plano":"1673_64724_222712F-02-07.pdf"},{"codigo":"222712F-02-08","nombre":"C-53 E-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-08 [C-53 E-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65540_222712F-02-08.pdf"},{"codigo":"222812F-01-01","nombre":"CALLE 55 NH-N06 TRAMO 01","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-01 [CALLES TRAMO 01 ]","subsistema":"222812F-01-01 [CALLE 55 NH-N06 TRAMO 01 ]","clasificacion":"Sistema No Operable","plano":"1673_65320_222812F-01-01.pdf"},{"codigo":"222812F-01-02","nombre":"CALLE 57 NH-N06 TRAMO 01","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-01 [CALLES TRAMO 01 ]","subsistema":"222812F-01-02 [CALLE 57 NH-N06 TRAMO 01 ]","clasificacion":"Sistema No Operable","plano":"1673_65321_222812F-01-02.pdf"},{"codigo":"222812F-01-03","nombre":"CALLE 59 NH-N06 TRAMO 01","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-01 [CALLES TRAMO 01 ]","subsistema":"222812F-01-03 [CALLE 59 NH-N06 TRAMO 01 ]","clasificacion":"Sistema No Operable","plano":"1673_65301_222812F-01-03.pdf"},{"codigo":"222812F-01-04","nombre":"CALLE 61 NH-N06 TRAMO 01","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-01 [CALLES TRAMO 01 ]","subsistema":"222812F-01-04 [CALLE 61 NH-N06 TRAMO 01 ]","clasificacion":"Sistema No Operable","plano":"1673_65302_222812F-01-04.pdf"},{"codigo":"222812F-01-05","nombre":"CALLE 63 NH-N06 TRAMO 01, INCLUYE FR-HD-N06-03@04","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-01 [CALLES TRAMO 01 ]","subsistema":"222812F-01-05 [CALLE 63 NH-N06 TRAMO 01, INCLUYE FR-HD-N06-03@04 ]","clasificacion":"Sistema No Operable","plano":"1673_65303_222812F-01-05.pdf"},{"codigo":"222812F-01-06","nombre":"CALLE 65 NH-N06 TRAMO 01","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-01 [CALLES TRAMO 01 ]","subsistema":"222812F-01-06 [CALLE 65 NH-N06 TRAMO 01 ]","clasificacion":"Sistema No Operable","plano":"1673_65304_222812F-01-06.pdf"},{"codigo":"222812F-02-01","nombre":"CALLE 55 NH-N06 TRAMO 02","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-02 [CALLES TRAMO 02 ]","subsistema":"222812F-02-01 [CALLE 55 NH-N06 TRAMO 02 ]","clasificacion":"Sistema No Operable","plano":"1673_65322_222812F-02-01.pdf"},{"codigo":"222812F-02-02","nombre":"CALLE 57 NH-N06 TRAMO 02","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-02 [CALLES TRAMO 02 ]","subsistema":"222812F-02-02 [CALLE 57 NH-N06 TRAMO 02 ]","clasificacion":"Sistema No Operable","plano":"1673_65323_222812F-02-02.pdf"},{"codigo":"222812F-02-03","nombre":"CALLE 59 NH-N06 TRAMO 02","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-02 [CALLES TRAMO 02 ]","subsistema":"222812F-02-03 [CALLE 59 NH-N06 TRAMO 02 ]","clasificacion":"Sistema No Operable","plano":"1673_65324_222812F-02-03.pdf"},{"codigo":"222812F-02-04","nombre":"CALLE 61 NH-N06 TRAMO 02","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-02 [CALLES TRAMO 02 ]","subsistema":"222812F-02-04 [CALLE 61 NH-N06 TRAMO 02 ]","clasificacion":"Sistema No Operable","plano":"1673_65325_222812F-02-04.pdf"},{"codigo":"222812F-02-05","nombre":"CALLE 63 NH-N06 TRAMO 02, INCLUYE FR-HD-N06-07@08","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-02 [CALLES TRAMO 02 ]","subsistema":"222812F-02-05 [CALLE 63 NH-N06 TRAMO 02, INCLUYE FR-HD-N06-07@08 ]","clasificacion":"Sistema No Operable","plano":"1673_65326_222812F-02-05.pdf"},{"codigo":"222812F-02-06","nombre":"CALLE 65 NH-N06 TRAMO 02","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-02 [CALLES TRAMO 02 ]","subsistema":"222812F-02-06 [CALLE 65 NH-N06 TRAMO 02 ]","clasificacion":"Sistema No Operable","plano":"1673_65305_222812F-02-06.pdf"},{"codigo":"224111F-01-01","nombre":"CAB-HD-N51-01 CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224110F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"224111F-01 [CABECERAS ]","subsistema":"224111F-01-01 [CAB-HD-N51-01 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64749_224111F-01-01.pdf"},{"codigo":"224111F-01-02","nombre":"CAB-HD-N51-02 CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224110F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"224111F-01 [CABECERAS ]","subsistema":"224111F-01-02 [CAB-HD-N51-02 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64750_224111F-01-02.pdf"},{"codigo":"224111F-01-03","nombre":"CAB-HD-N51-03 CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224110F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"224111F-01 [CABECERAS ]","subsistema":"224111F-01-03 [CAB-HD-N51-03 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64751_224111F-01-03.pdf"},{"codigo":"224121F-01-01","nombre":"CABECERA CAB-HD-N52-03 CONTINUIDAD, INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224120F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"224121F-01 [CABECERAS ]","subsistema":"224121F-01-01 [CABECERA CAB-HD-N52-03 CONTINUIDAD, INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_64743_224121F-01-01.pdf"},{"codigo":"224131F-01-01","nombre":"CAB-HD-N6-01, INCLUYE FRONTONES FRE-HD-N6-01 Y FRE-HD-N6-03","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224130F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"224131F-01 [CABECERAS MB-N61 ]","subsistema":"224131F-01-01 [CAB-HD-N6-01, INCLUYE FRONTONES FRE-HD-N6-01 Y FRE-HD-N6-03 ]","clasificacion":"Sistema No Operable","plano":"1673_64947_224131F-01-01.pdf"},{"codigo":"224131F-01-02","nombre":"CAB-HD-N6-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224130F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"224131F-01 [CABECERAS MB-N61 ]","subsistema":"224131F-01-02 [CAB-HD-N6-02 ]","clasificacion":"Sistema No Operable","plano":"1673_64948_224131F-01-02.pdf"},{"codigo":"224131F-01-03","nombre":"CAB-HD-N6-03","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224130F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"224131F-01 [CABECERAS MB-N61 ]","subsistema":"224131F-01-03 [CAB-HD-N6-03 ]","clasificacion":"Sistema No Operable","plano":"1673_64949_224131F-01-03.pdf"},{"codigo":"224131F-02-01","nombre":"CAB-HD-N6-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224130F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"224131F-02 [CABECERAS MB-N62 ]","subsistema":"224131F-02-01 [CAB-HD-N6-04 ]","clasificacion":"Sistema No Operable","plano":"1673_64969_224131F-02-01.pdf"},{"codigo":"224131F-02-02","nombre":"CAB-HD-N6-05, INCLUYE FRONTÓN FRI-HD-N06-05","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224130F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"224131F-02 [CABECERAS MB-N62 ]","subsistema":"224131F-02-02 [CAB-HD-N6-05, INCLUYE FRONTÓN FRI-HD-N06-05 ]","clasificacion":"Sistema No Operable","plano":"1673_64970_224131F-02-02.pdf"},{"codigo":"224141F-01-01","nombre":"CAB-HD-N63-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224140F [NIVEL DE HUNDIMIENTO MB-N63]","sistema":"224141F-01 [CABECERAS ]","subsistema":"224141F-01-01 [CAB-HD-N63-01 ]","clasificacion":"Sistema No Operable","plano":"1673_64943_224141F-01-01.pdf"},{"codigo":"224141F-01-02","nombre":"CAB-HD-N63-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224140F [NIVEL DE HUNDIMIENTO MB-N63]","sistema":"224141F-01 [CABECERAS ]","subsistema":"224141F-01-02 [CAB-HD-N63-02 ]","clasificacion":"Sistema No Operable","plano":"1673_64944_224141F-01-02.pdf"},{"codigo":"224141F-01-03","nombre":"CAB-HD-N63-03","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224140F [NIVEL DE HUNDIMIENTO MB-N63]","sistema":"224141F-01 [CABECERAS ]","subsistema":"224141F-01-03 [CAB-HD-N63-03 ]","clasificacion":"Sistema No Operable","plano":"1673_64945_224141F-01-03.pdf"},{"codigo":"224141F-01-04","nombre":"CAB-HD-N63-04, INCLUYE FRE-HD-N06-05","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224140F [NIVEL DE HUNDIMIENTO MB-N63]","sistema":"224141F-01 [CABECERAS ]","subsistema":"224141F-01-04 [CAB-HD-N63-04, INCLUYE FRE-HD-N06-05 ]","clasificacion":"Sistema No Operable","plano":"1673_64946_224141F-01-04.pdf"},{"codigo":"224212F-02-01","nombre":"C-47-PD-N51, INCLUYE ZANJAS AL SUR Y ZANJAS 8 Y 9 AL SUR C-45, FRI-PD-N51-03@04, CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224210F [MB-N51]","sistema":"224212F-02 [CALLES ]","subsistema":"224212F-02-01 [C-47-PD-N51, INCLUYE ZANJAS AL SUR Y ZANJAS 8 Y 9 AL SUR C-45, FRI-PD-N51-03@04, CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65080_224212F-02-01.pdf"},{"codigo":"224212F-02-02","nombre":"C-49-PD-N51, INCLUYE ZANJAS SUR, FRE-PD-N51-04 CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224210F [MB-N51]","sistema":"224212F-02 [CALLES ]","subsistema":"224212F-02-02 [C-49-PD-N51, INCLUYE ZANJAS SUR, FRE-PD-N51-04 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65081_224212F-02-02.pdf"},{"codigo":"224212F-02-03","nombre":"C-51-PD-N51, INCLUYE ZANJAS NORTE Y SUR, FRI-PD-N51-06, CONEX-PD-N51-03A CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224210F [MB-N51]","sistema":"224212F-02 [CALLES ]","subsistema":"224212F-02-03 [C-51-PD-N51, INCLUYE ZANJAS NORTE Y SUR, FRI-PD-N51-06, CONEX-PD-N51-03A CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65082_224212F-02-03.pdf"},{"codigo":"224215F-05-01","nombre":"PVAC-PD-N51-1@4 / FRE-PD-N51-07,08 Y 10","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224210F [MB-N51]","sistema":"224215F-05 [PUNTOS DE VACIADO DE PALAS (LHD) ]","subsistema":"224215F-05-01 [PVAC-PD-N51-1@4 / FRE-PD-N51-07,08 Y 10 ]","clasificacion":"Sistema No Operable","plano":"1673_65124_224215F-05-01.pdf"},{"codigo":"224222F-02-01","nombre":"C-45-PD-N52, INCLUYE ZANJAS 20@23 AL SUR CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224220F [MB-N52]","sistema":"224222F-02 [CALLES ]","subsistema":"224222F-02-01 [C-45-PD-N52, INCLUYE ZANJAS 20@23 AL SUR CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65083_224222F-02-01.pdf"},{"codigo":"224222F-02-02","nombre":"C-47-PD-N52, INCLUYE ZANJAS AL SUR CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224220F [MB-N52]","sistema":"224222F-02 [CALLES ]","subsistema":"224222F-02-02 [C-47-PD-N52, INCLUYE ZANJAS AL SUR CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65084_224222F-02-02.pdf"},{"codigo":"224222F-02-03","nombre":"C-49-PD-N52, INCLUYE ZANJAS SUR CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224220F [MB-N52]","sistema":"224222F-02 [CALLES ]","subsistema":"224222F-02-03 [C-49-PD-N52, INCLUYE ZANJAS SUR CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65085_224222F-02-03.pdf"},{"codigo":"224222F-02-04","nombre":"C-51-PD-N52, INCLUYE ZANJAS SUR Y NORTE CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224220F [MB-N52]","sistema":"224222F-02 [CALLES ]","subsistema":"224222F-02-04 [C-51-PD-N52, INCLUYE ZANJAS SUR Y NORTE CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65086_224222F-02-04.pdf"},{"codigo":"224225F-05-01","nombre":"PVAC-PD-N52-1@5 / FRE-PD-N6-15@17","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224220F [MB-N52]","sistema":"224225F-05 [PUNTOS DE VACIADO DE PALAS (LHD) ]","subsistema":"224225F-05-01 [PVAC-PD-N52-1@5 / FRE-PD-N6-15@17 ]","clasificacion":"Sistema No Operable","plano":"1673_65102_224225F-05-01.pdf"},{"codigo":"224231F-01-01","nombre":"CAB-PD-N6-01 / FRI-PD-N6-01 / RE-PD-N6-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224231F-01 [CABECERAS ]","subsistema":"224231F-01-01 [CAB-PD-N6-01 / FRI-PD-N6-01 / RE-PD-N6-02 ]","clasificacion":"Sistema No Operable","plano":"1673_65145_224231F-01-01.pdf"},{"codigo":"224231F-01-02","nombre":"CAB-PD-N6-02 / FRRISES-PD-N6-01 / RE-PD-N6-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224231F-01 [CABECERAS ]","subsistema":"224231F-01-02 [CAB-PD-N6-02 / FRRISES-PD-N6-01 / RE-PD-N6-04 ]","clasificacion":"Sistema No Operable","plano":"1673_65146_224231F-01-02.pdf"},{"codigo":"224232F-01-02","nombre":"C-55-NP-N6 TRAMO 1, ZANJAS 01@16 AL SUR, EMN-PD-N6-01, CONEX-PD-N6-01, FRE-PD-N6-01 Y 10, FRI-PD-N6-03","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-02 [C-55-NP-N6 TRAMO 1, ZANJAS 01@16 AL SUR, EMN-PD-N6-01, CONEX-PD-N6-01, FRE-PD-N6-01 Y 10, FRI-PD-N6-03 ]","clasificacion":"Sistema No Operable","plano":"1673_65100_224232F-01-02.pdf"},{"codigo":"224232F-01-03","nombre":"C-57-NP-N6 TRAMO 1, ZANJA 2 NORTE Y SUR Y ZANJAS SUR DE LA 3@16, FRE-PD-N6-02, FRI-PD-N6-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-03 [C-57-NP-N6 TRAMO 1, ZANJA 2 NORTE Y SUR Y ZANJAS SUR DE LA 3@16, FRE-PD-N6-02, FRI-PD-N6-04 ]","clasificacion":"Sistema No Operable","plano":"1673_65101_224232F-01-03.pdf"},{"codigo":"224232F-01-04","nombre":"C-59-NP-N6 TRAMO 1, ZANJAS AL SUR DE LA 3@16, FRE-PD-N6-03, FRI-PD-N6-05 EMN-PD-N6-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-04 [C-59-NP-N6 TRAMO 1, ZANJAS AL SUR DE LA 3@16, FRE-PD-N6-03, FRI-PD-N6-05 EMN-PD-N6-02 ]","clasificacion":"Sistema No Operable","plano":"1673_65120_224232F-01-04.pdf"},{"codigo":"224232F-01-05","nombre":"C-61-NP-N6 TRAMO 1 ZANJAS AL SUR DE LA 3@16, FRE-PD-N6-04, FRI-PD-N6-06","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-05 [C-61-NP-N6 TRAMO 1 ZANJAS AL SUR DE LA 3@16, FRE-PD-N6-04, FRI-PD-N6-06 ]","clasificacion":"Sistema No Operable","plano":"1673_65121_224232F-01-05.pdf"},{"codigo":"224232F-01-06","nombre":"C-63-NP-N6 TRAMO 1 ZANJAS AL SUR DE LA 4 @16, FRE-PD-N6-04, FRI-PD-N6-07, EMN-PD-N6-03","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-06 [C-63-NP-N6 TRAMO 1 ZANJAS AL SUR DE LA 4 @16, FRE-PD-N6-04, FRI-PD-N6-07, EMN-PD-N6-03 ]","clasificacion":"Sistema No Operable","plano":"1673_65122_224232F-01-06.pdf"},{"codigo":"224232F-01-07","nombre":"C-65-NP-N6 TRAMO 1 ZANJAS AL SUR Y AL NORTE DE LA 5 @16, FRE-PD-N6-06, FRI-PD-N6-08, EMN-PD-N6-04, CONEX-PD-N6-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-07 [C-65-NP-N6 TRAMO 1 ZANJAS AL SUR Y AL NORTE DE LA 5 @16, FRE-PD-N6-06, FRI-PD-N6-08, EMN-PD-N6-04, CONEX-PD-N6-02 ]","clasificacion":"Sistema No Operable","plano":"1673_65123_224232F-01-07.pdf"},{"codigo":"224232F-01-08","nombre":"C-67-NP-N6 TRAMO 1, FRI-PD-N6-02 Y 2A, FREM-PD-N6-01, FRE-PD-N63-01, RE-PD-N63-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-08 [C-67-NP-N6 TRAMO 1, FRI-PD-N6-02 Y 2A, FREM-PD-N6-01, FRE-PD-N63-01, RE-PD-N63-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65460_224232F-01-08.pdf"},{"codigo":"224232F-02-15","nombre":"ACC-PD-N6-00/CALLE 53 (TRAMO 1) / FRI-PD-N6-02 Y 2A / FREM-PD-N6-01 / FRE-PD-N63-01 / RE-PD-N63-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-02-15 [ACC-PD-N6-00/CALLE 53 (TRAMO 1) / FRI-PD-N6-02 Y 2A / FREM-PD-N6-01 / FRE-PD-N63-01 / RE-PD-N63-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65140_224232F-02-15.pdf"},{"codigo":"224232F-02-01","nombre":"C-55-NP-N6 TRAMO 2 ZANJAS 17 @ 30 AL SUR, EMN-PD-N6-05, CONEX-PD-N6-03, FRE-PD-N6-17, FRI-PD-N6-10","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-01 [C-55-NP-N6 TRAMO 2 ZANJAS 17 @ 30 AL SUR, EMN-PD-N6-05, CONEX-PD-N6-03, FRE-PD-N6-17, FRI-PD-N6-10 ]","clasificacion":"Sistema No Operable","plano":"1673_65441_224232F-02-01.pdf"},{"codigo":"224232F-02-02","nombre":"C-57-NP-N6 TRAMO 2 ZANJAS 17 @ 31 AL SUR, FRE-PD-N6-11 Y 18, FRI-PD-N6-11","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-02 [C-57-NP-N6 TRAMO 2 ZANJAS 17 @ 31 AL SUR, FRE-PD-N6-11 Y 18, FRI-PD-N6-11 ]","clasificacion":"Sistema No Operable","plano":"1673_65461_224232F-02-02.pdf"},{"codigo":"224232F-02-03","nombre":"C-59-NP-N6 TRAMO 2 ZANJAS 17 @ 32 AL SUR, FRE-PD-N6-12 Y 19, FRI-PD-N6-12, EMN-PD-N6-06","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-03 [C-59-NP-N6 TRAMO 2 ZANJAS 17 @ 32 AL SUR, FRE-PD-N6-12 Y 19, FRI-PD-N6-12, EMN-PD-N6-06 ]","clasificacion":"Sistema No Operable","plano":"1673_65462_224232F-02-03.pdf"},{"codigo":"224232F-02-04","nombre":"C-61-NP-N6 TRAMO 2 ZANJAS 17, 19 @ 33 AL SUR, FRE-PD-N6-13 Y 20, FRI-PD-N6-13","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-04 [C-61-NP-N6 TRAMO 2 ZANJAS 17, 19 @ 33 AL SUR, FRE-PD-N6-13 Y 20, FRI-PD-N6-13 ]","clasificacion":"Sistema No Operable","plano":"1673_65442_224232F-02-04.pdf"},{"codigo":"224232F-02-05","nombre":"C-63-NP-N6 TRAMO 2 ZANJAS 17 @ 34 AL SUR, FRE-PD-N6-14 Y 21, FRI-PD-N6-14, EMN-PD-N6-07","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-05 [C-63-NP-N6 TRAMO 2 ZANJAS 17 @ 34 AL SUR, FRE-PD-N6-14 Y 21, FRI-PD-N6-14, EMN-PD-N6-07 ]","clasificacion":"Sistema No Operable","plano":"1673_65443_224232F-02-05.pdf"},{"codigo":"224232F-02-06","nombre":"C-65-NP-N6 TRAMO 2 ZANJAS 17@19 Y 21 @ 35 AL NORTE Y SUR, FRE-PD-N6-15, FRI-PD-N6-15","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-06 [C-65-NP-N6 TRAMO 2 ZANJAS 17@19 Y 21 @ 35 AL NORTE Y SUR, FRE-PD-N6-15, FRI-PD-N6-15 ]","clasificacion":"Sistema No Operable","plano":"1673_65444_224232F-02-06.pdf"},{"codigo":"224232F-02-07","nombre":"C-67-NP-N6 TRAMO 2, FRE-PD-N6-22 y 23, RE-PD-N63-02-EMN-PD-N6-08","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-07 [C-67-NP-N6 TRAMO 2, FRE-PD-N6-22 y 23, RE-PD-N63-02-EMN-PD-N6-08 ]","clasificacion":"Sistema No Operable","plano":"1673_65463_224232F-02-07.pdf"},{"codigo":"224232F-02-08","nombre":"FC-NP-N6 (C-57), TRASVASIJE, CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-08 [FC-NP-N6 (C-57), TRASVASIJE, CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65464_224232F-02-08.pdf"},{"codigo":"224235F-05-01","nombre":"PVAC-PD-N6-01@3 FRE-PD-N51-09 FRE-PD-N6-07 Y 09","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224235F-05 [PUNTO DE VACIADO DE PALAS (LHD) ]","subsistema":"224235F-05-01 [PVAC-PD-N6-01@3 FRE-PD-N51-09 FRE-PD-N6-07 Y 09 ]","clasificacion":"Sistema No Operable","plano":"1673_65142_224235F-05-01.pdf"},{"codigo":"224235F-05-02","nombre":"PVAC-PD-N6-04@6","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224235F-05 [PUNTO DE VACIADO DE PALAS (LHD) ]","subsistema":"224235F-05-02 [PVAC-PD-N6-04@6 ]","clasificacion":"Sistema No Operable","plano":"1673_65143_224235F-05-02.pdf"},{"codigo":"224235F-05-03","nombre":"PVAC-PD-N6-07@9 / FRE-PD-N6-24@26","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224235F-05 [PUNTO DE VACIADO DE PALAS (LHD) ]","subsistema":"224235F-05-03 [PVAC-PD-N6-07@9 / FRE-PD-N6-24@26 ]","clasificacion":"Sistema No Operable","plano":"1673_65144_224235F-05-03.pdf"},{"codigo":"224241F-01-01","nombre":"CAB-PD-N63-01, INCLUYE FRRISES-PD-N63-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224241F-01 [CABECERAS ]","subsistema":"224241F-01-01 [CAB-PD-N63-01, INCLUYE FRRISES-PD-N63-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65306_224241F-01-01.pdf"},{"codigo":"224241F-01-02","nombre":"CAB-PD-N63-02, INCLUYE FRI-PD-N63-06, RE-PD-N63-03, FREM-PD-N63-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224241F-01 [CABECERAS ]","subsistema":"224241F-01-02 [CAB-PD-N63-02, INCLUYE FRI-PD-N63-06, RE-PD-N63-03, FREM-PD-N63-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65307_224241F-01-02.pdf"},{"codigo":"224242F-01-01","nombre":"C-69 (TRAMO 01), INCLUYE ZANJAS 01@10 AL SUR, FRE-PD-N63-03","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224242F-01 [CALLES TRAMO 01 ]","subsistema":"224242F-01-01 [C-69 (TRAMO 01), INCLUYE ZANJAS 01@10 AL SUR, FRE-PD-N63-03 ]","clasificacion":"Sistema No Operable","plano":"1673_65327_224242F-01-01.pdf"},{"codigo":"224242F-01-02","nombre":"C-71 (TRAMO 01), INCLUYE ZANJAS 02@10 AL SUR, FRE-PD-N63-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224242F-01 [CALLES TRAMO 01 ]","subsistema":"224242F-01-02 [C-71 (TRAMO 01), INCLUYE ZANJAS 02@10 AL SUR, FRE-PD-N63-04 ]","clasificacion":"Sistema No Operable","plano":"1673_65328_224242F-01-02.pdf"},{"codigo":"224242F-01-03","nombre":"C-73 (TRAMO 01), INCLUYE ZANJA 02 AL SUR, ZANJAS 03@10 AL NORTE Y SUR, FRE-PD-N63-06","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224242F-01 [CALLES TRAMO 01 ]","subsistema":"224242F-01-03 [C-73 (TRAMO 01), INCLUYE ZANJA 02 AL SUR, ZANJAS 03@10 AL NORTE Y SUR, FRE-PD-N63-06 ]","clasificacion":"Sistema No Operable","plano":"1673_65329_224242F-01-03.pdf"},{"codigo":"224242F-01-04","nombre":"C-75, INCLUYE FRE-PD-N63-07 ,FRI-PD-N63-05 Y FRE-PD-N63-14","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224242F-01 [CALLES TRAMO 01 ]","subsistema":"224242F-01-04 [C-75, INCLUYE FRE-PD-N63-07 ,FRI-PD-N63-05 Y FRE-PD-N63-14 ]","clasificacion":"Sistema No Operable","plano":"1673_65330_224242F-01-04.pdf"},{"codigo":"224245F-01-01","nombre":"PVAC-PD-N63-01@02, EMN-PD-N63-01@02 Y FRE-PD-N63-02/05","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224245F-01 [PUNTOS DE VACIADO ]","subsistema":"224245F-01-01 [PVAC-PD-N63-01@02, EMN-PD-N63-01@02 Y FRE-PD-N63-02/05 ]","clasificacion":"Sistema No Operable","plano":"1673_65308_224245F-01-01.pdf"},{"codigo":"224245F-01-02","nombre":"PVAC-PD-N63-03@04, EMN-PD-N63-03@04 Y FRE-PD-N63-08/11","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224245F-01 [PUNTOS DE VACIADO ]","subsistema":"224245F-01-02 [PVAC-PD-N63-03@04, EMN-PD-N63-03@04 Y FRE-PD-N63-08/11 ]","clasificacion":"Sistema No Operable","plano":"1673_65309_224245F-01-02.pdf"},{"codigo":"224312F-01-02","nombre":"FRONTONES FR-INS-N51-01@04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224310F [NIVEL DE INYECCION MB-N51]","sistema":"224312F-01 [FRONTONES MB-N51 ]","subsistema":"224312F-01-02 [FRONTONES FR-INS-N51-01@04 ]","clasificacion":"Sistema No Operable","plano":"1673_64980_224312F-01-02.pdf"},{"codigo":"224312F-01-03","nombre":"FRONTONES FR-INS-N51-05_07_08_10_11","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224310F [NIVEL DE INYECCION MB-N51]","sistema":"224312F-01 [FRONTONES MB-N51 ]","subsistema":"224312F-01-03 [FRONTONES FR-INS-N51-05_07_08_10_11 ]","clasificacion":"Sistema No Operable","plano":"1673_65502_224312F-01-03.pdf"},{"codigo":"224312F-01-04","nombre":"FRONTON FR-INS-N51-12@15","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224310F [NIVEL DE INYECCION MB-N51]","sistema":"224312F-01 [FRONTONES MB-N51 ]","subsistema":"224312F-01-04 [FRONTON FR-INS-N51-12@15 ]","clasificacion":"Sistema No Operable","plano":"1673_65503_224312F-01-04.pdf"},{"codigo":"224314F-01-01","nombre":"XCI-05 N51,INCLUYE FRONTONES FR-INS-N51-14@17","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224310F [NIVEL DE INYECCION MB-N51]","sistema":"224314F-01 [CRUZADO DE INYECCION MB-N51 ]","subsistema":"224314F-01-01 [XCI-05 N51,INCLUYE FRONTONES FR-INS-N51-14@17 ]","clasificacion":"Sistema No Operable","plano":"1673_65580_224314F-01-01.pdf"},{"codigo":"224322F-01-02","nombre":"FRONTONES FR-INS-N52-01@02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224320F [NIVEL DE INYECCION MB-N52]","sistema":"224322F-01 [FRONTONES MB-N52 ]","subsistema":"224322F-01-02 [FRONTONES FR-INS-N52-01@02 ]","clasificacion":"Sistema No Operable","plano":"1673_64951_ 224322F-01-02.pdf"},{"codigo":"224322F-01-03","nombre":"FRONTONES FR-INS-N52-04@09","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224320F [NIVEL DE INYECCION MB-N52]","sistema":"224322F-01 [FRONTONES MB-N52 ]","subsistema":"224322F-01-03 [FRONTONES FR-INS-N52-04@09 ]","clasificacion":"Sistema No Operable","plano":"1673_64952_224322F-01-03.pdf"},{"codigo":"224322F-01-04","nombre":"FRONTONES FR-INS-N52-10@12 Y FR-INS-N52-17@18","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224320F [NIVEL DE INYECCION MB-N52]","sistema":"224322F-01 [FRONTONES MB-N52 ]","subsistema":"224322F-01-04 [FRONTONES FR-INS-N52-10@12 Y FR-INS-N52-17@18 ]","clasificacion":"Sistema No Operable","plano":"1673_64953_224322F-01-04.pdf"},{"codigo":"224322F-01-05","nombre":"FRONTONES FR-INS-N52-13@14A","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224320F [NIVEL DE INYECCION MB-N52]","sistema":"224322F-01 [FRONTONES MB-N52 ]","subsistema":"224322F-01-05 [FRONTONES FR-INS-N52-13@14A ]","clasificacion":"Sistema No Operable","plano":"1673_64954_224322F-01-05.pdf"},{"codigo":"224331F-01-01","nombre":"GAL-INS-N06-01, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224330F [NIVEL DE INYECCI&Oacute;N MB-N06]","sistema":"224331F-01 [GALERÍAS DE INYECCIÓN ]","subsistema":"224331F-01-01 [GAL-INS-N06-01, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65481_224331F-01-01.pdf"},{"codigo":"224331F-01-02","nombre":"GAL-INS-N06-02, FRONTONES, ENSACHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224330F [NIVEL DE INYECCI&Oacute;N MB-N06]","sistema":"224331F-01 [GALERÍAS DE INYECCIÓN ]","subsistema":"224331F-01-02 [GAL-INS-N06-02, FRONTONES, ENSACHES ]","clasificacion":"Sistema No Operable","plano":"1673_65482_224331F-01-02.pdf"},{"codigo":"224331F-01-03","nombre":"GAL-INS-N06-03, FRONTONES, ENSACHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224330F [NIVEL DE INYECCI&Oacute;N MB-N06]","sistema":"224331F-01 [GALERÍAS DE INYECCIÓN ]","subsistema":"224331F-01-03 [GAL-INS-N06-03, FRONTONES, ENSACHES ]","clasificacion":"Sistema No Operable","plano":"1673_65453_224331F-01-03.pdf"},{"codigo":"224331F-01-04","nombre":"GAL-INS-N06-04, FRONTONES, ENSACHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224330F [NIVEL DE INYECCI&Oacute;N MB-N06]","sistema":"224331F-01 [GALERÍAS DE INYECCIÓN ]","subsistema":"224331F-01-04 [GAL-INS-N06-04, FRONTONES, ENSACHES ]","clasificacion":"Sistema No Operable","plano":"1673_65483_224331F-01-04.pdf"},{"codigo":"224334F-01-01","nombre":"XC-INS-N06-01, TRAMO 1 FRONTONES, ENSACHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224330F [NIVEL DE INYECCI&Oacute;N MB-N06]","sistema":"224334F-01 [[CRUZADO DE INYECCIÓN] ]","subsistema":"224334F-01-01 [XC-INS-N06-01, TRAMO 1 FRONTONES, ENSACHES ]","clasificacion":"Sistema No Operable","plano":"1673_65484_224334F-01-01.pdf"},{"codigo":"224334F-01-02","nombre":"XC-INS-N06-01, TRAMO 2 FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224330F [NIVEL DE INYECCI&Oacute;N MB-N06]","sistema":"224334F-01 [[CRUZADO DE INYECCIÓN] ]","subsistema":"224334F-01-02 [XC-INS-N06-01, TRAMO 2 FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65485_224334F-01-02.pdf"},{"codigo":"224341F-01-01","nombre":"GAL-INS-N63-01, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224340F [NIVEL DE INYECCI&Oacute;N MB-N63]","sistema":"224341F-01 [GALERÍAS DE INYECCIÓN ]","subsistema":"224341F-01-01 [GAL-INS-N63-01, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65486_224341F-01-01.pdf"},{"codigo":"224341F-01-02","nombre":"GAL-INS-N63-02, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224340F [NIVEL DE INYECCI&Oacute;N MB-N63]","sistema":"224341F-01 [GALERÍAS DE INYECCIÓN ]","subsistema":"224341F-01-02 [GAL-INS-N63-02, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65487_224341F-01-02.pdf"},{"codigo":"224412F-01-01","nombre":"FRONTONES XCE-01 MB-N51 SECTOR SUR Y SSEE-EXS-N51-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224410F [NIVEL DE EXTRACCION MB-N51]","sistema":"224412F-01 [FRONTONES MB-N51 ]","subsistema":"224412F-01-01 [FRONTONES XCE-01 MB-N51 SECTOR SUR Y SSEE-EXS-N51-01 ]","clasificacion":"Sistema No Operable","plano":"1673_64955_224412F-01-01.pdf"},{"codigo":"224412F-01-02","nombre":"FRONTONES XCE-01 MB-N51 SECTOR NORTE","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224410F [NIVEL DE EXTRACCION MB-N51]","sistema":"224412F-01 [FRONTONES MB-N51 ]","subsistema":"224412F-01-02 [FRONTONES XCE-01 MB-N51 SECTOR NORTE ]","clasificacion":"Sistema No Operable","plano":"1673_64981_224412F-01-02.pdf"},{"codigo":"224422F-01-01","nombre":"FRONTONES XCE-03 MB-N52 SECTOR SUR","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224420F [SUBNIVEL DE EXTRACCION MB-N52]","sistema":"224422F-01 [FRONTONES MB-N52 ]","subsistema":"224422F-01-01 [FRONTONES XCE-03 MB-N52 SECTOR SUR ]","clasificacion":"Sistema No Operable","plano":"1673_64956_224422F-01-01.pdf"},{"codigo":"224422F-01-02","nombre":"FRONTONES XCE-03 MB-N52 SECTOR NORTE","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224420F [SUBNIVEL DE EXTRACCION MB-N52]","sistema":"224422F-01 [FRONTONES MB-N52 ]","subsistema":"224422F-01-02 [FRONTONES XCE-03 MB-N52 SECTOR NORTE ]","clasificacion":"Sistema No Operable","plano":"1673_64957_224422F-01-02.pdf"},{"codigo":"224422F-01-03","nombre":"FRONTONES XCE-05 MB-N52 SECTOR SUR","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224420F [SUBNIVEL DE EXTRACCION MB-N52]","sistema":"224422F-01 [FRONTONES MB-N52 ]","subsistema":"224422F-01-03 [FRONTONES XCE-05 MB-N52 SECTOR SUR ]","clasificacion":"Sistema No Operable","plano":"1673_64958_224422F-01-03.pdf"},{"codigo":"224422F-01-04","nombre":"FRONTONES XCE-05 MB-N52 SECTOR NORTE","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224420F [SUBNIVEL DE EXTRACCION MB-N52]","sistema":"224422F-01 [FRONTONES MB-N52 ]","subsistema":"224422F-01-04 [FRONTONES XCE-05 MB-N52 SECTOR NORTE ]","clasificacion":"Sistema No Operable","plano":"1673_64959_224422F-01-04.pdf"},{"codigo":"224424F-01-02","nombre":"XCE-03 MB-N52 / FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224420F [SUBNIVEL DE EXTRACCION MB-N52]","sistema":"224424F-01 [CRUZADO EXTRACCION MB-N52 ]","subsistema":"224424F-01-02 [XCE-03 MB-N52 / FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65581_224424F-01-02.pdf"},{"codigo":"224431F-01-01","nombre":"GAL-EXS-N06-01, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224431F-01 [GALERÍAS DE EXTRACCIÓN ]","subsistema":"224431F-01-01 [GAL-EXS-N06-01, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65473_224431F-01-01.pdf"},{"codigo":"224431F-01-02","nombre":"GAL-EXS-N06-02, FRONTONES, ENSANCHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224431F-01 [GALERÍAS DE EXTRACCIÓN ]","subsistema":"224431F-01-02 [GAL-EXS-N06-02, FRONTONES, ENSANCHES ]","clasificacion":"Sistema No Operable","plano":"1673_65474_224431F-01-02.pdf"},{"codigo":"224431F-01-03","nombre":"GAL-EXS-N06-03, FRONTONES, ENSANCHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224431F-01 [GALERÍAS DE EXTRACCIÓN ]","subsistema":"224431F-01-03 [GAL-EXS-N06-03, FRONTONES, ENSANCHES ]","clasificacion":"Sistema No Operable","plano":"1673_65475_224431F-01-03.pdf"},{"codigo":"224434F-01-01","nombre":"XC-EXS-N6-01 TRAMO 1, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224434F-01 [CRUZADO EXTRACCIÓN ]","subsistema":"224434F-01-01 [XC-EXS-N6-01 TRAMO 1, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65476_224434F-01-01.pdf"},{"codigo":"224434F-01-02","nombre":"XC-EXS-N6-01 TRAMO 2, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224434F-01 [CRUZADO EXTRACCIÓN ]","subsistema":"224434F-01-02 [XC-EXS-N6-01 TRAMO 2, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65477_224434F-01-02.pdf"},{"codigo":"224434F-01-03","nombre":"XC-EXS-N6-01, SSEE-EXS-N6-01, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224434F-01 [CRUZADO EXTRACCIÓN ]","subsistema":"224434F-01-03 [XC-EXS-N6-01, SSEE-EXS-N6-01, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65478_224434F-01-03.pdf"},{"codigo":"224434F-01-04","nombre":"XC-EXS-N6-01, SSEE-EXS-N6-02, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224434F-01 [CRUZADO EXTRACCIÓN ]","subsistema":"224434F-01-04 [XC-EXS-N6-01, SSEE-EXS-N6-02, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65479_224434F-01-04.pdf"},{"codigo":"224434F-01-05","nombre":"XC-EXS-N6-01, SSEE-EXS-N6-04, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224434F-01 [CRUZADO EXTRACCIÓN ]","subsistema":"224434F-01-05 [XC-EXS-N6-01, SSEE-EXS-N6-04, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65480_224434F-01-05.pdf"},{"codigo":"224441F-01-01","nombre":"GAL-EXS-N63-01, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224440F [NIVEL DE EXTRACCI&Oacute;N MB-N63]","sistema":"224441F-01 [GALERÍAS DE EXTRACCIÓN ]","subsistema":"224441F-01-01 [GAL-EXS-N63-01, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65451_224441F-01-01.pdf"},{"codigo":"224441F-01-02","nombre":"GAL-EXS-N63-02, SEE-EXS-N63-01, FRONTONES, ENSANCHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224440F [NIVEL DE EXTRACCI&Oacute;N MB-N63]","sistema":"224441F-01 [GALERÍAS DE EXTRACCIÓN ]","subsistema":"224441F-01-02 [GAL-EXS-N63-02, SEE-EXS-N63-01, FRONTONES, ENSANCHES ]","clasificacion":"Sistema No Operable","plano":"1673_65452_224441F-01-02.pdf"},{"codigo":"224511F-01-01","nombre":"GA-03 MB N51(CONTINUIDAD)","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-01 [GA-03 MB N51(CONTINUIDAD) ]","clasificacion":"Sistema No Operable","plano":"1673_65001_224511F-01-01.pdf"},{"codigo":"224511F-01-02","nombre":"XCA-01 N51, INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-02 [XCA-01 N51, INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65002_224511F-01-02.pdf"},{"codigo":"224511F-01-03","nombre":"XCA-03 N51, INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-03 [XCA-03 N51, INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65003_224511F-01-03.pdf"},{"codigo":"224511F-01-04","nombre":"GAC-01 N51, INCLUYE FRONTON GAC-03 N51","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-04 [GAC-01 N51, INCLUYE FRONTON GAC-03 N51 ]","clasificacion":"Sistema No Operable","plano":"1673_65004_224511F-01-04.pdf"},{"codigo":"224511F-01-05","nombre":"XCA-05 (CONTINUIDAD), INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-05 [XCA-05 (CONTINUIDAD), INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65005_224511F-01-05.pdf"},{"codigo":"224511F-01-06","nombre":"RAC-ACA-N51-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-06 [RAC-ACA-N51-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65006_224511F-01-06.pdf"},{"codigo":"224511F-01-07","nombre":"RAC-A-02 N51, INCLUYE FRCOMP-ACA-N51-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-07 [RAC-A-02 N51, INCLUYE FRCOMP-ACA-N51-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65007_224511F-01-07.pdf"},{"codigo":"224511F-01-08","nombre":"GAL-ACA-N51/N6-00, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-08 [GAL-ACA-N51/N6-00, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65008_224511F-01-08.pdf"},{"codigo":"224521F-01-01","nombre":"XCA-07 N52 (CONTINUIDAD), INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-01 [XCA-07 N52 (CONTINUIDAD), INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_64982_224521F-01-01.pdf"},{"codigo":"224521F-01-02","nombre":"XCA-09 N52 (CONTINUIDAD), INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-02 [XCA-09 N52 (CONTINUIDAD), INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65009_224521F-01-02.pdf"},{"codigo":"224521F-01-03","nombre":"XCA-11 N52","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-03 [XCA-11 N52 ]","clasificacion":"Sistema No Operable","plano":"1673_65010_224521F-01-03.pdf"},{"codigo":"224521F-01-04","nombre":"XCA-13 N52, INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-04 [XCA-13 N52, INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65011_224521F-01-04.pdf"},{"codigo":"224521F-01-05","nombre":"GA-03 N52 (CONTINUIDAD)","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-05 [GA-03 N52 (CONTINUIDAD) ]","clasificacion":"Sistema No Operable","plano":"1673_65012_224521F-01-05.pdf"},{"codigo":"224521F-01-06","nombre":"GALMN-ACA-N52-01,INCLUYEFRONTON;GALMN-ACA-N52-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-06 [GALMN-ACA-N52-01,INCLUYEFRONTON;GALMN-ACA-N52-02 ]","clasificacion":"Sistema No Operable","plano":"1673_65013_224521F-01-06.pdf"},{"codigo":"224521F-01-07","nombre":"RAC-A-01 N52 (EX RAC-ACA-N52-01)","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-07 [RAC-A-01 N52 (EX RAC-ACA-N52-01) ]","clasificacion":"Sistema No Operable","plano":"1673_65014_224521F-01-07.pdf"},{"codigo":"224531F-01-01","nombre":"GALBZN-ACA-N06-01, FRSERV-ACA-N06-01/02, FRSERV-ACA-N06-03/04, FRSERV-ACA-N06-05/06, FRE-ACA-N06-01, FRE-ACA-N06-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-01 [GALBZN-ACA-N06-01, FRSERV-ACA-N06-01/02, FRSERV-ACA-N06-03/04, FRSERV-ACA-N06-05/06, FRE-ACA-N06-01, FRE-ACA-N06-02 ]","clasificacion":"Sistema No Operable","plano":"1673_65465_224531F-01-01.pdf"},{"codigo":"224531F-01-02","nombre":"GAL-ACA-N06-01, FRI-ACA-N06-01, REL-ACA-N06-01, GALMN-ACA-N06-01/02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-02 [GAL-ACA-N06-01, FRI-ACA-N06-01, REL-ACA-N06-01, GALMN-ACA-N06-01/02 ]","clasificacion":"Sistema No Operable","plano":"1673_65466_224531F-01-02.pdf"},{"codigo":"224531F-01-03","nombre":"GALBZN-ACA-N06-02, FRSERV-ACA-N06-07/08, FRSERV-ACA-N06-09/10, FRSERV-ACA-N06-11/12, FRRISES-ACA-N06-01, FRE-ACA-N06-03, FRE-ACA-N06-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-03 [GALBZN-ACA-N06-02, FRSERV-ACA-N06-07/08, FRSERV-ACA-N06-09/10, FRSERV-ACA-N06-11/12, FRRISES-ACA-N06-01, FRE-ACA-N06-03, FRE-ACA-N06-04 ]","clasificacion":"Sistema No Operable","plano":"1673_65467_224531F-01-03.pdf"},{"codigo":"224531F-01-04","nombre":"GAL-ACA-N06-02, FRI-ACA-N06-03, REL-ACA-N06-03, GALMN-ACA-N06-03, GALMN-ACA-N06-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-04 [GAL-ACA-N06-02, FRI-ACA-N06-03, REL-ACA-N06-03, GALMN-ACA-N06-03, GALMN-ACA-N06-04 ]","clasificacion":"Sistema No Operable","plano":"1673_65468_224531F-01-04.pdf"},{"codigo":"224531F-01-05","nombre":"GAL-ACA-N06-03, FRI-ACA-N06-05, GALMN-ACA-N06-05, GALMN-ACA-N06-06, REL-ACA-N06-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-05 [GAL-ACA-N06-03, FRI-ACA-N06-05, GALMN-ACA-N06-05, GALMN-ACA-N06-06, REL-ACA-N06-04 ]","clasificacion":"Sistema No Operable","plano":"1673_65445_224531F-01-05.pdf"},{"codigo":"224531F-01-06","nombre":"GALBZN-ACA-N06-03, FRE-ACA-N06-05 y 06, FRI-ACA-N06-06, FRSERV-ACA-N06-13@18","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-06 [GALBZN-ACA-N06-03, FRE-ACA-N06-05 y 06, FRI-ACA-N06-06, FRSERV-ACA-N06-13@18 ]","clasificacion":"Sistema No Operable","plano":"1673_65469_224531F-01-06.pdf"},{"codigo":"224531F-01-07","nombre":"GAL-ACA-N06/N63-00, TRAMO 1, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-07 [GAL-ACA-N06/N63-00, TRAMO 1, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65470_224531F-01-07.pdf"},{"codigo":"224531F-01-08","nombre":"GAL-ACA-N06/N63-00 TRAMO 2, FRONTONES, REL-ACA-N06-05","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-08 [GAL-ACA-N06/N63-00 TRAMO 2, FRONTONES, REL-ACA-N06-05 ]","clasificacion":"Sistema No Operable","plano":"1673_65471_224531F-01-08.pdf"},{"codigo":"224541F-01-01","nombre":"GALBZN-ACA-N63-01, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224540F [NIVEL DE ACARREO MB-N63]","sistema":"224541F-01 [Desarrollos Horizontales ]","subsistema":"224541F-01-01 [GALBZN-ACA-N63-01, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65446_224541F-01-01.pdf"},{"codigo":"224541F-01-02","nombre":"GAL-ACA-N63-01, GALMN-ACA-N63-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224540F [NIVEL DE ACARREO MB-N63]","sistema":"224541F-01 [Desarrollos Horizontales ]","subsistema":"224541F-01-02 [GAL-ACA-N63-01, GALMN-ACA-N63-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65472_224541F-01-02.pdf"},{"codigo":"224541F-01-03","nombre":"GAL-ACA-N63-03, GALMN-ACA-N63-02, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224540F [NIVEL DE ACARREO MB-N63]","sistema":"224541F-01 [Desarrollos Horizontales ]","subsistema":"224541F-01-03 [GAL-ACA-N63-03, GALMN-ACA-N63-02, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65447_224541F-01-03.pdf"},{"codigo":"224541F-01-04","nombre":"GALBZN-ACA-N63-02, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224540F [NIVEL DE ACARREO MB-N63]","sistema":"224541F-01 [Desarrollos Horizontales ]","subsistema":"224541F-01-04 [GALBZN-ACA-N63-02, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65448_224541F-01-04.pdf"},{"codigo":"224541F-01-05","nombre":"GAL-ACA-N63-02 TRAMO 1","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224540F [NIVEL DE ACARREO MB-N63]","sistema":"224541F-01 [Desarrollos Horizontales ]","subsistema":"224541F-01-05 [GAL-ACA-N63-02 TRAMO 1 ]","clasificacion":"Sistema No Operable","plano":"1673_65449_224541F-01-05.pdf"},{"codigo":"224541F-01-06","nombre":"GAL-ACA-N63-02 TRAMO 2, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224540F [NIVEL DE ACARREO MB-N63]","sistema":"224541F-01 [Desarrollos Horizontales ]","subsistema":"224541F-01-06 [GAL-ACA-N63-02 TRAMO 2, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65450_224541F-01-06.pdf"}];
+let laborSeleccionada = null;   // {codigo,nombre,wbs,area,subarea,sistema,subsistema,plano} | null
+let laborManual = false;
+let laborResultadosActuales = [];
+
+function normLabor(s){
+  return (s==null?'':String(s)).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+}
+function buscarLabor(term){
+  const t = normLabor(term).trim();
+  if(t.length < 2) return [];
+  const partes = t.split(/\s+/).filter(Boolean);
+  return CATALOGO_LABORES.filter(l=>{
+    const hay = normLabor(l.codigo+' '+l.nombre+' '+l.area+' '+l.subarea+' '+l.sistema);
+    return partes.every(p=>hay.includes(p));
+  }).slice(0,8);
+}
+
+document.getElementById('a_laborBuscar').addEventListener('input', (e)=>{
+  laborSeleccionada = null;
+  document.getElementById('a_laborInfo').classList.remove('act');
+  const res = buscarLabor(e.target.value);
+  laborResultadosActuales = res;
+  const cont = document.getElementById('a_laborResultados');
+  if(!res.length){ cont.classList.remove('act'); cont.innerHTML = ''; return; }
+  cont.innerHTML = res.map((l,i)=>(
+    '<div class="labor-item" onclick="seleccionarLabor('+i+')"><b>'+l.codigo+'</b>'+l.nombre+'</div>'
+  )).join('');
+  cont.classList.add('act');
+});
+document.getElementById('a_laborBuscar').addEventListener('blur', ()=>{
+  setTimeout(()=>document.getElementById('a_laborResultados').classList.remove('act'), 150);
+});
+
+function seleccionarLabor(i){
+  const l = laborResultadosActuales[i];
+  if(!l) return;
+  laborSeleccionada = l;
+  document.getElementById('a_laborBuscar').value = l.codigo + ' — ' + l.nombre;
+  document.getElementById('a_laborResultados').classList.remove('act');
+  const info = document.getElementById('a_laborInfo');
+  info.innerHTML = '<b>Wbs:</b> '+l.wbs+'<br><b>Área:</b> '+l.area+'<br><b>SubÁrea:</b> '+l.subarea+'<br><b>Sistema:</b> '+l.sistema + (l.plano ? '<br><b>Plano:</b> '+l.plano : '');
+  info.classList.add('act');
+}
+
+function activarLaborManual(){
+  laborManual = true;
+  laborSeleccionada = null;
+  document.getElementById('a_laborBuscar').style.display = 'none';
+  document.getElementById('a_laborResultados').classList.remove('act');
+  document.getElementById('a_laborInfo').classList.remove('act');
+  document.getElementById('a_laborManualLink').style.display = 'none';
+  const mi = document.getElementById('a_laborManualInput');
+  mi.style.display = '';
+  mi.focus();
+}
+
+function resetLaborPicker(){
+  laborSeleccionada = null;
+  laborManual = false;
+  const buscar = document.getElementById('a_laborBuscar');
+  buscar.value = ''; buscar.style.display = '';
+  document.getElementById('a_laborResultados').classList.remove('act');
+  document.getElementById('a_laborResultados').innerHTML = '';
+  document.getElementById('a_laborInfo').classList.remove('act');
+  document.getElementById('a_laborInfo').innerHTML = '';
+  document.getElementById('a_laborManualLink').style.display = '';
+  const mi = document.getElementById('a_laborManualInput');
+  mi.style.display = 'none'; mi.value = '';
+}
+
+function obtenerFrenteElegido(){
+  if(laborManual){
+    const v = document.getElementById('a_laborManualInput').value.trim();
+    return v ? { manual:true, texto:v } : null;
+  }
+  return laborSeleccionada ? { manual:false, labor: laborSeleccionada } : null;
+}
+
+/* ======================================================================
+   TAB 1: ABRIR DT (por caminata) — un solo bloque de datos de caminata,
+   varios hallazgos, cada uno se transforma en su propio DT al guardar.
+   ====================================================================== */
+let h_fotos = [];
+let h_calidad = 'baja';
+let hallazgosPendientes = []; // hallazgos ya agregados a la lista, a la espera de "Guardar caminata"
+wireCalidadToggle('h_calidadT', v => h_calidad = v);
+
+document.getElementById('a_fecha').value = hoyISO();
+document.getElementById('h_fcompromiso').value = sumarDias(hoyISO(), 15);
+
+function actualizarPkPreview(){
+  const ini = parseFloat(document.getElementById('a_pkini').value);
+  const fin = parseFloat(document.getElementById('a_pkfin').value);
+  const prev = document.getElementById('a_pkPreview');
+  if(isNaN(ini) || isNaN(fin)){ prev.innerHTML = 'Metros caminados: <b>--</b>'; return; }
+  prev.innerHTML = 'Metros caminados: <b>' + Math.abs(fin - ini) + ' m</b>';
+}
+document.getElementById('a_pkini').addEventListener('input', actualizarPkPreview);
+document.getElementById('a_pkfin').addEventListener('input', actualizarPkPreview);
+
+document.getElementById('h_fotoInput').addEventListener('change', async (e)=>{
+  const files = Array.from(e.target.files || []);
+  for(const file of files){
+    try{
+      const r = await comprimirImagen(file, PRESETS_CALIDAD[h_calidad]);
+      h_fotos.push(r);
+    }catch(err){ console.warn(err); }
+  }
+  e.target.value = '';
+  renderGaleria('h_galeria', h_fotos, 'quitarFotoHallazgo');
+});
+function quitarFotoHallazgo(i){ h_fotos.splice(i,1); renderGaleria('h_galeria', h_fotos, 'quitarFotoHallazgo'); }
+
+function agregarHallazgo(){
+  const desc = document.getElementById('h_desc').value.trim();
+  if(!desc){ alert('Falta la descripcion del hallazgo.'); return; }
+  hallazgosPendientes.push({
+    prioridad: document.getElementById('h_prioridad').value,
+    fcompromiso: document.getElementById('h_fcompromiso').value,
+    desc,
+    fotosApertura: h_fotos.slice()
+  });
+  document.getElementById('h_desc').value = '';
+  h_fotos = [];
+  renderGaleria('h_galeria', h_fotos, 'quitarFotoHallazgo');
+  renderHallazgosPendientes();
+}
+
+function quitarHallazgoPendiente(i){ hallazgosPendientes.splice(i,1); renderHallazgosPendientes(); }
+
+function renderHallazgosPendientes(){
+  const cont = document.getElementById('h_lista');
+  const contador = document.getElementById('h_contador');
+  const btn = document.getElementById('btnGuardarCaminata');
+  contador.textContent = hallazgosPendientes.length
+    ? hallazgosPendientes.length + ' hallazgo(s) listos para guardar en esta caminata:'
+    : 'Sin hallazgos agregados todavía.';
+  cont.innerHTML = hallazgosPendientes.map((h,i)=>(
+    '<div class="hallazgo-mini"><div class="htxt"><b>'+h.prioridad+'</b> &middot; '+h.desc.slice(0,50)+(h.fotosApertura.length?' &middot; '+h.fotosApertura.length+' foto(s)':'')+'</div>'+
+    '<button onclick="quitarHallazgoPendiente('+i+')">&times;</button></div>'
+  )).join('');
+  btn.disabled = hallazgosPendientes.length === 0;
+}
+
+function limpiarCaminata(){
+  resetLaborPicker();
+  document.getElementById('a_iniciales').value = '';
+  document.getElementById('a_pkini').value = '';
+  document.getElementById('a_pkfin').value = '';
+  document.getElementById('a_turno').value = '';
+  document.getElementById('h_desc').value = '';
+  actualizarPkPreview();
+  hallazgosPendientes = [];
+  h_fotos = [];
+  renderGaleria('h_galeria', h_fotos, 'quitarFotoHallazgo');
+  renderHallazgosPendientes();
+}
+
+async function guardarCaminata(){
+  if(!hallazgosPendientes.length) return;
+  const frenteElegido = obtenerFrenteElegido();
+  const ini = document.getElementById('a_iniciales').value.trim();
+  const pkini = parseFloat(document.getElementById('a_pkini').value);
+  const pkfin = parseFloat(document.getElementById('a_pkfin').value);
+  if(!frenteElegido){ alert('Falta elegir la labor de la lista (o escribirla a mano si no está en el WBS todavía).'); return; }
+  if(!ini){ alert('Faltan las iniciales del inspector (se usan para generar el código CIZ de caminata).'); return; }
+  if(isNaN(pkini) || isNaN(pkfin)){ alert('Falta PK inicio y/o PK término de la caminata.'); return; }
+
+  const fecha = document.getElementById('a_fecha').value || hoyISO();
+  const turno = document.getElementById('a_turno').value;
+
+  let frenteTexto, wbs=null, area=null, subarea=null, sistema=null, subsistema=null, plano=null;
+  if(frenteElegido.manual){
+    frenteTexto = frenteElegido.texto;
+  } else {
+    const l = frenteElegido.labor;
+    frenteTexto = l.codigo + ' — ' + l.nombre;
+    wbs=l.wbs; area=l.area; subarea=l.subarea; sistema=l.sistema; subsistema=l.subsistema; plano=l.plano;
+  }
+
+  /* Ojo: NO se manda codigo_caminata. Lo genera la base con el contador
+     atomico por inspector, para que dos telefonos no produzcan el mismo. */
+  const op = {
+    tipo: 'caminata',
+    caminata: {
+      fecha: fecha, turno: turno || null, frente: frenteTexto,
+      wbs: wbs, area: area, subarea: subarea, sistema: sistema, subsistema: subsistema, plano: plano,
+      pk_inicio: pkini, pk_termino: pkfin,
+      iniciales_inspector: ini, inspectores: ini
+    },
+    hallazgos: hallazgosPendientes.map(h => ({
+      desc: h.desc, prioridad: h.prioridad, fcompromiso: h.fcompromiso,
+      fotosApertura: h.fotosApertura || []
+    }))
+  };
+
+  const btn = document.getElementById('btnGuardarCaminata');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+
+  try {
+    if(!navigator.onLine) throw new Error('__SIN_SENAL__');
+    const dts = await subirCaminata(op);
+    const punches = dts.map(d => d.numero_punch).join(', ');
+    limpiarCaminata();
+    document.getElementById('a_fecha').value = hoyISO();
+    document.getElementById('h_fcompromiso').value = sumarDias(hoyISO(), 15);
+    await cargarDesdeBase();
+    avisar('a_aviso', 'Guardado en la base. N° Punch asignado(s): ' + punches + '.', 'ok');
+  } catch(e){
+    const r = COLA.agregar(op);
+    if(r.ok){
+      limpiarCaminata();
+      document.getElementById('a_fecha').value = hoyISO();
+      document.getElementById('h_fcompromiso').value = sumarDias(hoyISO(), 15);
+      const base = e.message === '__SIN_SENAL__'
+        ? 'Sin señal: la caminata quedó guardada en este dispositivo y se sube sola al recuperar conexión.'
+        : 'No se pudo subir ahora (' + (e.message||e) + '). Quedó guardada en este dispositivo.';
+      avisar('a_aviso', base + (r.fotosPerdidas ? ' Aviso: no alcanzó el espacio para guardar ' + r.fotosPerdidas + ' foto(s); el DT sí quedó.' : '') +
+        ' El N° Punch se asigna recién al subir.', 'err');
+    } else {
+      avisar('a_aviso', 'No se pudo guardar ni subir. NO cierres la página: revisa la señal y vuelve a apretar Guardar.', 'err');
+    }
+  }
+  btn.disabled = false; btn.textContent = 'Guardar caminata';
+  pintarEstado();
+}
+/* ======================================================================
+   TAB 2: CERRAR DT
+   ====================================================================== */
+let c_fotos = [];
+let c_calidad = 'baja';
+wireCalidadToggle('c_calidadT', v => c_calidad = v);
+document.getElementById('c_frealcierre').value = hoyISO();
+
+document.getElementById('c_fotoInput').addEventListener('change', async (e)=>{
+  const files = Array.from(e.target.files || []);
+  for(const file of files){
+    try{
+      const r = await comprimirImagen(file, PRESETS_CALIDAD[c_calidad]);
+      c_fotos.push(r);
+    }catch(err){ console.warn(err); }
+  }
+  e.target.value = '';
+  renderGaleria('c_galeria', c_fotos, 'quitarFotoCierre');
+});
+function quitarFotoCierre(i){ c_fotos.splice(i,1); renderGaleria('c_galeria', c_fotos, 'quitarFotoCierre'); }
+
+function poblarSelectCerrar(){
+  const sel = document.getElementById('c_select');
+  const abiertos = sesion.registros.filter(r => r.estado === 'ABIERTA');
+  if(!abiertos.length){
+    sel.innerHTML = '<option value="">(no hay DT abiertos)</option>';
+    document.getElementById('c_form').style.display = 'none';
+    document.getElementById('c_detalle').innerHTML = '<div class="vacio">Abre un DT en la pesta&ntilde;a anterior para poder probar el cierre.</div>';
+    return;
+  }
+  sel.innerHTML = abiertos.map(r => '<option value="'+r.numeroPunch+'">Punch '+r.numeroPunch+' &mdash; '+r.desc.slice(0,40)+'</option>').join('');
+  mostrarDetalleCerrar();
+}
+
+function mostrarDetalleCerrar(){
+  const punch = document.getElementById('c_select').value;
+  const r = sesion.registros.find(x => x.numeroPunch === punch);
+  const det = document.getElementById('c_detalle');
+  if(!r){ det.innerHTML=''; document.getElementById('c_form').style.display='none'; return; }
+  det.innerHTML =
+    '<div class="detalle-sel">'+
+      '<div><b>Punch '+r.numeroPunch+'</b>'+(r.codigoCaminata?' &middot; caminata '+r.codigoCaminata:'')+ (r.ejemplo ? ' &middot; (ejemplo)' : '') +'</div>'+
+      '<div style="margin-top:4px;">'+r.desc+'</div>'+
+      '<div style="font-size:11px;color:#777;margin-top:4px;">Emitida '+fmtCorta(r.femision)+' &middot; compromiso '+fmtCorta(r.fcompromiso)+' &middot; '+ (r.ubicacion||'-') +'</div>'+
+      (r.fotosApertura.length ? '<div class="thumbs">'+r.fotosApertura.map(f=>'<img src="'+f.dataUrl+'">').join('')+'</div>' : '<div style="font-size:11px;color:#aaa;margin-top:4px;">(sin fotos de apertura)</div>')+
+    '</div>';
+  document.getElementById('c_form').style.display = '';
+  c_fotos = [];
+  renderGaleria('c_galeria', c_fotos, 'quitarFotoCierre');
+}
+
+async function guardarCierre(){
+  const punch = document.getElementById('c_select').value;
+  const r = sesion.registros.find(x => x.numeroPunch === punch);
+  if(!r) return;
+  const resp = document.getElementById('c_resp').value.trim();
+  if(!resp){ alert('Falta el responsable del cierre.'); return; }
+  if(!r.dbId){ alert('Este DT todavía no está subido a la base. Sincronízalo primero y después ciérralo.'); return; }
+
+  const op = {
+    tipo: 'cierre',
+    dtId: r.dbId,
+    cambios: {
+      estado: 'CERRADA',
+      fecha_real_cierre: document.getElementById('c_frealcierre').value || hoyISO(),
+      resp_cierre: resp,
+      clasificacion_desviacion: document.getElementById('c_clasif').value.trim() || null
+    },
+    fotos: c_fotos.slice()
+  };
+
+  const btn = document.getElementById('btnGuardarCierre');
+  if(btn){ btn.disabled = true; btn.textContent = 'Guardando...'; }
+
+  try {
+    if(!navigator.onLine) throw new Error('__SIN_SENAL__');
+    await subirCierre(op);
+    c_fotos = [];
+    renderGaleria('c_galeria', c_fotos, 'quitarFotoCierre');
+    document.getElementById('c_resp').value = '';
+    document.getElementById('c_clasif').value = '';
+    await cargarDesdeBase();
+    avisar('c_aviso', 'DT ' + punch + ' cerrado y guardado en la base.', 'ok');
+  } catch(e){
+    const res = COLA.agregar(op);
+    if(res.ok){
+      c_fotos = [];
+      renderGaleria('c_galeria', c_fotos, 'quitarFotoCierre');
+      avisar('c_aviso', (e.message === '__SIN_SENAL__' ? 'Sin señal: el cierre' : 'No se pudo subir ahora; el cierre') +
+        ' quedó guardado en este dispositivo y se sube al recuperar conexión.' +
+        (res.fotosPerdidas ? ' No alcanzó el espacio para ' + res.fotosPerdidas + ' foto(s).' : ''), 'err');
+    } else {
+      avisar('c_aviso', 'No se pudo guardar ni subir el cierre. Revisa la señal y reintenta.', 'err');
+    }
+  }
+  if(btn){ btn.disabled = false; btn.textContent = 'Guardar cierre'; }
+  pintarEstado();
+}
+/* ======================================================================
+   Listas + mini KPI compartidos entre tab 1 y tab 2
+   ====================================================================== */
+function renderTodo(){
+  const abiertos = sesion.registros.filter(r => r.estado === 'ABIERTA');
+  const cerrados = sesion.registros.filter(r => r.estado === 'CERRADA');
+
+  document.getElementById('mk_abiertas').textContent = abiertos.length;
+  document.getElementById('mk_cerradas').textContent = cerrados.length;
+
+  document.getElementById('lista_abiertos').innerHTML = abiertos.length ? renderListaAgrupada(abiertos) :
+    '<div class="vacio">A&uacute;n no hay DT abiertos.</div>';
+  document.getElementById('lista_cerrados').innerHTML = cerrados.length ? renderListaAgrupada(cerrados) :
+    '<div class="vacio">A&uacute;n no hay DT cerrados.</div>';
+
+  poblarSelectCerrar();
+}
+
+/* Agrupa por camId para que se note que varios DT vienen de la MISMA
+   caminata (mismos metros caminados) en vez de aparecer como si cada
+   uno hubiera implicado su propia caminata por separado. */
+function renderListaAgrupada(regs){
+  const grupos = new Map();
+  const sueltos = [];
+  regs.forEach(r=>{
+    if(r.camId){
+      if(!grupos.has(r.camId)) grupos.set(r.camId, []);
+      grupos.get(r.camId).push(r);
+    } else sueltos.push(r);
+  });
+  let html = '';
+  grupos.forEach(lista=>{
+    const c = lista[0];
+    html += '<div class="cam-card">'+
+      '<div class="cam-tit">&#128193; Caminata '+c.codigoCaminata+' &middot; '+(c.frente||'(sin frente)')+' &middot; PK '+c.pkIni+' &rarr; '+c.pkFin+' ('+c.metrosCaminados+' m caminados) &middot; '+fmtCorta(c.fechaCaminata)+(c.turno?' &middot; Turno '+c.turno:'')+' &middot; '+lista.length+' hallazgo(s)</div>'+
+      (c.area ? '<div style="font-size:9.5px;color:#a05654;margin:-4px 0 6px;">'+c.area+' &rsaquo; '+c.subarea+'</div>' : '')+
+      lista.map(tarjetaChicaHTML).join('')+
+    '</div>';
+  });
+  sueltos.forEach(r=>{ html += tarjetaHTML(r); });
+  return html;
+}
+
+function tarjetaChicaHTML(r){
+  let atrasoHTML = '';
+  if(r.estado === 'CERRADA'){
+    atrasoHTML = r.atrasoDias > 0
+      ? ' &middot; <span class="atraso si" style="display:inline;">atraso '+r.atrasoDias+' d</span>'
+      : ' &middot; <span class="atraso no" style="display:inline;">a tiempo</span>';
+  }
+  const fotosN = (r.fotosApertura||[]).length + (r.fotosCierre||[]).length;
+  return '<div class="tarjeta-chica">'+
+    '<div class="fila-top"><span class="corr">Punch '+r.numeroPunch+'</span><span class="estado-pill '+r.estado+'">'+r.estado+'</span></div>'+
+    '<div class="desc">'+r.desc+'</div>'+
+    '<div class="meta">Prioridad '+r.prioridad+' &middot; '+fotosN+' foto(s)'+atrasoHTML+'</div>'+
+  '</div>';
+}
+
+function tarjetaHTML(r){
+  let atrasoHTML = '';
+  if(r.estado === 'CERRADA'){
+    if(r.atrasoDias > 0) atrasoHTML = '<div class="atraso si">Cerrada con atraso: '+r.atrasoDias+' d&iacute;a(s)</div>';
+    else atrasoHTML = '<div class="atraso no">Cerrada a tiempo</div>';
+  }
+  const fotosN = (r.fotosApertura||[]).length + (r.fotosCierre||[]).length;
+  return '<div class="tarjeta">'+
+    '<div class="fila-top"><span class="corr">Punch '+r.numeroPunch+ (r.ejemplo?' <span style="color:#999;font-weight:600;">(ejemplo)</span>':'') +'</span><span class="estado-pill '+r.estado+'">'+r.estado+'</span></div>'+
+    '<div class="desc">'+r.desc+'</div>'+
+    '<div class="meta">'+(r.ubicacion||'-')+' &middot; Prioridad '+r.prioridad+' &middot; '+fotosN+' foto(s) &middot; emitida '+fmtCorta(r.femision)+'</div>'+
+    atrasoHTML+
+  '</div>';
+}
+
+
+/* ======================================================================
+   MARCA — plantilla QC Digital + empresa encima
+   Nada de logo, color ni contrato queda escrito en este archivo. Todo
+   sale de marca.js / empresas.json, que es la misma fuente que usan las
+   otras herramientas de la suite. Cambiar "activa" en empresas.json
+   cambia las 12 de una vez.
+   ====================================================================== */
+
+/* Nombre de la app segun la empresa activa. El sufijo del correlativo
+   (CIZ = Caminata Interna Zublin) es un dato del CONTRATO, no una
+   constante: otra empresa trae el suyo. Se rellena al cargar el
+   contrato desde la base; esto es solo el valor de arranque. */
+let CONTRATO = { codigo: '', sufijo: 'CIZ', nombre: '' };
+
+function nombreApp(){
+  const suf = CONTRATO.sufijo || 'CIZ';
+  return suf + ' DT';
+}
+
+async function aplicarMarca(){
+  if(typeof MARCA === 'undefined'){
+    console.warn('marca.js no cargó; la app sigue con los colores por defecto.');
+    return;
+  }
+  try { await MARCA.iniciar(); } catch(e){ console.warn('MARCA.iniciar falló:', e); }
+
+  MARCA.aplicarCSS();
+  /* aplicarCSS deja --rojo = color del header. El acento va aparte para
+     que en QC Digital el header sea navy y los acentos naranjos. */
+  const emp = MARCA.empresa || {};
+  document.documentElement.style.setProperty('--acento',
+    emp.colorPrimario || emp.colorFondoHeader || '#f5851f');
+
+  MARCA.pintarHeaderHTML('logoImg');
+  const ll = document.getElementById('logoLogin');
+  if(ll){
+    if(MARCA.logoDataUrl) ll.src = MARCA.logoDataUrl;
+    else ll.removeAttribute('src');
+  }
+
+  const contratoTxt = MARCA.textoContrato();
+  document.getElementById('hdrContrato').innerHTML = contratoTxt || '&nbsp;';
+
+  const codProy = (emp.contrato && emp.contrato.codigoProyecto) || '';
+  CONTRATO.codigo = codProy;
+  document.getElementById('hdrCodigo').textContent =
+    (codProy ? 'CÓDIGO: ' + codProy + ' · ' : '') + nombreApp();
+
+  document.getElementById('hdrTitulo').innerHTML =
+    nombreApp() + ' &mdash; CAMINATAS &middot; DETALLES DE TERMINACIÓN' +
+    '<br><span style="font-weight:400;font-size:11px;opacity:.85">' +
+    (emp.nombreCorto || 'QC Digital') + (emp.tagline ? ' · ' + emp.tagline : '') + '</span>';
+
+  document.getElementById('lgTitulo').textContent = nombreApp();
+  document.getElementById('lgSub').textContent = MARCA.esPlantilla()
+    ? 'Modo plantilla (QC Digital). Elige la empresa en el selector una vez dentro.'
+    : 'Ingresa con el correo registrado en el sistema.';
+  document.getElementById('lgPie').innerHTML = contratoTxt
+    ? contratoTxt.split('—')[0].trim() : (emp.nombreCorto || 'QC Digital');
+
+  const pie = document.getElementById('pieApp');
+  if(pie) pie.textContent = nombreApp() + ' · ' + (emp.nombreCorto || 'QC Digital') +
+    (codProy ? ' · contrato ' + codProy : '');
+
+  const av = document.getElementById('avisoPlantilla');
+  if(av) av.classList.toggle('ver', MARCA.esPlantilla());
+
+  /* marca.js deja esta marca antes de recargar por cambio de empresa.
+     Es la pagina la que tiene que restaurar el borrador. */
+  let debeRestaurar = false;
+  try {
+    debeRestaurar = sessionStorage.getItem('qcd_auto_restaurar') === '1';
+    if(debeRestaurar) sessionStorage.removeItem('qcd_auto_restaurar');
+  } catch(e){}
+  if(debeRestaurar){
+    try { window.recuperarBorrador(); } catch(e){}
+  }
+
+  const cont = document.getElementById('selectorEmpresa');
+  if(cont) cont.innerHTML = '';
+  document.title = nombreApp() + ' · ' + (emp.nombreCorto || 'QC Digital');
+  try { MARCA.crearSelector('selectorEmpresa'); } catch(e){}
+  protegerCambioDeEmpresa();
+}
+
+/* ----------------------------------------------------------------------
+   Cambiar de empresa RECARGA la pagina (asi lo hace marca.js, para que
+   todos los textos y PDF se regeneren con la marca correcta). Eso, en
+   esta app, tiene dos riesgos que no tienen los otros reportes:
+
+   1. Se perderian los hallazgos que el inspector lleva agregados pero
+      todavia no guardados. marca.js deja el gancho para eso: si la
+      pagina define guardarBorrador/recuperarBorrador, los usa sola.
+   2. Sin senal, recargar puede dejar la app en blanco hasta recuperar
+      conexion. Bajo tierra eso seria perder la caminata entera.
+   ---------------------------------------------------------------------- */
+
+window.guardarBorrador = function(){
+  const b = {
+    fecha: (document.getElementById('a_fecha')||{}).value || '',
+    turno: (document.getElementById('a_turno')||{}).value || '',
+    iniciales: (document.getElementById('a_iniciales')||{}).value || '',
+    pkini: (document.getElementById('a_pkini')||{}).value || '',
+    pkfin: (document.getElementById('a_pkfin')||{}).value || '',
+    laborManual: (document.getElementById('a_laborManualInput')||{}).value || '',
+    labor: (typeof laborSeleccionada !== 'undefined') ? laborSeleccionada : null,
+    hallazgos: (typeof hallazgosPendientes !== 'undefined') ? hallazgosPendientes : []
+  };
+  try {
+    almacen.set('cizdt_borrador', JSON.stringify(b));
+  } catch(e){
+    /* Casi siempre es cupo lleno por las fotos: mejor perder las fotos
+       del borrador que perder los hallazgos escritos. */
+    b.hallazgos = (b.hallazgos || []).map(h => Object.assign({}, h, { fotosApertura: [] }));
+    b.fotosDescartadas = true;
+    try { almacen.set('cizdt_borrador', JSON.stringify(b)); } catch(e2){}
+  }
+};
+
+window.recuperarBorrador = function(){
+  let b = null;
+  try { b = JSON.parse(almacen.get('cizdt_borrador') || 'null'); } catch(e){ return; }
+  if(!b) return;
+  almacen.del('cizdt_borrador');
+  const set = (id, v) => { const el = document.getElementById(id); if(el && v) el.value = v; };
+  set('a_fecha', b.fecha); set('a_turno', b.turno); set('a_iniciales', b.iniciales);
+  set('a_pkini', b.pkini); set('a_pkfin', b.pkfin);
+  if(b.labor && typeof laborSeleccionada !== 'undefined'){
+    laborSeleccionada = b.labor;
+    const inp = document.getElementById('a_laborBuscar');
+    if(inp) inp.value = b.labor.codigo + ' — ' + b.labor.nombre;
+    const info = document.getElementById('a_laborInfo');
+    if(info){
+      const l = b.labor;
+      info.innerHTML = '<b>Wbs:</b> '+l.wbs+'<br><b>Área:</b> '+l.area+'<br><b>SubÁrea:</b> '+l.subarea+'<br><b>Sistema:</b> '+l.sistema + (l.plano ? '<br><b>Plano:</b> '+l.plano : '');
+      info.classList.add('act');
+    }
+  } else if(b.laborManual && typeof activarLaborManual === 'function'){
+    try { activarLaborManual(); } catch(e){}
+    set('a_laborManualInput', b.laborManual);
+  }
+  if(b.hallazgos && b.hallazgos.length && typeof hallazgosPendientes !== 'undefined'){
+    hallazgosPendientes = b.hallazgos;
+    if(typeof renderHallazgosPendientes === 'function') renderHallazgosPendientes();
+  }
+  if(typeof actualizarPkPreview === 'function') actualizarPkPreview();
+  if(b.fotosDescartadas){
+    avisar('a_aviso', 'Se recuperó la caminata que llevabas, pero no alcanzó el espacio para conservar las fotos: hay que volver a tomarlas.', 'err');
+  }
+};
+
+function protegerCambioDeEmpresa(){
+  const sel = document.getElementById('selectorEmpresa_select');
+  if(!sel || sel.dataset.protegido) return;
+  sel.dataset.protegido = '1';
+  /* Fase de captura: corre ANTES del listener de marca.js, asi puede
+     cancelarlo cuando no hay senal. */
+  sel.addEventListener('change', function(ev){
+    if(!navigator.onLine){
+      ev.stopImmediatePropagation();
+      ev.preventDefault();
+      sel.value = (typeof MARCA !== 'undefined' && MARCA.empresa) ? MARCA.empresa.id : sel.value;
+      alert('Sin señal no cambies de empresa: la página se recarga y podría no volver a abrir hasta tener conexión.\n\nHazlo arriba, con señal.');
+    }
+  }, true);
+}
+
+/* El arranque real ocurre tras el login (iniciarApp) */
+renderTodo();
+pintarEstado();
+aplicarMarca();
+
+/* ======================================================================
+   TAB 3: DASHBOARD - mismo lector y mismos calculos que reporte-dt-index.html
+   ====================================================================== */
+function norm(s){
+  return String(s==null?'':s)
+    .replace(/ /g,'')
+    .normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/\s+/g,' ')
+    .trim().toUpperCase();
+}
+function parseFechaSIC(s){
+  if(!s) return null;
+  const m = String(s).trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if(!m) return null;
+  let a = parseInt(m[3],10); if(a<100) a += 2000;
+  const d = new Date(a, parseInt(m[2],10)-1, parseInt(m[1],10));
+  return isNaN(d) ? null : d;
+}
+function pctSIC(n, t){ return t>0 ? Math.round(n/t*1000)/10 : 0; }
+
+let d_registros = [];
+document.getElementById('d_archivo').addEventListener('change', e=>{
+  const f = e.target.files[0];
+  if(f) leerArchivoSIC(f);
+});
+
+async function leerArchivoSIC(file){
+  const estadoEl = document.getElementById('d_estado');
+  try{
+    estadoEl.textContent = 'Leyendo archivo...'; estadoEl.className = 'estado-carga';
+    const buf = await file.arrayBuffer();
+    const texto = new TextDecoder('windows-1252').decode(buf);
+    let fechaDatos = '';
+    const m = texto.match(/Fecha\s*:\s*(\d{2}-\d{2}-\d{4})/);
+    if(m) fechaDatos = m[1];
+    const dom = new DOMParser().parseFromString(texto, 'text/html');
+    const tablas = dom.querySelectorAll('table');
+    let mejor = null;
+    tablas.forEach(t=>{ if(!mejor || t.rows.length > mejor.rows.length) mejor = t; });
+    if(!mejor) throw new Error('No se encontraron tablas en el archivo.');
+    const filas = Array.from(mejor.rows).map(tr => Array.from(tr.cells).map(td => td.textContent.trim()));
+    procesarFilasSIC(filas, file.name, fechaDatos);
+  }catch(err){
+    console.error(err);
+    estadoEl.textContent = 'No se pudo leer el archivo: ' + err.message;
+    estadoEl.className = 'estado-carga err';
+  }
+}
+
+function procesarFilasSIC(filas, nombreArchivo, fechaDatos){
+  const estadoEl = document.getElementById('d_estado');
+  let hIdx = -1, headers = null;
+  for(let i=0;i<Math.min(filas.length,30);i++){
+    const fn = filas[i].map(norm);
+    if(fn.some(c=>c.includes('PUNCH')) && fn.some(c=>c==='ESTADO')){ hIdx=i; headers=fn; break; }
+  }
+  if(hIdx<0){ estadoEl.textContent='El archivo no tiene el formato del listado DT de SIC3PRO.'; estadoEl.className='estado-carga err'; return; }
+
+  function col(...claves){
+    for(const k of claves){
+      const i = headers.findIndex(h=>h.includes(k));
+      if(i>=0) return i;
+    }
+    return -1;
+  }
+  const iSub = headers.findIndex(h=>h.includes('SUBAREA'));
+  const iArea = headers.findIndex((h,ix)=>h.includes('AREA') && ix!==iSub);
+  const C = {
+    punch: col('PUNCH'), area:iArea, sub:iSub,
+    prio: col('PRIO'), estado: headers.findIndex(h=>h==='ESTADO'),
+    emision: col('EMISION'), realCierre: col('REAL')
+  };
+  d_registros = [];
+  for(let i=hIdx+1;i<filas.length;i++){
+    const f = filas[i];
+    if(!f || f.length<5) continue;
+    const estado = norm(f[C.estado]);
+    if(!['ABIERTA','CERRADA','ATRASADA'].includes(estado)) continue;
+    d_registros.push({
+      punch: f[C.punch]||'', area: f[C.area]||'', sub: f[C.sub]||'(sin SubArea)',
+      prio: f[C.prio]||'', estado,
+      fEmision: parseFechaSIC(f[C.emision]), fRealCierre: parseFechaSIC(f[C.realCierre])
+    });
+  }
+  if(!d_registros.length){ estadoEl.textContent='El archivo se leyó pero no se encontraron registros de DT.'; estadoEl.className='estado-carga err'; return; }
+
+  document.getElementById('d_dz').classList.add('ok');
+  document.getElementById('d_dzTxt').textContent = nombreArchivo + ' — ' + d_registros.length + ' registros cargados.';
+  estadoEl.textContent = 'Archivo procesado correctamente: ' + d_registros.length + ' DT' + (fechaDatos ? ' · datos SIC3PRO al ' + fechaDatos : '') + '.';
+  estadoEl.className = 'estado-carga ok';
+  document.getElementById('d_fecha').textContent = fechaDatos || '-';
+  renderDashboard();
+}
+
+function renderDashboard(){
+  const total = d_registros.length;
+  const nAbierta = d_registros.filter(r=>r.estado==='ABIERTA').length;
+  const nAtrasada = d_registros.filter(r=>r.estado==='ATRASADA').length;
+  const nCerrada = d_registros.filter(r=>r.estado==='CERRADA').length;
+
+  document.getElementById('d_zona').style.display = '';
+  document.getElementById('d_kTotal').textContent = total;
+  document.getElementById('d_kAbiertas').textContent = nAbierta;
+  document.getElementById('d_kAtrasadas').textContent = nAtrasada;
+  document.getElementById('d_kCerradas').textContent = nCerrada;
+  document.getElementById('d_kCierre').textContent = pctSIC(nCerrada, total) + '%';
+
+  dibujarDonut([
+    { label: 'Cerradas', n: nCerrada, color: '#2e7d32' },
+    { label: 'Abiertas', n: nAbierta, color: '#F2A93B' },
+    { label: 'Atrasadas', n: nAtrasada, color: '#C62828' }
+  ], total);
+
+  const porSub = new Map();
+  d_registros.forEach(r=>{
+    if(r.estado==='ABIERTA' || r.estado==='ATRASADA'){
+      porSub.set(r.sub, (porSub.get(r.sub)||0) + 1);
+    }
+  });
+  const top = [...porSub.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const tabla = document.getElementById('d_tablaSub');
+  tabla.innerHTML = '<tr><th>SubArea</th><th class="num">Pendientes</th></tr>' +
+    (top.length ? top.map(([k,v])=>'<tr><td>'+k+'</td><td class="num">'+v+'</td></tr>').join('') : '<tr><td colspan="2" style="text-align:center;color:#999;">Sin pendientes</td></tr>');
+}
+
+function dibujarDonut(segmentos, total){
+  const svg = document.getElementById('d_donut');
+  const cx=60, cy=60, r=48, rInterior=28;
+  let acumulado = 0;
+  let paths = '';
+  segmentos.forEach(s=>{
+    if(!s.n){ return; }
+    const frac = total>0 ? s.n/total : 0;
+    const a0 = acumulado * 2*Math.PI - Math.PI/2;
+    acumulado += frac;
+    const a1 = acumulado * 2*Math.PI - Math.PI/2;
+    const largeArc = (a1-a0) > Math.PI ? 1 : 0;
+    const x0 = cx + r*Math.cos(a0), y0 = cy + r*Math.sin(a0);
+    const x1 = cx + r*Math.cos(a1), y1 = cy + r*Math.sin(a1);
+    const xi0 = cx + rInterior*Math.cos(a1), yi0 = cy + rInterior*Math.sin(a1);
+    const xi1 = cx + rInterior*Math.cos(a0), yi1 = cy + rInterior*Math.sin(a0);
+    if(frac >= 0.999){
+      paths += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+s.color+'"></circle><circle cx="'+cx+'" cy="'+cy+'" r="'+rInterior+'" fill="#fff"></circle>';
+    } else {
+      paths += '<path d="M '+x0+' '+y0+' A '+r+' '+r+' 0 '+largeArc+' 1 '+x1+' '+y1+' L '+xi0+' '+yi0+' A '+rInterior+' '+rInterior+' 0 '+largeArc+' 0 '+xi1+' '+yi1+' Z" fill="'+s.color+'"></path>';
+    }
+  });
+  svg.innerHTML = paths || '<circle cx="60" cy="60" r="48" fill="#eee"></circle>';
+
+  document.getElementById('d_leyenda').innerHTML = segmentos.map(s=>
+    '<div><span class="dot" style="background:'+s.color+'"></span>'+s.label+': <b>'+s.n+'</b> ('+pctSIC(s.n,total)+'%)</div>'
+  ).join('');
+}
+</script>
+</body>
+</html>
