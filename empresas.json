@@ -1,5 +1,13 @@
+
+empresas.json
+
+Página
+1
+/
+1
+100 %
 {
-  "activa": "zublin",
+  "activa": "qcdigital",
   "empresas": {
     "qcdigital": {
       "id": "qcdigital",
@@ -117,3 +125,4 @@
     "_nota": "Acciona y OSSA quedan visibles en el selector (roadmap) pero con estado:'pendiente' y deshabilitadas hasta tener contrato real y autorización de marca (logo, colores oficiales) por escrito. Sus colores actuales son un placeholder gris temporal."
   }
 }
+Mostrando empresas.json.
