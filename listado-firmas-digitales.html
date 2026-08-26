@@ -465,9 +465,9 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-<script src="marca.js?v=1"></script>
+<script src="marca.js?v=2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="drive-integration.js?v=2"></script>
+<script src="drive-integration.js?v=3"></script>
 <script>
 /* ===================== ESTADO Y CONSTANTES ===================== */
 /* MARCA: logo/colores/contrato de la empresa activa (Fase 2). */
@@ -873,9 +873,11 @@ function construirPDF(datos, callback){
   // Correlativo: se calcula UNA sola vez, antes del QR (el QR necesita el
   // codigo para armar el link de verificacion).
   var corrFirmas = MARCA.correlativo(datos.nombreFirmaRelator, "FIRMAS");
+  var claveQRFirmas = MARCA.claveVerificacion(corrFirmas);
   doc._qcdCorrelativo = corrFirmas;
+  doc._qcdClaveVerificacion = claveQRFirmas;
 
-  var textoQR = "https://qcdigital.cl/verificar.html?c=" + encodeURIComponent(corrFirmas);
+  var textoQR = "https://qcdigital.cl/verificar.html?c=" + encodeURIComponent(claveQRFirmas);
 
   generarCodigoQR(textoQR, function(qrDataUrl){
     var y = dibujarEncabezado(doc, qrDataUrl);
@@ -1045,6 +1047,7 @@ document.getElementById("btnDescargarPDF").addEventListener("click", async funct
         nombreArchivo: nombreArch,
         tipoReporte: 'Listado de firmas digitales',
         correlativo: docPDFActual._qcdCorrelativo || '-',
+        claveVerificacion: docPDFActual._qcdClaveVerificacion || '',
         empresa: MARCA.empresa.nombreCorto,
         generadoPor: ultimoGeneradoPor
       });

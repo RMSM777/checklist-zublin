@@ -12,9 +12,9 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="marca.js?v=1"></script>
+<script src="marca.js?v=2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="drive-integration.js?v=2"></script>
+<script src="drive-integration.js?v=3"></script>
 <link rel="stylesheet" href="dark-mode.css">
 <script src="dark-mode.js" defer></script>
 <script src="piwii-unificado.js" defer></script>
@@ -572,10 +572,11 @@ async function generarPDF(){
   const izq=12, ancho=273;
 
   const corr = MARCA.correlativo(nombre, 'ICPLANO');
+  const claveQR = MARCA.claveVerificacion(corr);
 
   let qrUrl=null;
   try{
-    const qrData = 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr);
+    const qrData = 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(claveQR);
     const qr = new QRious({ value: qrData, size:200, level:'M' }); qrUrl = qr.toDataURL();
   }catch(e){}
 
@@ -695,6 +696,7 @@ async function generarPDF(){
         nombreArchivo: nombreArch,
         tipoReporte: 'Avance caminado IC Mineria',
         correlativo: corr,
+        claveVerificacion: claveQR,
         empresa: MARCA.empresa.nombreCorto,
         generadoPor: nombre
       });

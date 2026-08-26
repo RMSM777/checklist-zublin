@@ -15,9 +15,9 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <title>Cambio de Turno - Calidad Zublin</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-<script src="marca.js?v=1"></script>
+<script src="marca.js?v=2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="drive-integration.js?v=2"></script>
+<script src="drive-integration.js?v=3"></script>
 <link rel="stylesheet" href="dark-mode.css">
 <script src="dark-mode.js" defer></script>
 <script src="piwii-unificado.js" defer></script>
@@ -683,11 +683,12 @@ async function generarVistaPrevia(){
   const genNombres = personalActual();
   const gen = genNombres[0] ? genNombres[0].nombre : 'Inspector de Calidad';
   const corr = MARCA.correlativo(gen, 'TURNO');
+  const claveQR = MARCA.claveVerificacion(corr);
 
   // QR de verificacion publica (apunta a verificar.html)
   let qrUrl = null;
   try{
-    const qrData = 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr);
+    const qrData = 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(claveQR);
     const qr = new QRious({ value: qrData, size: 200, level:'M' });
     qrUrl = qr.toDataURL();
   }catch(e){}
@@ -814,6 +815,7 @@ async function generarVistaPrevia(){
 
   window._pdfDocGenerado = doc;
   doc._qcdCorrelativo = corr;
+  doc._qcdClaveVerificacion = claveQR;
   doc._qcdGeneradoPor = gen;
   document.getElementById('framePrev').src = doc.output('bloburl');
   document.getElementById('modalPrev').style.display = 'flex';
@@ -847,6 +849,7 @@ async function descargarPDF(){
         nombreArchivo: nombreArch,
         tipoReporte: 'Cambio de turno general',
         correlativo: docRef._qcdCorrelativo,
+        claveVerificacion: docRef._qcdClaveVerificacion,
         empresa: MARCA.empresa.nombreCorto,
         generadoPor: docRef._qcdGeneradoPor
       });

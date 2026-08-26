@@ -67,7 +67,7 @@
   /* Version de la app (formato: v + fecha de release AAAA.MM.DD).
      Fuente unica: se actualiza SOLO aqui, no en cada reporte. Los
      footers de las paginas la pintan llamando a MARCA.pintarVersion(). */
-  const VERSION = 'v2026.08.08';
+  const VERSION = 'v2026.08.26';
 
   const MARCA = {
     _datos: null,
@@ -347,6 +347,34 @@
       var nStr = String(n);
       while(nStr.length < 4) nStr = '0' + nStr;
       return iniciales + '-' + anio + '-' + nStr;
+    },
+
+    /* Clave de verificacion UNICA para el QR (no confundir con el
+       correlativo "N° RM-2026-0007" que se imprime en el documento).
+
+       PROBLEMA que resuelve: el correlativo se guarda en localStorage
+       POR DISPOSITIVO, asi que dos telefonos/notebooks distintos (o el
+       mismo dispositivo en modo privado, o el mismo tipo de documento
+       en dias distintos) generan el MISMO numero "RM-2026-0001" para
+       documentos totalmente distintos. verificar.html busca por ese
+       numero y se queda con la PRIMERA fila que encuentra en la Sheet:
+       si el numero esta repetido, el QR de un reporte puede terminar
+       mostrando un documento antiguo y equivocado en vez del propio
+       (detectado 26-ago-2026 al verificar en produccion la prueba de
+       punta a punta del Reporte DT, ver TRASPASO).
+
+       Esta funcion arma una clave = correlativo + sufijo temporal
+       (milisegundos en base36), que es lo que se debe usar SIEMPRE
+       para el QR y para la fila que se registra en la Sheet -- nunca
+       el correlativo solo. El correlativo impreso ("N° ...") en el
+       documento NO cambia, sigue siendo el numero corto de siempre;
+       esta clave es invisible para el usuario, solo vive en el QR.
+
+       Llamar UNA sola vez, inmediatamente despues de MARCA.correlativo(),
+       igual que el correlativo mismo (nunca en "PDF previo"/borrador). */
+    claveVerificacion(correlativo){
+      var sufijo = Date.now().toString(36).toUpperCase();
+      return (correlativo || 'NN') + '-' + sufijo;
     },
 
     /* Inyecta el <select> de empresa. SIEMPRE visible (QC Digital es "la

@@ -12,9 +12,9 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="marca.js?v=1"></script>
+<script src="marca.js?v=2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="drive-integration.js?v=2"></script>
+<script src="drive-integration.js?v=3"></script>
 <link rel="stylesheet" href="dark-mode.css">
 <script src="dark-mode.js" defer></script>
 <script src="piwii-unificado.js" defer></script>
@@ -787,11 +787,12 @@ async function generarPDF(){
   // Correlativo: se calcula UNA sola vez, antes del QR (el QR necesita el
   // codigo para armar el link de verificacion).
   const corr = MARCA.correlativo(nombre, 'DT');
+  const claveQR = MARCA.claveVerificacion(corr);
 
   // Encabezado con logo y QR de verificacion (apunta a verificar.html)
   let qrUrl = null;
   try{
-    const qrData = 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr);
+    const qrData = 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(claveQR);
     const qr = new QRious({ value: qrData, size: 200, level:'M' });
     qrUrl = qr.toDataURL();
   }catch(e){}
@@ -970,6 +971,7 @@ async function generarPDF(){
         nombreArchivo: nombreArch,
         tipoReporte: 'Reporte DT',
         correlativo: corr,
+        claveVerificacion: claveQR,
         empresa: MARCA.empresa.nombreCorto,
         generadoPor: nombre
       });
@@ -1028,6 +1030,7 @@ async function descargarPDFListado(){
         nombreArchivo: nombreArch,
         tipoReporte: 'Reporte DT',
         correlativo: docListadoActual._qcdCorrelativo,
+        claveVerificacion: docListadoActual._qcdClaveVerificacion,
         empresa: MARCA.empresa.nombreCorto,
         generadoPor: docListadoActual._qcdGeneradoPor
       });
@@ -1084,11 +1087,13 @@ function construirPDFListado(modo, cargadoPor){
   // Correlativo: se calcula UNA sola vez, antes del QR (el QR necesita el
   // codigo para armar el link de verificacion).
   const corr2 = MARCA.correlativo(cargadoPor, 'DT-LISTADO');
+  const claveQR2 = MARCA.claveVerificacion(corr2);
   doc._qcdCorrelativo = corr2;
+  doc._qcdClaveVerificacion = claveQR2;
 
   let qrUrl = null;
   try{
-    const qr = new QRious({ value: 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr2), size:200, level:'M' });
+    const qr = new QRious({ value: 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(claveQR2), size:200, level:'M' });
     qrUrl = qr.toDataURL();
   }catch(e){}
 

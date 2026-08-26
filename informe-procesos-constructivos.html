@@ -15,9 +15,9 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <title>Informe de Procesos Constructivos - Zublin GCC-003</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-<script src="marca.js?v=1"></script>
+<script src="marca.js?v=2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="drive-integration.js?v=2"></script>
+<script src="drive-integration.js?v=3"></script>
 <link rel="stylesheet" href="dark-mode.css">
 <script src="dark-mode.js" defer></script>
 <script src="piwii-unificado.js" defer></script>
@@ -433,6 +433,7 @@ async function descargarPDF(){
         nombreArchivo: nombreArch,
         tipoReporte: 'Informe procesos constructivos',
         correlativo: docActual._qcdCorrelativo,
+        claveVerificacion: docActual._qcdClaveVerificacion,
         empresa: MARCA.empresa.nombreCorto,
         generadoPor: docActual._qcdGeneradoPor
       });
@@ -615,9 +616,10 @@ function construirPDF(p, regsValidos){
   // Correlativo y QR se calculan aqui (antes se hacian mas abajo).
   const ahora = new Date();
   const corr = MARCA.correlativo(p[0].nombre, 'PROCESOS');
+  const claveQR = MARCA.claveVerificacion(corr);
   let qrImg = null;
   try{
-    const qr = new QRious({ value: 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(corr), size:200, level:'M' });
+    const qr = new QRious({ value: 'https://qcdigital.cl/verificar.html?c=' + encodeURIComponent(claveQR), size:200, level:'M' });
     qrImg = qr.toDataURL();
   }catch(e){}
   const _fechaCierre = (v('fecha') ? new Date(v('fecha')+'T00:00:00').toLocaleDateString('es-CL') : ahora.toLocaleDateString('es-CL'));
@@ -678,6 +680,7 @@ function construirPDF(p, regsValidos){
   }
 
   doc._qcdCorrelativo = corr;
+  doc._qcdClaveVerificacion = claveQR;
   doc._qcdGeneradoPor = p[0].nombre;
   return doc;
 }

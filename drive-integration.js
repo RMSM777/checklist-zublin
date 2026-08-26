@@ -46,7 +46,7 @@
 
   // --- Ya completados con los recursos reales encontrados en Drive ---
   const SPREADSHEET_ID = '1YTi7y50sFsj3RPHIqRuHPbzxyctflSKBl_jue6FyaRs';
-  const SHEET_RANGE = 'Hoja 1!A:H';
+  const SHEET_RANGE = 'Hoja 1!A:I';
   const QC_DIGITAL_ROOT_FOLDER_ID = '1xJcaByBmatpXBY-10a3WnkMpQbItVRfx';
 
   const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets';
@@ -231,7 +231,11 @@
       datos.empresa || '',
       datos.generadoPor || '',
       datos.nombreArchivo || '',
-      driveLink
+      driveLink,
+      // Columna I: clave unica de verificacion (correlativo + sufijo).
+      // La usa verificar.html para no confundir documentos con el mismo
+      // correlativo (ver MARCA.claveVerificacion en marca.js).
+      datos.claveVerificacion || ''
     ]);
     return { driveLink };
   }
