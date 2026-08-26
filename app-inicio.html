@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>QC Digital</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1526">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="QC Digital">
+<script src="marca.js"></script>
+<style>
+  :root{
+    --rojo:#0d1526;            /* header — lo reescribe marca.js */
+    --acento:#f5851f;          /* acento de la empresa activa */
+    /* Colores de ESTADO. No siguen a la marca a proposito: con Zublin
+       activo el rojo de marca y el rojo de "atrasada" serian el mismo y
+       no se distinguiria nada. */
+    --ok:#2E7D32; --ok-suave:#EAF3EB;
+    --alerta:#B26A00; --alerta-suave:#FBF1E0;
+    --critico:#C62828; --critico-suave:#FBEBEA;
+
+    --fondo:#F2F3F5; --tarjeta:#fff; --linea:#E3E5E8;
+    --texto:#1B1D21; --tenue:#6B7078;
+    --nav-h:62px;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{
+    margin:0; background:var(--fondo); color:var(--texto);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    font-size:15px; line-height:1.5;
+    padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom));
+  }
+  .wrap{ max-width:560px; margin:0 auto; }
+
+  /* ---------- Cabecera ---------- */
+  .top{
+    background:var(--rojo); color:#fff; padding:14px 16px;
+    padding-top:calc(14px + env(safe-area-inset-top));
+    display:flex; align-items:center; gap:12px;
+  }
+  .placa{ background:#fff; border-radius:7px; padding:6px 10px; display:flex; align-items:center; flex:none; }
+  .placa img{ height:22px; display:block; }
+  .placa img:not([src]){ display:none; }
+  .top .quien{ flex:1; min-width:0; }
+  .top .hola{ font-size:12px; opacity:.75; }
+  .top .nom{ font-size:17px; font-weight:700; line-height:1.2; }
+  .top .contrato{ font-size:10.5px; opacity:.7; margin-top:1px; }
+
+  .estado-linea{
+    display:flex; align-items:center; gap:7px; padding:6px 16px;
+    font-size:11.5px; background:var(--ok-suave); color:#2b5c2e;
+    border-bottom:1px solid var(--linea);
+  }
+  .estado-linea.off{ background:var(--alerta-suave); color:#7a4a05; }
+  .estado-linea .punto{ width:7px; height:7px; border-radius:50%; background:var(--ok); flex:none; }
+  .estado-linea.off .punto{ background:var(--alerta); }
+  .estado-linea .crece{ flex:1; }
+  .chip-pend{ background:var(--alerta); color:#fff; font-weight:700; padding:2px 8px; border-radius:20px; font-size:10.5px; }
+
+  section{ padding:16px; }
+  .titulillo{ font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+              color:var(--tenue); margin:0 0 9px; }
+
+  /* ---------- Hero: metros del mes ---------- */
+  .hero{
+    background:var(--tarjeta); border:1px solid var(--linea); border-radius:12px;
+    padding:16px; display:flex; flex-direction:column; gap:3px;
+  }
+  .hero .rot{ font-size:12px; color:var(--tenue); }
+  .hero .cifra{ font-size:34px; font-weight:800; letter-spacing:-.02em; line-height:1.1;
+                font-variant-numeric:tabular-nums; }
+  .hero .cifra small{ font-size:15px; font-weight:600; color:var(--tenue); margin-left:3px; }
+  .hero .detalle{ font-size:12px; color:var(--tenue); margin-top:3px; }
+
+  /* ---------- Tarjetas de estado ---------- */
+  .tiles{ display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-top:12px; }
+  .tile{
+    background:var(--tarjeta); border:1px solid var(--linea); border-radius:11px;
+    padding:12px 8px; text-align:center; border-top:3px solid var(--linea);
+  }
+  .tile .n{ font-size:25px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.15; }
+  .tile .l{ font-size:10px; font-weight:600; color:var(--tenue); margin-top:2px;
+            letter-spacing:.03em; text-transform:uppercase; }
+  .tile.ab{ border-top-color:var(--alerta); }  .tile.ab .n{ color:var(--alerta); }
+  .tile.at{ border-top-color:var(--critico); } .tile.at .n{ color:var(--critico); }
+  .tile.ce{ border-top-color:var(--ok); }      .tile.ce .n{ color:var(--ok); }
+
+  /* ---------- Lista de DT ---------- */
+  .lista{ display:flex; flex-direction:column; gap:8px; }
+  .fila{
+    background:var(--tarjeta); border:1px solid var(--linea); border-radius:11px;
+    padding:11px 13px; display:flex; align-items:flex-start; gap:11px;
+  }
+  .fila .punch{ font-weight:800; font-size:12.5px; color:var(--acento);
+                font-variant-numeric:tabular-nums; flex:none; padding-top:1px; }
+  .fila .cuerpo{ flex:1; min-width:0; }
+  .fila .desc{ font-size:13.5px; line-height:1.35; }
+  .fila .meta{ font-size:11px; color:var(--tenue); margin-top:2px; }
+  .pill{ font-size:9.5px; font-weight:800; padding:3px 9px; border-radius:20px; flex:none;
+         letter-spacing:.03em; }
+  .pill.ABIERTA{ background:var(--alerta-suave); color:var(--alerta); }
+  .pill.ATRASADA{ background:var(--critico-suave); color:var(--critico); }
+  .pill.CERRADA{ background:var(--ok-suave); color:var(--ok); }
+
+  .vacio{ background:var(--tarjeta); border:1px dashed var(--linea); border-radius:11px;
+          padding:22px 16px; text-align:center; color:var(--tenue); font-size:13px; line-height:1.5; }
+
+  .btn-grande{
+    display:block; width:100%; text-align:center; text-decoration:none;
+    background:var(--acento); color:#fff; font-weight:700; font-size:15px;
+    padding:14px; border-radius:11px; border:none; cursor:pointer; margin-top:12px;
+    font-family:inherit;
+  }
+
+  /* ---------- Perfil ---------- */
+  .perfil-fila{
+    background:var(--tarjeta); border:1px solid var(--linea); border-radius:11px;
+    padding:13px; display:flex; justify-content:space-between; gap:12px; margin-bottom:8px;
+    font-size:13.5px;
+  }
+  .perfil-fila b{ color:var(--tenue); font-weight:600; font-size:12px; }
+  .btn-salir{
+    width:100%; padding:13px; border-radius:11px; border:1px solid var(--critico);
+    background:transparent; color:var(--critico); font-weight:700; font-size:14px;
+    cursor:pointer; font-family:inherit; margin-top:6px;
+  }
+
+  /* ---------- Navegación inferior ---------- */
+  .nav{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    background:var(--tarjeta); border-top:1px solid var(--linea);
+    display:flex; padding-bottom:env(safe-area-inset-bottom);
+  }
+  .nav a, .nav button{
+    flex:1; border:none; background:none; cursor:pointer; font-family:inherit;
+    text-decoration:none; color:var(--tenue);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:3px; height:var(--nav-h); font-size:10px; font-weight:600; padding:0;
+  }
+  .nav .ico{ width:21px; height:21px; display:block; }
+  .nav .act{ color:var(--acento); }
+
+  .panel{ display:none; } .panel.act{ display:block; }
+
+  /* ---------- Login ---------- */
+  .login{ position:fixed; inset:0; background:var(--fondo); z-index:200;
+          display:flex; align-items:center; justify-content:center; padding:20px; }
+  .login .caja{ background:#fff; border-radius:14px; width:100%; max-width:360px;
+                overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.16); }
+  .login .cab{ background:var(--rojo); padding:16px; text-align:center; }
+  .login .cab img{ height:24px; background:#fff; border-radius:6px; padding:5px 9px; }
+  .login .cab img:not([src]){ display:none; }
+  .login .cuerpo{ padding:20px 18px 22px; }
+  .login h2{ margin:0 0 3px; font-size:17px; }
+  .login .sub{ font-size:12px; color:var(--tenue); margin:0 0 15px; }
+  .login label{ display:block; font-size:12px; font-weight:600; color:var(--tenue); margin-bottom:3px; }
+  .login input{ width:100%; padding:11px; border:1px solid var(--linea); border-radius:8px;
+                font-size:15px; margin-bottom:11px; font-family:inherit; }
+  .login button{ width:100%; padding:13px; border:none; border-radius:9px; background:var(--acento);
+                 color:#fff; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .login .msg{ font-size:12.5px; margin-top:11px; padding:9px 11px; border-radius:7px; display:none; line-height:1.45; }
+  .login .msg.ver{ display:block; background:var(--critico-suave); color:var(--critico); }
+</style>
+</head>
+<body>
+
+<div class="login" id="login">
+  <div class="caja">
+    <div class="cab"><img id="logoLogin" alt=""></div>
+    <div class="cuerpo">
+      <h2>QC Digital</h2>
+      <p class="sub">Ingresa con el correo registrado en el sistema.</p>
+      <label>Correo</label>
+      <input id="lgMail" type="email" autocomplete="username" placeholder="nombre@correo.cl">
+      <label>Contraseña</label>
+      <input id="lgPass" type="password" autocomplete="current-password" placeholder="••••••••">
+      <button id="lgBtn" onclick="entrar()">Entrar</button>
+      <div class="msg" id="lgMsg"></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="top">
+    <span class="placa"><img id="logoImg" alt=""></span>
+    <div class="quien">
+      <div class="hola">Hola</div>
+      <div class="nom" id="miNombre">—</div>
+      <div class="contrato" id="miContrato"></div>
+    </div>
+  </div>
+
+  <div class="estado-linea" id="estadoLinea">
+    <span class="punto"></span>
+    <span id="estadoTxt">Conectado</span>
+    <span class="crece"></span>
+    <span id="estadoPend"></span>
+  </div>
+
+  <!-- ============ INICIO ============ -->
+  <div class="panel act" id="p-inicio">
+    <section>
+      <div class="hero">
+        <div class="rot">Caminado este mes</div>
+        <div class="cifra" id="hMetros">—<small>m</small></div>
+        <div class="detalle" id="hDetalle">Cargando…</div>
+      </div>
+
+      <div class="tiles">
+        <div class="tile ab"><div class="n" id="tAb">—</div><div class="l">Abiertos</div></div>
+        <div class="tile at"><div class="n" id="tAt">—</div><div class="l">Atrasados</div></div>
+        <div class="tile ce"><div class="n" id="tCe">—</div><div class="l">Cerrados</div></div>
+      </div>
+
+      <a class="btn-grande" href="ciz-dt-conectado.html">Abrir o cerrar un DT</a>
+    </section>
+
+    <section style="padding-top:0;">
+      <p class="titulillo">Últimos DT</p>
+      <div class="lista" id="listaDT"><div class="vacio">Cargando…</div></div>
+    </section>
+  </div>
+
+  <!-- ============ REPORTES ============ -->
+  <div class="panel" id="p-reportes">
+    <section>
+      <p class="titulillo">Herramientas</p>
+      <div class="lista">
+        <a class="fila" href="ciz-dt-conectado.html" style="text-decoration:none;color:inherit;">
+          <span class="punch">DT</span>
+          <span class="cuerpo"><span class="desc">Caminatas · Detalles de Terminación</span>
+          <span class="meta" style="display:block;">Abrir y cerrar DT · funciona sin señal</span></span>
+        </a>
+        <a class="fila" href="home.html" style="text-decoration:none;color:inherit;">
+          <span class="punch">···</span>
+          <span class="cuerpo"><span class="desc">Todas las demás herramientas</span>
+          <span class="meta" style="display:block;">Checklists, reportes e informes de la suite</span></span>
+        </a>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ HUD ============ -->
+  <div class="panel" id="p-hud">
+    <section>
+      <p class="titulillo">HUD · Panel</p>
+      <div class="vacio">
+        El panel se construye cuando cada familia tenga quién la alimente.<br><br>
+        Hoy sólo <b>Detalles de Terminación</b> tiene datos reales; Inspección, Materiales
+        y Laboratorio todavía no tienen dónde capturarlos, así que saldrían en cero.
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ PERFIL ============ -->
+  <div class="panel" id="p-perfil">
+    <section>
+      <p class="titulillo">Tu cuenta</p>
+      <div class="perfil-fila"><b>Correo</b><span id="pfMail">—</span></div>
+      <div class="perfil-fila"><b>Contrato</b><span id="pfContrato">—</span></div>
+      <div class="perfil-fila"><b>Rol</b><span id="pfRol">—</span></div>
+      <div class="perfil-fila"><b>Iniciales</b><span id="pfIni">—</span></div>
+
+      <p class="titulillo" style="margin-top:20px;">Empresa activa</p>
+      <div class="perfil-fila"><span id="selectorEmpresa" style="width:100%"></span></div>
+
+      <button class="btn-salir" onclick="salir()">Cerrar sesión</button>
+    </section>
+  </div>
+</div>
+
+<nav class="nav">
+  <button class="act" data-p="inicio" onclick="irA('inicio')">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+    Inicio</button>
+  <button data-p="reportes" onclick="irA('reportes')">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6M10 17h6"/></svg>
+    Reportes</button>
+  <button data-p="hud" onclick="irA('hud')">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11"/><path d="M12 20V4"/><path d="M19 20v-6"/></svg>
+    HUD</button>
+  <button data-p="perfil" onclick="irA('perfil')">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    Perfil</button>
+</nav>
+
+<script>
+/* ======================================================================
+   Conexion a Supabase. Comparte la MISMA sesion que ciz-dt-conectado.html
+   (misma clave de almacenamiento, mismo origen), asi entrar en una vale
+   para la otra. Cuando llegue el portal definitivo esto se extrae a un
+   archivo compartido; por ahora vive aqui para no tocar lo que funciona.
+   ====================================================================== */
+const SB_URL = 'https://wbdmlwmnmompoamvlant.supabase.co';
+const SB_KEY = 'sb_publishable_0SWuQqmBvxJYNKIal8MQNQ_NbyEMCCe';
+const CLAVE_SESION = 'cizdt_sesion';
+const CLAVE_COLA   = 'cizdt_cola_v1';
+
+const almacen = (function(){
+  let mem = {}, ok = false;
+  try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); ok = true; } catch(e){}
+  return {
+    get(k){ try { return ok ? localStorage.getItem(k) : (k in mem ? mem[k] : null); } catch(e){ return null; } },
+    set(k,v){ try { ok ? localStorage.setItem(k,v) : (mem[k]=v); } catch(e){ mem[k]=v; } },
+    del(k){ try { ok ? localStorage.removeItem(k) : delete mem[k]; } catch(e){} }
+  };
+})();
+
+async function pedirRed(url, opts){
+  try { return await fetch(url, opts); }
+  catch(e){ const err = new Error('__SIN_SENAL__'); err.red = true; throw err; }
+}
+async function leerJSON(r){
+  const txt = await r.text();
+  if(txt === '') return null;
+  try { return JSON.parse(txt); }
+  catch(e){
+    const err = new Error(!navigator.onLine || r.status === 503
+      ? '__SIN_SENAL__'
+      : 'La respuesta no vino de la base. Puede que la sesión de acceso haya vencido.');
+    throw err;
+  }
+}
+
+const SB = {
+  ses: null,
+  cargar(){ try { this.ses = JSON.parse(almacen.get(CLAVE_SESION) || 'null'); } catch(e){ this.ses = null; } return this.ses; },
+  guardar(){ try { almacen.set(CLAVE_SESION, JSON.stringify(this.ses)); } catch(e){} },
+  limpiar(){ this.ses = null; almacen.del(CLAVE_SESION); },
+
+  async login(email, password){
+    const r = await pedirRed(SB_URL + '/auth/v1/token?grant_type=password', {
+      method:'POST', headers:{ 'apikey': SB_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const j = await leerJSON(r);
+    if(!r.ok) throw new Error((j && (j.error_description || j.msg || j.message)) || 'No se pudo entrar');
+    this.ses = { access:j.access_token, refresh:j.refresh_token, email:(j.user&&j.user.email)||email,
+                 uid:j.user&&j.user.id, vence: Date.now() + ((j.expires_in||3600)*1000) };
+    this.guardar(); return this.ses;
+  },
+  async refrescar(){
+    if(!this.ses || !this.ses.refresh) throw new Error('Sin sesion');
+    const r = await pedirRed(SB_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method:'POST', headers:{ 'apikey': SB_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ refresh_token: this.ses.refresh })
+    });
+    const j = await leerJSON(r);
+    if(!r.ok) throw new Error('Sesion expirada');
+    this.ses.access = j.access_token;
+    this.ses.refresh = j.refresh_token || this.ses.refresh;
+    this.ses.vence = Date.now() + ((j.expires_in||3600)*1000);
+    this.guardar(); return this.ses;
+  },
+  async consultar(tabla, query){
+    const r = await pedirRed(SB_URL + '/rest/v1/' + tabla + '?' + query, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (this.ses ? this.ses.access : '') }
+    });
+    const j = await leerJSON(r);
+    if(!r.ok) throw new Error((j && j.message) || ('Error al leer ' + tabla));
+    return j || [];
+  }
+};
+
+function cuantosPendientes(){
+  try { return (JSON.parse(almacen.get(CLAVE_COLA) || '[]')).length; } catch(e){ return 0; }
+}
+
+/* ====================================================================== */
+let CONTRATO = null;
+
+function irA(p){
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('act'));
+  document.getElementById('p-' + p).classList.add('act');
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('act', b.dataset.p === p));
+  window.scrollTo(0,0);
+}
+
+function pintarEstado(){
+  const el = document.getElementById('estadoLinea');
+  const pend = cuantosPendientes();
+  const online = navigator.onLine;
+  el.classList.toggle('off', !online || pend > 0);
+  document.getElementById('estadoTxt').textContent = online ? 'Conectado' : 'Sin señal';
+  document.getElementById('estadoPend').innerHTML = pend
+    ? '<span class="chip-pend">' + pend + ' por subir</span>' : '';
+}
+window.addEventListener('online', pintarEstado);
+window.addEventListener('offline', pintarEstado);
+
+async function aplicarMarca(){
+  if(typeof MARCA === 'undefined') return;
+  try { await MARCA.iniciar(); } catch(e){}
+  MARCA.aplicarCSS();
+  const emp = MARCA.empresa || {};
+  document.documentElement.style.setProperty('--acento',
+    emp.colorPrimario || emp.colorFondoHeader || '#f5851f');
+  MARCA.pintarHeaderHTML('logoImg');
+  const ll = document.getElementById('logoLogin');
+  if(ll && MARCA.logoDataUrl) ll.src = MARCA.logoDataUrl;
+  const cont = document.getElementById('selectorEmpresa');
+  if(cont){ cont.innerHTML = ''; try { MARCA.crearSelector('selectorEmpresa'); } catch(e){} }
+}
+
+function fmtCorta(iso){ if(!iso) return ''; const [y,m,d] = iso.split('-'); return d+'/'+m+'/'+y.slice(2); }
+
+function filaHTML(r){
+  const estado = r.estado_visual || r.estado;
+  return '<div class="fila">'
+    + '<span class="punch">' + (r.numero_punch || '—') + '</span>'
+    + '<span class="cuerpo"><span class="desc">' + (r.descripcion || '') + '</span>'
+    + '<span class="meta" style="display:block;">' + (r.codigo_caminata ? r.codigo_caminata + ' · ' : '')
+    + (r.ubicacion || '') + (r.fecha_emision ? ' · ' + fmtCorta(r.fecha_emision) : '') + '</span></span>'
+    + '<span class="pill ' + estado + '">' + estado + '</span></div>';
+}
+
+async function cargarTodo(){
+  document.getElementById('pfMail').textContent = SB.ses ? SB.ses.email : '—';
+  document.getElementById('miNombre').textContent =
+    SB.ses ? (SB.ses.email || '').split('@')[0] : '—';
+
+  try {
+    const c = await SB.consultar('v_mi_contrato', 'select=*&limit=1');
+    if(c && c[0]){
+      CONTRATO = c[0];
+      document.getElementById('miContrato').textContent =
+        CONTRATO.codigo + (CONTRATO.empresa_nombre ? ' · ' + CONTRATO.empresa_nombre : '');
+      document.getElementById('pfContrato').textContent = CONTRATO.codigo;
+      document.getElementById('pfRol').textContent = CONTRATO.rol || '—';
+      document.getElementById('pfIni').textContent = CONTRATO.iniciales || 'sin definir';
+    }
+  } catch(e){}
+
+  let dts = [];
+  try {
+    dts = await SB.consultar('v_detalles_terminacion', 'select=*&order=numero_punch.desc&limit=500');
+  } catch(e){
+    document.getElementById('listaDT').innerHTML =
+      '<div class="vacio">' + (e.message === '__SIN_SENAL__'
+        ? 'Sin señal. Al recuperar conexión se actualiza solo.'
+        : 'No se pudieron leer los DT.') + '</div>';
+    document.getElementById('hDetalle').textContent = 'Sin datos por ahora';
+    return;
+  }
+
+  const ab = dts.filter(d => (d.estado_visual || d.estado) === 'ABIERTA').length;
+  const at = dts.filter(d => (d.estado_visual || d.estado) === 'ATRASADA').length;
+  const ce = dts.filter(d => d.estado === 'CERRADA').length;
+  document.getElementById('tAb').textContent = ab;
+  document.getElementById('tAt').textContent = at;
+  document.getElementById('tCe').textContent = ce;
+
+  /* Metros del mes: se cuenta cada caminata UNA vez, aunque haya dejado
+     varios DT. Sumar por DT multiplicaria los metros por los hallazgos. */
+  const hoy = new Date();
+  const mes = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0');
+  const caminatas = new Map();
+  dts.forEach(d => {
+    if(d.caminata_id && (d.fecha_emision || '').startsWith(mes)){
+      caminatas.set(d.caminata_id, Number(d.metros_caminados) || 0);
+    }
+  });
+  let metros = 0; caminatas.forEach(v => metros += v);
+  document.getElementById('hMetros').innerHTML = Math.round(metros) + '<small>m</small>';
+  document.getElementById('hDetalle').textContent = caminatas.size
+    ? caminatas.size + ' caminata(s) este mes · ' + dts.length + ' DT en total'
+    : 'Todavía no hay caminatas registradas este mes';
+
+  document.getElementById('listaDT').innerHTML = dts.length
+    ? dts.slice(0,6).map(filaHTML).join('')
+    : '<div class="vacio">Todavía no hay DT registrados.<br>Empieza abriendo uno desde el botón de arriba.</div>';
+}
+
+async function entrar(){
+  const mail = document.getElementById('lgMail').value.trim();
+  const pass = document.getElementById('lgPass').value;
+  const btn = document.getElementById('lgBtn'), msg = document.getElementById('lgMsg');
+  if(!mail || !pass){ msg.textContent = 'Falta el correo o la contraseña.'; msg.className='msg ver'; return; }
+  btn.disabled = true; btn.textContent = 'Entrando…'; msg.className = 'msg';
+  try {
+    await SB.login(mail, pass);
+    document.getElementById('login').style.display = 'none';
+    await cargarTodo();
+  } catch(e){
+    msg.textContent = e.message === '__SIN_SENAL__'
+      ? 'Sin conexión: para entrar la primera vez necesitas señal.'
+      : e.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos.'
+      : (e.message || 'No se pudo entrar.');
+    msg.className = 'msg ver';
+  }
+  btn.disabled = false; btn.textContent = 'Entrar';
+}
+
+function salir(){
+  const p = cuantosPendientes();
+  if(p && !confirm('Quedan ' + p + ' registro(s) sin subir. Se mantienen guardados en este dispositivo. ¿Salir igual?')) return;
+  SB.limpiar();
+  location.reload();
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(console.error);
+  });
+}
+
+/* Arranque: la sesion se comprueba LOCALMENTE. Sin señal no se pide login
+   ni se borra la sesion — bajo tierra eso dejaria al inspector afuera. */
+(async function(){
+  pintarEstado();
+  await aplicarMarca();
+  SB.cargar();
+  if(!SB.ses || !SB.ses.refresh) return;
+  if(navigator.onLine){
+    try { await SB.refrescar(); }
+    catch(e){ if(e && e.message === 'Sesion expirada'){ SB.limpiar(); return; } }
+  }
+  document.getElementById('login').style.display = 'none';
+  await cargarTodo();
+})();
+</script>
+</body>
+</html>
