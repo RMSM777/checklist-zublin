@@ -1,8 +1,11 @@
 // Service Worker - Checklist Züblin GCC-003
 // Cachea las páginas y librerías para que la app abra aunque no haya señal.
  
-const CACHE_NAME = 'qcdigital-v17'; // sube este número cuando publiques cambios importantes
+const CACHE_NAME = 'qcdigital-v18'; // sube este número cuando publiques cambios importantes
  
+// OJO: si un archivo de esta lista no existe con ese nombre exacto, el
+// install del service worker falla ENTERO y ninguna pagina queda cacheada.
+// Al renombrar o borrar un archivo, hay que actualizarlo aqui tambien.
 const ARCHIVOS_PROPIOS = [
   './',
   './home.html',
@@ -18,6 +21,7 @@ const ARCHIVOS_PROPIOS = [
   './cambio-turno-general.html',
   './reporte-pnc-rnc-index.html',
   './reporte-liberacion-frente.html',
+  './ciz-dt-conectado.html',
   './marca.js?v=2',
   './drive-integration.js?v=3',
   './piwii-unificado.js',
@@ -53,6 +57,14 @@ self.addEventListener('activate', (event) => {
 // Si tampoco está en caché, responde con un error controlado (nunca null).
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+
+  // La API de Supabase NO pasa por aqui. Si el service worker respondiera
+  // estas peticiones, sin senal la app recibiria un 503 en texto plano
+  // justo donde espera JSON, y mostraria un error incomprensible en vez
+  // de "sin senal". Los datos los maneja la app con su propia cola.
+  let url;
+  try { url = new URL(event.request.url); } catch (e) { return; }
+  if (url.hostname.endsWith('.supabase.co')) return;
  
   event.respondWith(
     fetch(event.request)
@@ -71,5 +83,3 @@ self.addEventListener('fetch', (event) => {
       )
   );
 });
- 
-
