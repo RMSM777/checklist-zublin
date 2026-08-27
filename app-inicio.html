@@ -219,44 +219,9 @@
   .nav .act{ color:var(--acento); }
 
   .panel{ display:none; } .panel.act{ display:block; }
-
-  /* ---------- Login ---------- */
-  .login{ position:fixed; inset:0; background:var(--fondo); z-index:200;
-          display:flex; align-items:center; justify-content:center; padding:20px; }
-  .login .caja{ background:#fff; border-radius:14px; width:100%; max-width:360px;
-                overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.16); }
-  .login .cab{ background:var(--rojo); padding:16px; text-align:center; }
-  .login .cab img{ height:24px; background:#fff; border-radius:6px; padding:5px 9px; }
-  .login .cab img:not([src]){ display:none; }
-  .login .cuerpo{ padding:20px 18px 22px; }
-  .login h2{ margin:0 0 3px; font-size:17px; }
-  .login .sub{ font-size:12px; color:var(--tenue); margin:0 0 15px; }
-  .login label{ display:block; font-size:12px; font-weight:600; color:var(--tenue); margin-bottom:3px; }
-  .login input{ width:100%; padding:11px; border:1px solid var(--linea); border-radius:8px;
-                font-size:15px; margin-bottom:11px; font-family:inherit; }
-  .login button{ width:100%; padding:13px; border:none; border-radius:9px; background:var(--acento);
-                 color:#fff; font-size:15px; font-weight:700; cursor:pointer; font-family:inherit; }
-  .login .msg{ font-size:12.5px; margin-top:11px; padding:9px 11px; border-radius:7px; display:none; line-height:1.45; }
-  .login .msg.ver{ display:block; background:var(--critico-suave); color:var(--critico); }
 </style>
 </head>
 <body>
-
-<div class="login" id="login">
-  <div class="caja">
-    <div class="cab"><img id="logoLogin" alt=""></div>
-    <div class="cuerpo">
-      <h2>QC Digital</h2>
-      <p class="sub">Ingresa con el correo registrado en el sistema.</p>
-      <label>Correo</label>
-      <input id="lgMail" type="email" autocomplete="username" placeholder="nombre@correo.cl">
-      <label>Contraseña</label>
-      <input id="lgPass" type="password" autocomplete="current-password" placeholder="••••••••">
-      <button id="lgBtn" onclick="entrar()">Entrar</button>
-      <div class="msg" id="lgMsg"></div>
-    </div>
-  </div>
-</div>
 
 <div class="wrap">
   <div class="top">
@@ -398,9 +363,8 @@
 <script>
 /* ======================================================================
    Conexion a Supabase. Comparte la MISMA sesion que ciz-dt-conectado.html
-   (misma clave de almacenamiento, mismo origen), asi entrar en una vale
-   para la otra. Cuando llegue el portal definitivo esto se extrae a un
-   archivo compartido; por ahora vive aqui para no tocar lo que funciona.
+   y login.html (misma clave de almacenamiento, mismo origen), asi entrar
+   una vez en login.html vale para toda la suite.
    ====================================================================== */
 const SB_URL = 'https://wbdmlwmnmompoamvlant.supabase.co';
 const SB_KEY = 'sb_publishable_0SWuQqmBvxJYNKIal8MQNQ_NbyEMCCe';
@@ -439,17 +403,6 @@ const SB = {
   guardar(){ try { almacen.set(CLAVE_SESION, JSON.stringify(this.ses)); } catch(e){} },
   limpiar(){ this.ses = null; almacen.del(CLAVE_SESION); },
 
-  async login(email, password){
-    const r = await pedirRed(SB_URL + '/auth/v1/token?grant_type=password', {
-      method:'POST', headers:{ 'apikey': SB_KEY, 'Content-Type':'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const j = await leerJSON(r);
-    if(!r.ok) throw new Error((j && (j.error_description || j.msg || j.message)) || 'No se pudo entrar');
-    this.ses = { access:j.access_token, refresh:j.refresh_token, email:(j.user&&j.user.email)||email,
-                 uid:j.user&&j.user.id, vence: Date.now() + ((j.expires_in||3600)*1000) };
-    this.guardar(); return this.ses;
-  },
   async refrescar(){
     if(!this.ses || !this.ses.refresh) throw new Error('Sin sesion');
     const r = await pedirRed(SB_URL + '/auth/v1/token?grant_type=refresh_token', {
@@ -508,8 +461,6 @@ async function aplicarMarca(){
   document.documentElement.style.setProperty('--acento',
     emp.colorPrimario || emp.colorFondoHeader || '#f5851f');
   MARCA.pintarHeaderHTML('logoImg');
-  const ll = document.getElementById('logoLogin');
-  if(ll && MARCA.logoDataUrl) ll.src = MARCA.logoDataUrl;
   const cont = document.getElementById('selectorEmpresa');
   if(cont){ cont.innerHTML = ''; try { MARCA.crearSelector('selectorEmpresa'); } catch(e){} }
 }
@@ -772,31 +723,11 @@ async function cargarTodo(){
     : '<div class="vacio">Todavía no hay DT registrados.<br>Empieza abriendo uno desde el botón de arriba.</div>';
 }
 
-async function entrar(){
-  const mail = document.getElementById('lgMail').value.trim();
-  const pass = document.getElementById('lgPass').value;
-  const btn = document.getElementById('lgBtn'), msg = document.getElementById('lgMsg');
-  if(!mail || !pass){ msg.textContent = 'Falta el correo o la contraseña.'; msg.className='msg ver'; return; }
-  btn.disabled = true; btn.textContent = 'Entrando…'; msg.className = 'msg';
-  try {
-    await SB.login(mail, pass);
-    document.getElementById('login').style.display = 'none';
-    await cargarTodo();
-  } catch(e){
-    msg.textContent = e.message === '__SIN_SENAL__'
-      ? 'Sin conexión: para entrar la primera vez necesitas señal.'
-      : e.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos.'
-      : (e.message || 'No se pudo entrar.');
-    msg.className = 'msg ver';
-  }
-  btn.disabled = false; btn.textContent = 'Entrar';
-}
-
 function salir(){
   const p = cuantosPendientes();
   if(p && !confirm('Quedan ' + p + ' registro(s) sin subir. Se mantienen guardados en este dispositivo. ¿Salir igual?')) return;
   SB.limpiar();
-  location.reload();
+  location.replace('login.html');
 }
 
 if ('serviceWorker' in navigator) {
@@ -805,18 +736,35 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-/* Arranque: la sesion se comprueba LOCALMENTE. Sin señal no se pide login
-   ni se borra la sesion — bajo tierra eso dejaria al inspector afuera. */
+/* ======================================================================
+   Arranque: el login vive en una pagina aparte (login.html), compartida
+   por toda la suite. Si no hay sesion guardada (o el servidor la rechazo
+   de forma explicita), se manda para alla con ?volver= para regresar
+   directo aqui despues de entrar.
+
+   La sesion se sigue comprobando LOCALMENTE primero: sin señal no se
+   redirige a pedir login ni se borra la sesion — bajo tierra eso dejaria
+   al inspector afuera de la app justo cuando la necesita.
+   ====================================================================== */
 (async function(){
-  pintarEstado();
-  await aplicarMarca();
   SB.cargar();
-  if(!SB.ses || !SB.ses.refresh) return;
+  if(!SB.ses || !SB.ses.refresh){
+    location.replace('login.html?volver=app-inicio.html');
+    return;
+  }
   if(navigator.onLine){
     try { await SB.refrescar(); }
-    catch(e){ if(e && e.message === 'Sesion expirada'){ SB.limpiar(); return; } }
+    catch(e){
+      if(e && e.message === 'Sesion expirada'){
+        SB.limpiar();
+        location.replace('login.html?volver=app-inicio.html');
+        return;
+      }
+      /* cualquier otro error = problema de red: seguimos con la sesion local */
+    }
   }
-  document.getElementById('login').style.display = 'none';
+  pintarEstado();
+  await aplicarMarca();
   await cargarTodo();
 })();
 </script>

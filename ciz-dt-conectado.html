@@ -138,22 +138,6 @@
   table.mini td{ padding:5px 6px; border-bottom:1px solid #eee; }
   table.mini td.num, table.mini th.num{ text-align:right; }
 
-  /* ---------- Login ---------- */
-  .login-capa{ position:fixed; inset:0; background:#e9e9e9; z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
-  .login-caja{ background:#fff; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,.18); width:100%; max-width:380px; overflow:hidden; }
-  .login-top{ background:var(--rojo); padding:16px; text-align:center; }
-  .login-top img{ height:26px; background:#fff; border-radius:6px; padding:5px 9px; }
-  .login-cuerpo{ padding:20px 18px 22px; }
-  .login-cuerpo h2{ margin:0 0 4px; font-size:16px; }
-  .login-cuerpo .sub{ font-size:12px; color:#777; margin:0 0 16px; line-height:1.5; }
-  .login-cuerpo .campo{ margin-bottom:12px; }
-  .login-btn{ width:100%; padding:13px; border:none; border-radius:8px; background:var(--rojo); color:#fff; font-size:15px; font-weight:700; cursor:pointer; }
-  .login-btn:disabled{ background:#e0a3a1; cursor:not-allowed; }
-  .login-msg{ font-size:12.5px; margin-top:12px; padding:9px 11px; border-radius:6px; display:none; line-height:1.5; }
-  .login-msg.err{ display:block; background:#fdecea; color:#a3201c; border:1px solid #f5c6c3; }
-  .login-msg.info{ display:block; background:var(--gris); color:#666; border:1px solid var(--borde); }
-  .login-pie{ font-size:10.5px; color:#999; text-align:center; padding:0 18px 16px; line-height:1.5; }
-
   /* ---------- Barra de estado de conexion ---------- */
   .barra-estado{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:7px 14px; font-size:11.5px; background:#f0f7f0; border-bottom:1px solid #dbe8db; color:#2b5c2e; }
   .barra-estado.offline{ background:#fff4e5; border-bottom-color:#f0dcc0; color:#8a5a08; }
@@ -178,9 +162,8 @@
      verse rojos aunque la empresa activa sea azul. */
   :root{ --acento:#f5851f; --peligro:#C62828; }
 
-  #logoImg, #logoLogin{ max-height:24px; display:block; }
-  #logoImg:not([src]), #logoLogin:not([src]){ display:none; }
-  #logoLogin{ max-height:26px; background:#fff; border-radius:6px; padding:5px 9px; margin:0 auto; }
+  #logoImg{ max-height:24px; display:block; }
+  #logoImg:not([src]){ display:none; }
 
   /* marca.js pinta el selector con estilos en linea pensados para un
      header oscuro. Aqui vive en una barra clara, asi que hay que
@@ -214,20 +197,6 @@
 <script src="marca.js"></script>
 <body>
 
-<div class="login-capa" id="loginCapa">
-  <div class="login-caja">
-    <div class="login-top"><img id="logoLogin" alt=""></div>
-    <div class="login-cuerpo">
-      <h2 id="lgTitulo">Caminatas &middot; DT</h2>
-      <p class="sub" id="lgSub">Ingresa con el correo registrado en el sistema.</p>
-      <div class="campo"><label>Correo</label><input id="lg_mail" type="email" autocomplete="username" placeholder="nombre@correo.cl"></div>
-      <div class="campo"><label>Contrase&ntilde;a</label><input id="lg_pass" type="password" autocomplete="current-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"></div>
-      <button class="login-btn" id="lg_btn" onclick="entrar()">Entrar</button>
-      <div class="login-msg" id="lg_msg"></div>
-    </div>
-    <div class="login-pie" id="lgPie">&nbsp;</div>
-  </div>
-</div>
 <div class="wrap">
   <div class="header-rojo">
     <div class="logo"><span class="placa-logo"><img id="logoImg" alt=""></span></div>
@@ -876,40 +845,17 @@ window.addEventListener('offline', pintarEstado);
 
 /* ======================================================================
    LOGIN / LOGOUT
+   El login vive ahora en login.html (compartido por toda la suite). Aqui
+   solo se comprueba que haya sesion guardada; si no la hay, se manda a
+   login.html con ?volver= para que al entrar vuelva a esta pagina.
    ====================================================================== */
-async function entrar(){
-  const mail = document.getElementById('lg_mail').value.trim();
-  const pass = document.getElementById('lg_pass').value;
-  const btn  = document.getElementById('lg_btn');
-  const msg  = document.getElementById('lg_msg');
-  if(!mail || !pass){ msg.textContent = 'Falta el correo o la contraseña.'; msg.className='login-msg err'; return; }
-  if(SB_KEY.indexOf('___') === 0 || SB_KEY.length < 20){
-    msg.textContent = 'Falta pegar la anon key en el archivo (constante SB_KEY, cerca del inicio del <script>).';
-    msg.className = 'login-msg err'; return;
-  }
-  btn.disabled = true; btn.textContent = 'Entrando...';
-  msg.className = 'login-msg';
-  try {
-    await SB.login(mail, pass);
-    await iniciarApp();
-  } catch(e){
-    msg.textContent =
-      e.message === '__SIN_SENAL__' ? 'Sin conexión: para entrar la primera vez necesitas señal. Hazlo antes de bajar.'
-      : e.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos.'
-      : (e.message || 'No se pudo entrar.');
-    msg.className = 'login-msg err';
-  }
-  btn.disabled = false; btn.textContent = 'Entrar';
-}
-
 function salir(){
   if(COLA.cuantos() > 0 && !confirm('Quedan ' + COLA.cuantos() + ' registro(s) sin subir. Si sales igual, se mantienen guardados en este dispositivo hasta que vuelvas a entrar. ¿Salir?')) return;
   SB.limpiar();
-  location.reload();
+  location.replace('login.html');
 }
 
 async function iniciarApp(){
-  document.getElementById('loginCapa').style.display = 'none';
   pintarEstado();
 
   /* El contrato del usuario decide el sufijo del correlativo (CIZ) y el
@@ -937,10 +883,14 @@ async function iniciarApp(){
   if(COLA.cuantos()) sincronizarAhora();
 }
 
-/* Arranque: si ya hay sesion guardada, entra directo */
+/* Arranque: si ya hay sesion guardada, entra directo. Si no, va al login
+   compartido (login.html) y vuelve aqui despues de entrar. */
 (async function(){
   SB.cargar();
-  if(!SB.ses || !SB.ses.refresh) return;   /* sin sesion guardada -> pantalla de login */
+  if(!SB.ses || !SB.ses.refresh){
+    location.replace('login.html?volver=ciz-dt-conectado.html');
+    return;
+  }
 
   /* La comprobacion de sesion es LOCAL, no contra el servidor. Bajo tierra
      no hay a quien preguntarle, y pedir login sin senal dejaria al
@@ -951,7 +901,11 @@ async function iniciarApp(){
     try {
       await SB.refrescar();
     } catch(e){
-      if(e && e.message === 'Sesion expirada'){ SB.limpiar(); return; }
+      if(e && e.message === 'Sesion expirada'){
+        SB.limpiar();
+        location.replace('login.html?volver=ciz-dt-conectado.html');
+        return;
+      }
       /* cualquier otro error = problema de red: seguimos adelante */
     }
   }
@@ -1398,11 +1352,6 @@ async function aplicarMarca(){
     emp.colorPrimario || emp.colorFondoHeader || '#f5851f');
 
   MARCA.pintarHeaderHTML('logoImg');
-  const ll = document.getElementById('logoLogin');
-  if(ll){
-    if(MARCA.logoDataUrl) ll.src = MARCA.logoDataUrl;
-    else ll.removeAttribute('src');
-  }
 
   const contratoTxt = MARCA.textoContrato();
   document.getElementById('hdrContrato').innerHTML = contratoTxt || '&nbsp;';
@@ -1416,13 +1365,6 @@ async function aplicarMarca(){
     nombreApp() + ' &mdash; CAMINATAS &middot; DETALLES DE TERMINACIÓN' +
     '<br><span style="font-weight:400;font-size:11px;opacity:.85">' +
     (emp.nombreCorto || 'QC Digital') + (emp.tagline ? ' · ' + emp.tagline : '') + '</span>';
-
-  document.getElementById('lgTitulo').textContent = nombreApp();
-  document.getElementById('lgSub').textContent = MARCA.esPlantilla()
-    ? 'Modo plantilla (QC Digital). Elige la empresa en el selector una vez dentro.'
-    : 'Ingresa con el correo registrado en el sistema.';
-  document.getElementById('lgPie').innerHTML = contratoTxt
-    ? contratoTxt.split('—')[0].trim() : (emp.nombreCorto || 'QC Digital');
 
   const pie = document.getElementById('pieApp');
   if(pie) pie.textContent = nombreApp() + ' · ' + (emp.nombreCorto || 'QC Digital') +

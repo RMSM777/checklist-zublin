@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>QC Digital — Ingresar</title>
+<meta name="theme-color" content="#0a0f1c">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="QC Digital">
+<style>
+  :root{
+    --navy-deep:#0a0f1c;
+    --navy:#0d1526;
+    --navy-mid:#16213a;
+    --naranjo:#f5851f;
+    --naranjo-suave:#ffb15c;
+    --texto:#eef1f6;
+    --tenue:#93a0b8;
+    --linea:rgba(255,255,255,.10);
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+  body{
+    margin:0; background:var(--navy-deep); color:var(--texto);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    font-size:15px; line-height:1.5;
+  }
+
+  .pantalla{ min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; }
+  @media (min-width:820px){ .pantalla{ flex-direction:row; } }
+
+  /* ---------- Lado de marca ---------- */
+  .marca{
+    position:relative; overflow:hidden; flex:1.15; min-height:220px;
+    display:flex; flex-direction:column; justify-content:flex-end;
+    padding:34px 30px; padding-top:calc(34px + env(safe-area-inset-top));
+    background:
+      radial-gradient(120% 90% at 15% 100%, rgba(245,133,31,.20), transparent 60%),
+      radial-gradient(90% 70% at 85% 0%, rgba(245,133,31,.14), transparent 55%),
+      linear-gradient(160deg, var(--navy) 0%, var(--navy-deep) 70%);
+  }
+  .marca::before, .marca::after{
+    content:""; position:absolute; border-radius:50%; filter:blur(60px); opacity:.55; pointer-events:none;
+  }
+  .marca::before{ width:280px; height:280px; background:var(--naranjo); left:-90px; bottom:-90px; }
+  .marca::after{ width:220px; height:220px; background:var(--navy-mid); right:-60px; top:-60px; opacity:.9; }
+  @media (prefers-reduced-motion: no-preference){
+    .marca::before{ animation:deriva 14s ease-in-out infinite alternate; }
+  }
+  @keyframes deriva{ from{ transform:translate(0,0); } to{ transform:translate(24px,-18px); } }
+
+  .marca-contenido{ position:relative; z-index:1; }
+  .hex{ width:50px; height:50px; display:block; margin-bottom:16px; }
+  .wordmark{ font-size:clamp(32px,6.4vw,50px); font-weight:800; letter-spacing:-.01em; line-height:.98; }
+  .wordmark .qc{ color:var(--naranjo); }
+  .tagline{ margin-top:9px; font-size:11.5px; font-weight:700; letter-spacing:.16em;
+             text-transform:uppercase; color:var(--tenue); }
+  /* ---------- Panel de acceso ---------- */
+  .panel{ flex:1; background:var(--navy); display:flex; align-items:center; justify-content:center;
+          padding:36px 26px calc(36px + env(safe-area-inset-bottom)); }
+  .caja{ width:100%; max-width:360px; }
+  .caja h1{ margin:0 0 4px; font-size:19px; font-weight:700; }
+  .caja .sub{ margin:0 0 24px; font-size:12.5px; color:var(--tenue); }
+
+  label{ display:block; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+         color:var(--tenue); margin:0 0 6px; }
+  input{
+    width:100%; background:rgba(255,255,255,.045); border:1px solid var(--linea); border-radius:9px;
+    padding:12px 13px; color:var(--texto); font-size:15px; margin-bottom:16px; font-family:inherit;
+  }
+  input::placeholder{ color:#5c6478; }
+  input:focus{ outline:none; border-color:var(--naranjo); background:rgba(245,133,31,.07); }
+
+  button[type="submit"]{
+    width:100%; padding:14px; border:none; border-radius:10px; margin-top:2px;
+    background:linear-gradient(135deg,var(--naranjo),var(--naranjo-suave));
+    color:#211505; font-weight:800; font-size:15px; cursor:pointer; font-family:inherit;
+    box-shadow:0 10px 22px rgba(245,133,31,.22);
+  }
+  button[type="submit"]:disabled{ opacity:.6; cursor:not-allowed; box-shadow:none; }
+
+  .msg{ margin-top:14px; font-size:12.5px; padding:10px 12px; border-radius:8px; display:none; line-height:1.45; }
+  .msg.err{ display:block; background:rgba(198,40,40,.15); color:#ff9d95; border:1px solid rgba(198,40,40,.32); }
+
+  .nota{ margin-top:28px; font-size:11.5px; color:var(--tenue); line-height:1.55; text-align:center; }
+  .nota b{ color:#c3cbdc; }
+
+  .cargando{ text-align:center; color:var(--tenue); font-size:13px; }
+</style>
+</head>
+<body>
+
+<div class="pantalla">
+  <div class="marca">
+    <div class="marca-contenido">
+      <svg class="hex" viewBox="0 0 60 60" role="img" aria-label="QC Digital">
+        <polygon points="30,2 55,16 55,44 30,58 5,44 5,16"
+                 fill="#16213a" stroke="#f5851f" stroke-width="2.5"/>
+        <text x="30" y="37" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,Arial,sans-serif"
+              font-size="18" font-weight="800" fill="#f5851f">QC</text>
+      </svg>
+      <div class="wordmark"><span class="qc">QC</span> DIGITAL</div>
+      <div class="tagline">Industry Quality Suite</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="caja">
+      <h1>Ingresar</h1>
+      <p class="sub">Ingresa con el correo registrado en el sistema.</p>
+
+      <form id="frmLogin" autocomplete="on">
+        <label for="fCorreo">Correo</label>
+        <input id="fCorreo" name="correo" type="email" autocomplete="username" placeholder="nombre@correo.cl" required>
+
+        <label for="fClave">Contraseña</label>
+        <input id="fClave" name="clave" type="password" autocomplete="current-password" placeholder="••••••••" required>
+
+        <button type="submit" id="btnEntrar">Ingresar</button>
+        <div class="msg" id="msg"></div>
+      </form>
+
+      <p class="nota"><b>Las cuentas las habilita el administrador del contrato.</b><br>
+      ¿No puedes entrar? Contacta a tu inspector a cargo para que revise tu correo y clave.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ======================================================================
+   Login compartido de QC Digital. Guarda la sesion bajo la MISMA clave
+   que usan app-inicio.html y ciz-dt-conectado.html (cizdt_sesion), asi
+   entrar aqui una vez vale para toda la suite. Al terminar, vuelve a la
+   pagina que pidio el login (parametro ?volver=), o a app-inicio.html
+   si no vino ninguna.
+   ====================================================================== */
+const SB_URL = 'https://wbdmlwmnmompoamvlant.supabase.co';
+const SB_KEY = 'sb_publishable_0SWuQqmBvxJYNKIal8MQNQ_NbyEMCCe';
+const CLAVE_SESION = 'cizdt_sesion';
+
+function destinoVolver(){
+  const p = new URLSearchParams(location.search).get('volver') || 'app-inicio.html';
+  /* nunca seguir a otro dominio: solo rutas relativas dentro de la suite */
+  if(/^https?:\/\//i.test(p) || p.startsWith('//')) return 'app-inicio.html';
+  return p;
+}
+
+const almacen = (function(){
+  let mem = {}, ok = false;
+  try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); ok = true; } catch(e){}
+  return {
+    get(k){ try { return ok ? localStorage.getItem(k) : (k in mem ? mem[k] : null); } catch(e){ return null; } },
+    set(k,v){ try { ok ? localStorage.setItem(k,v) : (mem[k]=v); } catch(e){ mem[k]=v; } }
+  };
+})();
+
+async function pedirRed(url, opts){
+  try { return await fetch(url, opts); }
+  catch(e){ const err = new Error('__SIN_SENAL__'); throw err; }
+}
+async function leerJSON(r){
+  const txt = await r.text();
+  if(txt === '') return null;
+  try { return JSON.parse(txt); }
+  catch(e){ throw new Error(!navigator.onLine || r.status === 503 ? '__SIN_SENAL__' : 'Respuesta inesperada del servidor.'); }
+}
+
+async function iniciarSesion(email, password){
+  const r = await pedirRed(SB_URL + '/auth/v1/token?grant_type=password', {
+    method:'POST', headers:{ 'apikey': SB_KEY, 'Content-Type':'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  const j = await leerJSON(r);
+  if(!r.ok) throw new Error((j && (j.error_description || j.msg || j.message)) || 'No se pudo entrar');
+  const ses = { access:j.access_token, refresh:j.refresh_token, email:(j.user&&j.user.email)||email,
+                uid:j.user&&j.user.id, vence: Date.now() + ((j.expires_in||3600)*1000) };
+  almacen.set(CLAVE_SESION, JSON.stringify(ses));
+  return ses;
+}
+
+document.getElementById('frmLogin').addEventListener('submit', async function(ev){
+  ev.preventDefault();
+  const mail = document.getElementById('fCorreo').value.trim();
+  const pass = document.getElementById('fClave').value;
+  const btn = document.getElementById('btnEntrar'), msg = document.getElementById('msg');
+  msg.className = 'msg';
+  if(!mail || !pass){ msg.textContent = 'Falta el correo o la contraseña.'; msg.className = 'msg err'; return; }
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  try {
+    await iniciarSesion(mail, pass);
+    location.replace(destinoVolver());
+  } catch(e){
+    msg.textContent = e.message === '__SIN_SENAL__'
+      ? 'Sin conexión: para entrar la primera vez necesitas señal.'
+      : e.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos.'
+      : (e.message || 'No se pudo entrar.');
+    msg.className = 'msg err';
+    btn.disabled = false; btn.textContent = 'Ingresar';
+  }
+});
+
+/* Si ya hay sesion guardada (valida localmente), no mostrar el login: se
+   respeta la misma regla del resto de la suite — la sesion se comprueba
+   LOCALMENTE, sin depender de tener señal en este instante. */
+(function(){
+  try {
+    const ses = JSON.parse(almacen.get(CLAVE_SESION) || 'null');
+    if(ses && ses.refresh){ location.replace(destinoVolver()); }
+  } catch(e){}
+})();
+</script>
+</body>
+</html>
