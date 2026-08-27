@@ -215,6 +215,7 @@
     <span id="selectorEmpresa"></span>
     <button id="btnInstalar" onclick="instalarApp()" style="display:none;">Instalar en el teléfono</button>
     <button id="be_sync" onclick="sincronizarAhora()" style="display:none;">Sincronizar</button>
+    <button onclick="irAlInicio()">&larr; Inicio</button>
     <button onclick="salir()">Salir</button>
   </div>
 
@@ -855,6 +856,16 @@ function salir(){
   location.replace('login.html');
 }
 
+/* Volver al menú principal sin perder lo que se estaba llenando en
+   "Abrir DT": se guarda el borrador (igual que hace el cambio de
+   empresa) y se deja marcada la bandera para que, al volver a entrar
+   a esta página, se restaure solo. No cierra sesión ni borra nada. */
+function irAlInicio(){
+  try { window.guardarBorrador(); } catch(e){}
+  try { sessionStorage.setItem('qcd_auto_restaurar', '1'); } catch(e){}
+  location.href = 'app-inicio.html';
+}
+
 async function iniciarApp(){
   pintarEstado();
 
@@ -1176,7 +1187,7 @@ function poblarSelectCerrar(){
     document.getElementById('c_detalle').innerHTML = '<div class="vacio">Abre un DT en la pesta&ntilde;a anterior para poder probar el cierre.</div>';
     return;
   }
-  sel.innerHTML = abiertos.map(r => '<option value="'+r.numeroPunch+'">Punch '+r.numeroPunch+' &mdash; '+r.desc.slice(0,40)+'</option>').join('');
+  sel.innerHTML = abiertos.map(r => '<option value="'+r.numeroPunch+'">Punch '+r.numeroPunch+' &mdash; '+(r.ubicacion?r.ubicacion+' &mdash; ':'')+r.desc.slice(0,40)+'</option>').join('');
   mostrarDetalleCerrar();
 }
 
@@ -1189,7 +1200,8 @@ function mostrarDetalleCerrar(){
     '<div class="detalle-sel">'+
       '<div><b>Punch '+r.numeroPunch+'</b>'+(r.codigoCaminata?' &middot; caminata '+r.codigoCaminata:'')+ (r.ejemplo ? ' &middot; (ejemplo)' : '') +'</div>'+
       '<div style="margin-top:4px;">'+r.desc+'</div>'+
-      '<div style="font-size:11px;color:#777;margin-top:4px;">Emitida '+fmtCorta(r.femision)+' &middot; compromiso '+fmtCorta(r.fcompromiso)+' &middot; '+ (r.ubicacion||'-') +'</div>'+
+      '<div style="margin-top:2px;font-weight:600;color:#a05654;">&#128205; '+(r.ubicacion||'(sin ubicaci&oacute;n)')+'</div>'+
+      '<div style="font-size:11px;color:#777;margin-top:4px;">Emitida '+fmtCorta(r.femision)+' &middot; compromiso '+fmtCorta(r.fcompromiso)+'</div>'+
       (r.fotosApertura.length ? '<div class="thumbs">'+r.fotosApertura.map(f=>'<img src="'+f.dataUrl+'">').join('')+'</div>' : '<div style="font-size:11px;color:#aaa;margin-top:4px;">(sin fotos de apertura)</div>')+
     '</div>';
   document.getElementById('c_form').style.display = '';
@@ -1298,7 +1310,7 @@ function tarjetaChicaHTML(r){
   return '<div class="tarjeta-chica">'+
     '<div class="fila-top"><span class="corr">Punch '+r.numeroPunch+'</span><span class="estado-pill '+r.estado+'">'+r.estado+'</span></div>'+
     '<div class="desc">'+r.desc+'</div>'+
-    '<div class="meta">Prioridad '+r.prioridad+' &middot; '+fotosN+' foto(s)'+atrasoHTML+'</div>'+
+    '<div class="meta">'+(r.ubicacion||'-')+' &middot; Prioridad '+r.prioridad+' &middot; '+fotosN+' foto(s)'+atrasoHTML+'</div>'+
   '</div>';
 }
 
