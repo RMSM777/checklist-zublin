@@ -18,6 +18,10 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <script src="marca.js?v=2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="drive-integration.js?v=3"></script>
+<script src="supabase-integration.js?v=1"></script>
+<script>
+(async function(){ await requerirSesion('checklist-camioneta.html'); })();
+</script>
 <link rel="stylesheet" href="dark-mode.css">
 <script src="dark-mode.js" defer></script>
 <script src="piwii-unificado.js" defer></script>
@@ -519,28 +523,28 @@ async function generarPDF(previo){
   }
 
   const notaEl = document.getElementById('nota');
-  let driveHtml = '';
-  if(window.QCD_DRIVE){
-    notaEl.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
+  let guardadoHtml = '';
+  if(window.SB){
+    notaEl.innerHTML = '<span style="color:#888;">Guardando en Supabase...</span>';
     notaEl.style.color = '';
     try{
-      const res = await QCD_DRIVE.subirConReintento({
-        blob: doc.output('blob'),
-        nombreArchivo: nombreArch,
-        tipoReporte: 'Checklist camioneta',
+      await guardarReportePDF({
+        tipoReporte: 'checklist-camioneta',
         correlativo: corr,
         claveVerificacion: claveQR,
         empresa: MARCA.empresa.nombreCorto,
-        generadoPor: nombre
+        generadoPor: nombre,
+        blobPDF: doc.output('blob'),
+        nombreArchivo: nombreArch
       });
-      driveHtml = '<br><a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>';
+      guardadoHtml = '<br><span style="color:#2e7d32;">Guardado en Supabase &#10003;</span>';
     }catch(err){
-      console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
-      driveHtml = '<br><span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>';
+      console.warn('Supabase: no se pudo guardar el reporte.', err);
+      guardadoHtml = '<br><span style="color:#c0392b;">No se pudo guardar en la base: ' + (err && err.message ? err.message : err) + '</span>';
     }
   }
   doc.save(nombreArch);
-  notaEl.innerHTML = 'PDF generado y descargado. Revisa tus descargas.' + driveHtml;
+  notaEl.innerHTML = 'PDF generado y descargado. Revisa tus descargas.' + guardadoHtml;
   notaEl.style.color = '#2e7d32';
   borrarBorrador();
   }catch(err){
