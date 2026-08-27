@@ -1,8 +1,8 @@
 // Service Worker - Checklist Züblin GCC-003
 // Cachea las páginas y librerías para que la app abra aunque no haya señal.
- 
-const CACHE_NAME = 'qcdigital-v19'; // sube este número cuando publiques cambios importantes
- 
+
+const CACHE_NAME = 'qcdigital-v20'; // sube este número cuando publiques cambios importantes
+
 // OJO: si un archivo de esta lista no existe con ese nombre exacto, el
 // install del service worker falla ENTERO y ninguna pagina queda cacheada.
 // Al renombrar o borrar un archivo, hay que actualizarlo aqui tambien.
@@ -23,6 +23,7 @@ const ARCHIVOS_PROPIOS = [
   './reporte-liberacion-frente.html',
   './ciz-dt-conectado.html',
   './app-inicio.html',
+  './login.html',
   './marca.js?v=2',
   './drive-integration.js?v=3',
   './piwii-unificado.js',
@@ -33,7 +34,7 @@ const ARCHIVOS_PROPIOS = [
   './dark-mode.js',
   './verificar.html'
 ];
- 
+
 // Instala: guarda en caché las páginas principales
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -41,7 +42,7 @@ self.addEventListener('install', (event) => {
   );
   self.skipWaiting();
 });
- 
+
 // Activa: limpia caches antiguos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
@@ -53,7 +54,7 @@ self.addEventListener('activate', (event) => {
   );
   self.clients.claim();
 });
- 
+
 // Fetch: intenta red primero (para tener datos frescos); si falla, usa caché.
 // Si tampoco está en caché, responde con un error controlado (nunca null).
 self.addEventListener('fetch', (event) => {
@@ -66,7 +67,7 @@ self.addEventListener('fetch', (event) => {
   let url;
   try { url = new URL(event.request.url); } catch (e) { return; }
   if (url.hostname.endsWith('.supabase.co')) return;
- 
+
   event.respondWith(
     fetch(event.request)
       .then((respuesta) => {
