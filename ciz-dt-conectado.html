@@ -224,7 +224,6 @@
   <div class="tabs">
     <button class="tabbtn act" data-tab="abrir">ABRIR DT</button>
     <button class="tabbtn" data-tab="cerrar">CERRAR DT</button>
-    <button class="tabbtn" data-tab="dash">DASHBOARD KPI</button>
   </div>
 
   <!-- =================== TAB 1: ABRIR DT (por caminata) =================== -->
@@ -311,6 +310,13 @@
   <div class="tabpanel" id="tab-cerrar">
     <section style="padding-top:10px;">
       <div class="leyenda">Selecciona un DT abierto para subsanarlo y dejar la evidencia de cierre. Los DT vienen de la base compartida, as&iacute; que aqu&iacute; aparecen tambi&eacute;n los que abri&oacute; otro inspector.</div>
+      <div class="campo">
+        <label>Buscar por Sistema / Subsistema (m&aacute;s r&aacute;pido en terreno que buscar el N&deg; Punch)</label>
+        <div class="grid2">
+          <select id="c_filtroSistema" onchange="poblarSelectCerrar()"><option value="">Todos los sistemas</option></select>
+          <select id="c_filtroSubsistema" onchange="poblarSelectCerrar()"><option value="">Todos los subsistemas</option></select>
+        </div>
+      </div>
       <div class="campo"><label>DT a cerrar</label><select id="c_select" onchange="mostrarDetalleCerrar()"></select></div>
       <div id="c_detalle"></div>
     </section>
@@ -344,49 +350,6 @@
     <section>
       <div class="seccion-tit">DT cerrados</div>
       <div id="lista_cerrados"></div>
-    </section>
-  </div>
-
-  <!-- =================== TAB 3: DASHBOARD KPI =================== -->
-  <div class="tabpanel" id="tab-dash">
-    <section style="padding-top:10px;">
-      <div class="leyenda">Carga el mismo listado DT que descargas hoy desde SIC3PRO (.xls). Esto usa exactamente el mismo lector que ya tienes en <b>reporte-dt-index.html</b>, para probar que los KPI no cambian aunque cambie de d&oacute;nde viene el dato.</div>
-      <label class="dropzone" id="d_dz">
-        <span id="d_dzTxt">Tocar aqu&iacute; para seleccionar el archivo Excel de SIC3PRO</span>
-        <input type="file" id="d_archivo" accept=".xls,.xlsx,.htm,.html">
-      </label>
-      <div class="estado-carga" id="d_estado">A&uacute;n no se ha cargado ning&uacute;n archivo.</div>
-    </section>
-
-    <section id="d_zona" style="display:none;">
-      <div class="punto">
-        <p class="punto-tit">Resumen general del contrato</p>
-        <p class="punto-sub">Mismo c&aacute;lculo que el reporte actual &middot; fuente: export SIC3PRO (<span id="d_fecha">-</span>)</p>
-        <div class="kpis">
-          <div class="kpi total"><div class="num" id="d_kTotal">0</div><div class="lbl">TOTAL DT</div></div>
-          <div class="kpi abiertas"><div class="num" id="d_kAbiertas">0</div><div class="lbl">ABIERTAS</div></div>
-          <div class="kpi atrasadas"><div class="num" id="d_kAtrasadas">0</div><div class="lbl">ATRASADAS</div></div>
-          <div class="kpi cerradas"><div class="num" id="d_kCerradas">0</div><div class="lbl">CERRADAS</div></div>
-          <div class="kpi cierre"><div class="num" id="d_kCierre">0%</div><div class="lbl">% CIERRE</div></div>
-        </div>
-      </div>
-
-      <div class="punto">
-        <p class="punto-tit">Distribuci&oacute;n por estado</p>
-        <p class="punto-sub">Del universo cargado</p>
-        <div class="donut-wrap">
-          <svg id="d_donut" width="120" height="120" viewBox="0 0 120 120"></svg>
-          <div class="donut-leg" id="d_leyenda"></div>
-        </div>
-      </div>
-
-      <div class="punto">
-        <p class="punto-tit">Top 6 SubArea con m&aacute;s pendientes</p>
-        <p class="punto-sub">Abiertas + Atrasadas, para priorizar el pr&oacute;ximo cierre</p>
-        <table class="mini" id="d_tablaSub"></table>
-      </div>
-
-      <div class="nota">Cuando este dashboard lea directo de la base compartida en vez de este Excel, estos mismos n&uacute;meros quedan en vivo &mdash; sin tener que volver a SIC3PRO a descargar nada.</div>
     </section>
   </div>
 
@@ -1178,13 +1141,53 @@ document.getElementById('c_fotoInput').addEventListener('change', async (e)=>{
 });
 function quitarFotoCierre(i){ c_fotos.splice(i,1); renderGaleria('c_galeria', c_fotos, 'quitarFotoCierre'); }
 
+/* Arma las opciones de los dos desplegables de filtro (Sistema y, dentro
+   de ese sistema, Subsistema) a partir de los DT abiertos. Se llama cada
+   vez que se repuebla el select de cierre para que la lista de sistemas
+   se mantenga al día si llegan DT nuevos, sin perder lo que ya estaba
+   elegido si sigue siendo válido. */
+function actualizarFiltrosCerrar(abiertos){
+  const sisEl = document.getElementById('c_filtroSistema');
+  const subEl = document.getElementById('c_filtroSubsistema');
+  if(!sisEl || !subEl) return;
+
+  const sisActual = sisEl.value;
+  const sistemas = [...new Set(abiertos.map(r => r.sistema).filter(Boolean))].sort();
+  sisEl.innerHTML = '<option value="">Todos los sistemas</option>' +
+    sistemas.map(s => '<option value="'+s+'">'+s+'</option>').join('');
+  if(sistemas.includes(sisActual)) sisEl.value = sisActual;
+
+  const sistemaElegido = sisEl.value;
+  const subActual = subEl.value;
+  const candidatos = sistemaElegido ? abiertos.filter(r => r.sistema === sistemaElegido) : abiertos;
+  const subsistemas = [...new Set(candidatos.map(r => r.subsistema).filter(Boolean))].sort();
+  subEl.innerHTML = '<option value="">Todos los subsistemas</option>' +
+    subsistemas.map(s => '<option value="'+s+'">'+s+'</option>').join('');
+  if(subsistemas.includes(subActual)) subEl.value = subActual;
+}
+
 function poblarSelectCerrar(){
   const sel = document.getElementById('c_select');
-  const abiertos = sesion.registros.filter(r => r.estado === 'ABIERTA');
-  if(!abiertos.length){
+  const todosAbiertos = sesion.registros.filter(r => r.estado === 'ABIERTA');
+  if(!todosAbiertos.length){
+    actualizarFiltrosCerrar(todosAbiertos);
     sel.innerHTML = '<option value="">(no hay DT abiertos)</option>';
     document.getElementById('c_form').style.display = 'none';
     document.getElementById('c_detalle').innerHTML = '<div class="vacio">Abre un DT en la pesta&ntilde;a anterior para poder probar el cierre.</div>';
+    return;
+  }
+  actualizarFiltrosCerrar(todosAbiertos);
+
+  const sistema = document.getElementById('c_filtroSistema').value;
+  const subsistema = document.getElementById('c_filtroSubsistema').value;
+  let abiertos = todosAbiertos;
+  if(sistema) abiertos = abiertos.filter(r => r.sistema === sistema);
+  if(subsistema) abiertos = abiertos.filter(r => r.subsistema === subsistema);
+
+  if(!abiertos.length){
+    sel.innerHTML = '<option value="">(ning&uacute;n DT abierto en ese sistema/subsistema)</option>';
+    document.getElementById('c_form').style.display = 'none';
+    document.getElementById('c_detalle').innerHTML = '<div class="vacio">No hay DT abiertos con ese filtro. Prueba con "Todos los sistemas".</div>';
     return;
   }
   sel.innerHTML = abiertos.map(r => '<option value="'+r.numeroPunch+'">Punch '+r.numeroPunch+' &mdash; '+(r.ubicacion?r.ubicacion+' &mdash; ':'')+r.desc.slice(0,40)+'</option>').join('');
@@ -1520,159 +1523,6 @@ renderTodo();
 pintarEstado();
 aplicarMarca();
 
-/* ======================================================================
-   TAB 3: DASHBOARD - mismo lector y mismos calculos que reporte-dt-index.html
-   ====================================================================== */
-function norm(s){
-  return String(s==null?'':s)
-    .replace(/�/g,'')
-    .normalize('NFD').replace(/[̀-ͯ]/g,'')
-    .replace(/\s+/g,' ')
-    .trim().toUpperCase();
-}
-function parseFechaSIC(s){
-  if(!s) return null;
-  const m = String(s).trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-  if(!m) return null;
-  let a = parseInt(m[3],10); if(a<100) a += 2000;
-  const d = new Date(a, parseInt(m[2],10)-1, parseInt(m[1],10));
-  return isNaN(d) ? null : d;
-}
-function pctSIC(n, t){ return t>0 ? Math.round(n/t*1000)/10 : 0; }
-
-let d_registros = [];
-document.getElementById('d_archivo').addEventListener('change', e=>{
-  const f = e.target.files[0];
-  if(f) leerArchivoSIC(f);
-});
-
-async function leerArchivoSIC(file){
-  const estadoEl = document.getElementById('d_estado');
-  try{
-    estadoEl.textContent = 'Leyendo archivo...'; estadoEl.className = 'estado-carga';
-    const buf = await file.arrayBuffer();
-    const texto = new TextDecoder('windows-1252').decode(buf);
-    let fechaDatos = '';
-    const m = texto.match(/Fecha\s*:\s*(\d{2}-\d{2}-\d{4})/);
-    if(m) fechaDatos = m[1];
-    const dom = new DOMParser().parseFromString(texto, 'text/html');
-    const tablas = dom.querySelectorAll('table');
-    let mejor = null;
-    tablas.forEach(t=>{ if(!mejor || t.rows.length > mejor.rows.length) mejor = t; });
-    if(!mejor) throw new Error('No se encontraron tablas en el archivo.');
-    const filas = Array.from(mejor.rows).map(tr => Array.from(tr.cells).map(td => td.textContent.trim()));
-    procesarFilasSIC(filas, file.name, fechaDatos);
-  }catch(err){
-    console.error(err);
-    estadoEl.textContent = 'No se pudo leer el archivo: ' + err.message;
-    estadoEl.className = 'estado-carga err';
-  }
-}
-
-function procesarFilasSIC(filas, nombreArchivo, fechaDatos){
-  const estadoEl = document.getElementById('d_estado');
-  let hIdx = -1, headers = null;
-  for(let i=0;i<Math.min(filas.length,30);i++){
-    const fn = filas[i].map(norm);
-    if(fn.some(c=>c.includes('PUNCH')) && fn.some(c=>c==='ESTADO')){ hIdx=i; headers=fn; break; }
-  }
-  if(hIdx<0){ estadoEl.textContent='El archivo no tiene el formato del listado DT de SIC3PRO.'; estadoEl.className='estado-carga err'; return; }
-
-  function col(...claves){
-    for(const k of claves){
-      const i = headers.findIndex(h=>h.includes(k));
-      if(i>=0) return i;
-    }
-    return -1;
-  }
-  const iSub = headers.findIndex(h=>h.includes('SUBAREA'));
-  const iArea = headers.findIndex((h,ix)=>h.includes('AREA') && ix!==iSub);
-  const C = {
-    punch: col('PUNCH'), area:iArea, sub:iSub,
-    prio: col('PRIO'), estado: headers.findIndex(h=>h==='ESTADO'),
-    emision: col('EMISION'), realCierre: col('REAL')
-  };
-  d_registros = [];
-  for(let i=hIdx+1;i<filas.length;i++){
-    const f = filas[i];
-    if(!f || f.length<5) continue;
-    const estado = norm(f[C.estado]);
-    if(!['ABIERTA','CERRADA','ATRASADA'].includes(estado)) continue;
-    d_registros.push({
-      punch: f[C.punch]||'', area: f[C.area]||'', sub: f[C.sub]||'(sin SubArea)',
-      prio: f[C.prio]||'', estado,
-      fEmision: parseFechaSIC(f[C.emision]), fRealCierre: parseFechaSIC(f[C.realCierre])
-    });
-  }
-  if(!d_registros.length){ estadoEl.textContent='El archivo se leyó pero no se encontraron registros de DT.'; estadoEl.className='estado-carga err'; return; }
-
-  document.getElementById('d_dz').classList.add('ok');
-  document.getElementById('d_dzTxt').textContent = nombreArchivo + ' — ' + d_registros.length + ' registros cargados.';
-  estadoEl.textContent = 'Archivo procesado correctamente: ' + d_registros.length + ' DT' + (fechaDatos ? ' · datos SIC3PRO al ' + fechaDatos : '') + '.';
-  estadoEl.className = 'estado-carga ok';
-  document.getElementById('d_fecha').textContent = fechaDatos || '-';
-  renderDashboard();
-}
-
-function renderDashboard(){
-  const total = d_registros.length;
-  const nAbierta = d_registros.filter(r=>r.estado==='ABIERTA').length;
-  const nAtrasada = d_registros.filter(r=>r.estado==='ATRASADA').length;
-  const nCerrada = d_registros.filter(r=>r.estado==='CERRADA').length;
-
-  document.getElementById('d_zona').style.display = '';
-  document.getElementById('d_kTotal').textContent = total;
-  document.getElementById('d_kAbiertas').textContent = nAbierta;
-  document.getElementById('d_kAtrasadas').textContent = nAtrasada;
-  document.getElementById('d_kCerradas').textContent = nCerrada;
-  document.getElementById('d_kCierre').textContent = pctSIC(nCerrada, total) + '%';
-
-  dibujarDonut([
-    { label: 'Cerradas', n: nCerrada, color: '#2e7d32' },
-    { label: 'Abiertas', n: nAbierta, color: '#F2A93B' },
-    { label: 'Atrasadas', n: nAtrasada, color: '#C62828' }
-  ], total);
-
-  const porSub = new Map();
-  d_registros.forEach(r=>{
-    if(r.estado==='ABIERTA' || r.estado==='ATRASADA'){
-      porSub.set(r.sub, (porSub.get(r.sub)||0) + 1);
-    }
-  });
-  const top = [...porSub.entries()].sort((a,b)=>b[1]-a[1]).slice(0,6);
-  const tabla = document.getElementById('d_tablaSub');
-  tabla.innerHTML = '<tr><th>SubArea</th><th class="num">Pendientes</th></tr>' +
-    (top.length ? top.map(([k,v])=>'<tr><td>'+k+'</td><td class="num">'+v+'</td></tr>').join('') : '<tr><td colspan="2" style="text-align:center;color:#999;">Sin pendientes</td></tr>');
-}
-
-function dibujarDonut(segmentos, total){
-  const svg = document.getElementById('d_donut');
-  const cx=60, cy=60, r=48, rInterior=28;
-  let acumulado = 0;
-  let paths = '';
-  segmentos.forEach(s=>{
-    if(!s.n){ return; }
-    const frac = total>0 ? s.n/total : 0;
-    const a0 = acumulado * 2*Math.PI - Math.PI/2;
-    acumulado += frac;
-    const a1 = acumulado * 2*Math.PI - Math.PI/2;
-    const largeArc = (a1-a0) > Math.PI ? 1 : 0;
-    const x0 = cx + r*Math.cos(a0), y0 = cy + r*Math.sin(a0);
-    const x1 = cx + r*Math.cos(a1), y1 = cy + r*Math.sin(a1);
-    const xi0 = cx + rInterior*Math.cos(a1), yi0 = cy + rInterior*Math.sin(a1);
-    const xi1 = cx + rInterior*Math.cos(a0), yi1 = cy + rInterior*Math.sin(a0);
-    if(frac >= 0.999){
-      paths += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+s.color+'"></circle><circle cx="'+cx+'" cy="'+cy+'" r="'+rInterior+'" fill="#fff"></circle>';
-    } else {
-      paths += '<path d="M '+x0+' '+y0+' A '+r+' '+r+' 0 '+largeArc+' 1 '+x1+' '+y1+' L '+xi0+' '+yi0+' A '+rInterior+' '+rInterior+' 0 '+largeArc+' 0 '+xi1+' '+yi1+' Z" fill="'+s.color+'"></path>';
-    }
-  });
-  svg.innerHTML = paths || '<circle cx="60" cy="60" r="48" fill="#eee"></circle>';
-
-  document.getElementById('d_leyenda').innerHTML = segmentos.map(s=>
-    '<div><span class="dot" style="background:'+s.color+'"></span>'+s.label+': <b>'+s.n+'</b> ('+pctSIC(s.n,total)+'%)</div>'
-  ).join('');
-}
 </script>
 </body>
 </html>
