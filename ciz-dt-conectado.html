@@ -285,6 +285,17 @@
         </div>
         <div class="campo"><label>Fecha compromiso de cierre</label><input id="h_fcompromiso" type="date"></div>
       </div>
+
+      <div class="campo">
+        <label>M&oacute;dulo de falla (seg&uacute;n RE-1001-1027, opcional)</label>
+        <select id="h_moduloFalla"></select>
+      </div>
+      <div class="aviso-linea" id="h_avisoFrente"></div>
+      <div class="grid2">
+        <div class="campo"><label>N&deg; Parada (opcional)</label><input id="h_parada" type="text" placeholder="Ej: 07 o 04 a 06"></div>
+        <div class="campo"><label>PK aprox. de la parada (opcional)</label><input id="h_pkAprox" type="number" step="0.01" placeholder="Ej: 7"></div>
+      </div>
+
       <div class="campo"><label>Descripci&oacute;n del hallazgo</label><textarea id="h_desc" rows="2" placeholder="Ej: Parada 12, perno 3 suelto"></textarea></div>
 
       <div class="leyenda">Foto <b>opcional</b>: si en el momento no hay buena luz, señal o tiempo para sacarla y comprimirla, se puede dejar sin foto y seguir &mdash; no bloquea el guardado.</div>
@@ -346,7 +357,12 @@
       <div class="seccion-tit">Datos del cierre</div>
       <div class="grid2">
         <div class="campo"><label>Fecha real de cierre</label><input id="c_frealcierre" type="date"></div>
-        <div class="campo"><label>Resp. Cierre</label><input id="c_resp" type="text" placeholder="Nombre de qui&eacute;n subsan&oacute;"></div>
+        <div class="campo">
+          <label>Resp. Cierre</label>
+          <select id="c_respSelect"></select>
+          <span class="labor-manual-link" id="c_respManualLink" onclick="activarRespCierreManual()">&iquest;No aparece en la lista? Escribirlo a mano</span>
+          <input id="c_respManual" type="text" placeholder="Nombre de qui&eacute;n subsan&oacute;" style="display:none; margin-top:6px;">
+        </div>
       </div>
       <div class="campo"><label>Clasificaci&oacute;n de la desviaci&oacute;n</label><input id="c_clasif" type="text" placeholder="Ej: Ejecuci&oacute;n / Materiales / Dise&ntilde;o"></div>
 
@@ -735,7 +751,11 @@ async function subirCaminata(op){
     plano: op.caminata.plano || null,
     originador: op.caminata.inspectores || op.caminata.iniciales_inspector || null,
     numero_informe: op.caminata.numero_informe || null,
-    resp_construccion: op.caminata.resp_construccion || null
+    resp_construccion: op.caminata.resp_construccion || null,
+    modulo_falla: h.moduloFalla || null,
+    clasificacion_falla: h.clasificacionFalla || null,
+    parada: h.parada || null,
+    pk_aprox: (h.pkAprox !== null && h.pkAprox !== undefined && h.pkAprox !== '') ? h.pkAprox : null
   }));
   const dts = await SB.insertar('detalles_terminacion', filas);
   if(!dts || dts.length !== filas.length){
@@ -787,6 +807,10 @@ async function cargarDesdeBase(){
     frealcierre: f.fecha_real_cierre,
     respCierre: f.resp_cierre,
     clasifDesviacion: f.clasificacion_desviacion,
+    moduloFalla: f.modulo_falla,
+    clasificacionFalla: f.clasificacion_falla,
+    parada: f.parada,
+    pkAprox: f.pk_aprox,
     estado: f.estado,
     atrasoDias: f.dias_atraso,
     fotosApertura: [], fotosCierre: []
@@ -877,6 +901,8 @@ async function iniciarApp(){
       ? 'Sin señal: se muestran los DT que alcanzaste a bajar. Lo que registres queda en cola y se sube al recuperar conexión.'
       : 'No se pudieron leer los DT de la base: ' + (e.message || e), 'err');
   }
+  try { await cargarInspectores(); }
+  catch(e){ console.warn('No se pudo leer la lista de inspectores:', e && e.message); }
   if(COLA.cuantos()) sincronizarAhora();
 }
 
@@ -987,6 +1013,72 @@ function resetLaborPicker(){
   mi.style.display = 'none'; mi.value = '';
 }
 
+/* ======================================================================
+   Responsable de cierre = inspector de calidad registrado (usuarios_contrato
+   del contrato), no texto libre. Se lee de la vista v_inspectores_contrato
+   (creada en 11-agregar-resp-cierre-inspector.sql) y se cachea en almacen
+   para que el desplegable funcione aunque se abra Cerrar DT sin señal.
+   Si el inspector que corresponde no está en la lista (por ejemplo, un
+   contrato nuevo que todavía no se registró), queda la opción de
+   escribirlo a mano igual que en el picker de labores.
+   ====================================================================== */
+let INSPECTORES = [];         // [{user_id, iniciales, nombre, rol}]
+let respCierreManual = false;
+
+async function cargarInspectores(){
+  try {
+    const lista = await SB.consultar('v_inspectores_contrato', 'select=*');
+    INSPECTORES = Array.isArray(lista) ? lista : [];
+    try { almacen.set('cizdt_inspectores', JSON.stringify(INSPECTORES)); } catch(e){}
+  } catch(e){
+    try { INSPECTORES = JSON.parse(almacen.get('cizdt_inspectores') || '[]'); }
+    catch(e2){ INSPECTORES = []; }
+  }
+  poblarSelectRespCierre();
+}
+
+function poblarSelectRespCierre(){
+  const sel = document.getElementById('c_respSelect');
+  if(!sel) return;
+  const actual = sel.value;
+  sel.innerHTML = '<option value="">(elegir inspector)</option>' +
+    INSPECTORES.map(i => '<option value="'+i.user_id+'">'+(i.nombre||i.iniciales)+'</option>').join('');
+  if(actual && INSPECTORES.some(i=>i.user_id===actual)) sel.value = actual;
+}
+
+function activarRespCierreManual(){
+  respCierreManual = true;
+  document.getElementById('c_respSelect').style.display = 'none';
+  document.getElementById('c_respManualLink').style.display = 'none';
+  const mi = document.getElementById('c_respManual');
+  mi.style.display = '';
+  mi.focus();
+}
+
+function resetRespCierrePicker(){
+  respCierreManual = false;
+  const sel = document.getElementById('c_respSelect');
+  if(sel){ sel.style.display = ''; sel.value = ''; }
+  document.getElementById('c_respManualLink').style.display = '';
+  const mi = document.getElementById('c_respManual');
+  mi.style.display = 'none'; mi.value = '';
+}
+
+/* Devuelve {nombre, userId} listo para mandar a Supabase, o null si falta
+   completar. userId queda null cuando se escribió a mano (no hay como
+   vincularlo a un usuario real). */
+function obtenerRespCierreElegido(){
+  if(respCierreManual){
+    const nombre = document.getElementById('c_respManual').value.trim();
+    return nombre ? { nombre, userId: null } : null;
+  }
+  const sel = document.getElementById('c_respSelect');
+  const userId = sel ? sel.value : '';
+  if(!userId) return null;
+  const insp = INSPECTORES.find(i => i.user_id === userId);
+  return { nombre: insp ? (insp.nombre || insp.iniciales) : userId, userId };
+}
+
 function obtenerFrenteElegido(){
   if(laborManual){
     const v = document.getElementById('a_laborManualInput').value.trim();
@@ -994,6 +1086,157 @@ function obtenerFrenteElegido(){
   }
   return laborSeleccionada ? { manual:false, labor: laborSeleccionada } : null;
 }
+
+/* ======================================================================
+   Catalogo de MODULOS DE FALLA (segun Zublin RE-1001-1027 Rev.0,
+   "Analisis Modulo de Falla Producto No Conforme - Detencion de Frente -
+   Detalle Terminacion", 06-08-2019). 18 modulos del documento, algunos
+   con varias variantes que se listan por separado para que el inspector
+   elija exactamente lo que ve en terreno.
+
+   clasificacion: 'DETENCION_FRENTE' (NO es un DT valido - hay que parar
+   el avance y reparar antes de seguir) o 'DETALLE_TERMINACION' (SI es un
+   DT valido, con su excepcion/tolerancia si corresponde).
+   ====================================================================== */
+const MODULOS_FALLA = [
+  { grupo:'1. Fortificación incompleta de malla', label:'MALLA DAÑADA', clasificacion:'DETENCION_FRENTE',
+    comentario:'La fortificación de avance para el sistema perno-malla puede desfasarse hasta 3 avances según calidad geotécnica del macizo (RMR, GSI, Q), evaluado por el geomecánico de turno.' },
+  { grupo:'1. Fortificación incompleta de malla', label:'MALLA ABIERTA', clasificacion:'DETENCION_FRENTE',
+    comentario:'La fortificación de avance para el sistema perno-malla puede desfasarse hasta 3 avances según calidad geotécnica del macizo (RMR, GSI, Q), evaluado por el geomecánico de turno.' },
+  { grupo:'1. Fortificación incompleta de malla', label:'MALLA SIN INSTALAR', clasificacion:'DETENCION_FRENTE',
+    comentario:'La fortificación de avance para el sistema perno-malla puede desfasarse hasta 3 avances según calidad geotécnica del macizo (RMR, GSI, Q), evaluado por el geomecánico de turno.' },
+  { grupo:'2. Malla mal afianzada a la sección', label:'MALLA MAL AFIANZADA A LA SECCIÓN', clasificacion:'DETENCION_FRENTE',
+    comentario:'No se aceptará continuar con el avance sin reparar previamente esta desviación.' },
+  { grupo:'3. Malla cargada', label:'MALLA CARGADA', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: si hay condición de riesgo se debe descargar de inmediato. Esa condición puede levantarla Operaciones, Calidad, Geomecánicos o APR.' },
+  { grupo:'4. Traslape de malla', label:'TRASLAPE DE MALLA', clasificacion:'DETENCION_FRENTE',
+    comentario:'Se debe cumplir en todo momento con lo indicado en planos (30 a 40 cm).' },
+  { grupo:'5. Fortificación incompleta de perno (detalle)', label:'PERNO DOBLADO', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de pernos fallados en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'5. Fortificación incompleta de perno (detalle)', label:'PERNO DIAGONAL', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de pernos fallados en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'5. Fortificación incompleta de perno (detalle)', label:'PERNO SIN PLANCHUELA', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de pernos fallados en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'5. Fortificación incompleta de perno (detalle)', label:'PERNO SIN TUERCA', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de pernos fallados en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'5. Fortificación incompleta de perno (detalle)', label:'PERNO LARGO', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de pernos fallados en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'5. Fortificación incompleta de perno (detalle)', label:'PERNO CORTADO', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de pernos fallados en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'5. Fortificación incompleta de perno (detalle)', label:'PERNO BAJO MALLA', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de pernos fallados en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'5. Fortificación incompleta de perno (detalle)', label:'PERNO SOBRE GRADIENTE', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de pernos fallados en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'6. Instalación de perno equivocado', label:'INSTALACIÓN DE PERNO EQUIVOCADO', clasificacion:'DETENCION_FRENTE',
+    comentario:'No se aceptará continuar con el avance sin reparar previamente esta desviación.' },
+  { grupo:'7. Fortificación incompleta de perno (faltante)', label:'PERNO FALTANTE EN LA PARADA', clasificacion:'DETENCION_FRENTE',
+    comentario:'Excepción: máximo 10% de pernos faltantes en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'8. Pernos cable', label:'PERNO CABLE CON LARGO SOBRESALIENTE / FUERA DE TOLERANCIA', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Solo se aceptará una tolerancia máxima de 50 cm por motivo de instalación de equipo tensador.' },
+  { grupo:'9. Apriete de tuercas', label:'TUERCA SIN APRIETE', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de desviación en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'9. Apriete de tuercas', label:'AUSENCIA DE TUERCA', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de desviación en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'10. Planchuelas', label:'AUSENCIA DE PLANCHUELA', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de desviación en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'10. Planchuelas', label:'PLANCHUELA INVERTIDA', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de desviación en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'10. Planchuelas', label:'PLANCHUELA SUELTA', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de desviación en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'10. Planchuelas', label:'PLANCHUELA DOBLADA', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de desviación en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'10. Planchuelas', label:'PLANCHUELA BAJO MALLA', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Excepción: máximo 10% de desviación en las paradas del avance, ingresan como detalle de terminación.' },
+  { grupo:'11. Shotcrete soplado o nidos', label:'SHOTCRETE SOPLADO O NIDOS', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Sujeto a evaluación de Inspector de Calidad o Geomecánico, quien puede solicitar saneamiento del área como detención de frente.' },
+  { grupo:'12. Shotcrete con grietas', label:'SHOTCRETE CON GRIETAS', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Según magnitud, el Geomecánico evalúa y puede pedir saneamiento o medición de convergencia como detención de frente.' },
+  { grupo:'13. Falta de shotcrete', label:'FALTA DE SHOTCRETE EN TRAMOS O SECTORES', clasificacion:'DETENCION_FRENTE',
+    comentario:'Debe cumplirse el criterio teórico por frente y tipo de roca, controlando espesor por laboratorio según el Plan de Inspección y Ensayo.' },
+  { grupo:'14. Shotcrete dañado', label:'SHOTCRETE DAÑADO', clasificacion:'DETENCION_FRENTE',
+    comentario:'Se debe regularizar el sector o labor según diseño o planos de construcción.' },
+  { grupo:'15. Sub-excavación', label:'SUB-EXCAVACIÓN', clasificacion:'DETENCION_FRENTE',
+    comentario:'Con el levantamiento topográfico, se debe recuperar la sección inmediatamente antes del siguiente avance.' },
+  { grupo:'16. Acuñadura deficiente', label:'ACUÑADURA DEFICIENTE', clasificacion:'DETENCION_FRENTE',
+    comentario:'No se aceptará continuar con el avance si se detecta acuñadura deficiente o condición de riesgo.' },
+  { grupo:'17. Lechada incompleta', label:'LECHADA INCOMPLETA', clasificacion:'DETENCION_FRENTE',
+    comentario:'No se aceptará continuar con el avance si se detecta que la lechada no está a columna completa.' },
+  { grupo:'18. Afloramiento de agua', label:'AFLORAMIENTO DE AGUA EN PERNO NO GALVANIZADO', clasificacion:'DETALLE_TERMINACION',
+    comentario:'Según defina el Geomecánico: instalar/reponer conjunto planchuela-perno galvanizado, o hacer barbacana/canalización de aguas.' }
+];
+const MODULOS_FALLA_MAP = {};
+MODULOS_FALLA.forEach((m,i)=>{ m.id = 'mf'+i; MODULOS_FALLA_MAP[m.id] = m; });
+
+(function poblarModulosFalla(){
+  const sel = document.getElementById('h_moduloFalla');
+  if(!sel) return;
+  const grupos = [];
+  const porGrupo = {};
+  MODULOS_FALLA.forEach(m=>{
+    if(!porGrupo[m.grupo]){ porGrupo[m.grupo] = []; grupos.push(m.grupo); }
+    porGrupo[m.grupo].push(m);
+  });
+  let html = '<option value="">— Selecciona el tipo de falla (opcional) —</option>';
+  grupos.forEach(g=>{
+    html += '<optgroup label="'+g+'">';
+    porGrupo[g].forEach(m=>{
+      html += '<option value="'+m.id+'">'+m.label+(m.clasificacion==='DETENCION_FRENTE' ? ' ⚠' : '')+'</option>';
+    });
+    html += '</optgroup>';
+  });
+  sel.innerHTML = html;
+})();
+
+let h_ultimoAutoTexto = '';
+
+function actualizarAvisoFrente(){
+  const sel = document.getElementById('h_moduloFalla');
+  const modulo = MODULOS_FALLA_MAP[sel.value];
+  const aviso = document.getElementById('h_avisoFrente');
+  if(!aviso) return;
+  if(modulo && modulo.clasificacion === 'DETENCION_FRENTE'){
+    aviso.className = 'aviso-linea err';
+    aviso.style.display = 'block';
+    aviso.innerHTML = '⚠️ Según RE-1001-1027 esto es <b>DETENCIÓN DE FRENTE</b>, no un Detalle de Terminación válido en principio: ' + modulo.comentario + ' Si igual corresponde registrarlo como excepción evaluada en terreno, puedes continuar.';
+  } else if(modulo){
+    aviso.className = 'aviso-linea ok';
+    aviso.style.display = 'block';
+    aviso.innerHTML = 'Detalle de Terminación. ' + modulo.comentario;
+  } else {
+    aviso.style.display = 'none';
+    aviso.innerHTML = '';
+  }
+}
+
+function actualizarDescAuto(){
+  const sel = document.getElementById('h_moduloFalla');
+  const modulo = MODULOS_FALLA_MAP[sel.value];
+  const parada = document.getElementById('h_parada').value.trim();
+  const pk = document.getElementById('h_pkAprox').value.trim();
+  const descEl = document.getElementById('h_desc');
+  if(!modulo) return;
+  const partes = [];
+  if(parada) partes.push('PARADA ' + parada);
+  if(pk) partes.push('PK APROX ' + pk);
+  const prefijo = partes.length ? partes.join(', ') + ': ' : '';
+  const sugerido = prefijo + modulo.label;
+  /* No pisa lo que el inspector ya haya escrito a mano: solo autocompleta
+     si el campo está vacío o si sigue igual al último texto que generamos
+     nosotros mismos (o sea, no lo tocó desde el último cambio). */
+  if(!descEl.value.trim() || descEl.value === h_ultimoAutoTexto){
+    descEl.value = sugerido;
+    h_ultimoAutoTexto = sugerido;
+  }
+}
+
+['h_moduloFalla'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('change', ()=>{ actualizarAvisoFrente(); actualizarDescAuto(); });
+});
+['h_parada','h_pkAprox'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', actualizarDescAuto);
+});
 
 /* ======================================================================
    TAB 1: ABRIR DT (por caminata) — un solo bloque de datos de caminata,
@@ -1033,13 +1276,23 @@ function quitarFotoHallazgo(i){ h_fotos.splice(i,1); renderGaleria('h_galeria', 
 function agregarHallazgo(){
   const desc = document.getElementById('h_desc').value.trim();
   if(!desc){ alert('Falta la descripcion del hallazgo.'); return; }
+  const moduloSel = MODULOS_FALLA_MAP[document.getElementById('h_moduloFalla').value] || null;
   hallazgosPendientes.push({
     prioridad: document.getElementById('h_prioridad').value,
     fcompromiso: document.getElementById('h_fcompromiso').value,
     desc,
+    moduloFalla: moduloSel ? moduloSel.label : null,
+    clasificacionFalla: moduloSel ? moduloSel.clasificacion : null,
+    parada: document.getElementById('h_parada').value.trim() || null,
+    pkAprox: document.getElementById('h_pkAprox').value.trim() || null,
     fotosApertura: h_fotos.slice()
   });
   document.getElementById('h_desc').value = '';
+  document.getElementById('h_moduloFalla').value = '';
+  document.getElementById('h_parada').value = '';
+  document.getElementById('h_pkAprox').value = '';
+  h_ultimoAutoTexto = '';
+  actualizarAvisoFrente();
   h_fotos = [];
   renderGaleria('h_galeria', h_fotos, 'quitarFotoHallazgo');
   renderHallazgosPendientes();
@@ -1055,7 +1308,9 @@ function renderHallazgosPendientes(){
     ? hallazgosPendientes.length + ' hallazgo(s) listos para guardar en esta caminata:'
     : 'Sin hallazgos agregados todavía.';
   cont.innerHTML = hallazgosPendientes.map((h,i)=>(
-    '<div class="hallazgo-mini"><div class="htxt"><b>'+h.prioridad+'</b> &middot; '+h.desc.slice(0,50)+(h.fotosApertura.length?' &middot; '+h.fotosApertura.length+' foto(s)':'')+'</div>'+
+    '<div class="hallazgo-mini"><div class="htxt">'+
+    (h.moduloFalla ? '<b>'+h.moduloFalla+(h.clasificacionFalla==='DETENCION_FRENTE'?' ⚠':'')+'</b> &middot; ' : '<b>'+h.prioridad+'</b> &middot; ')+
+    h.desc.slice(0,50)+(h.fotosApertura.length?' &middot; '+h.fotosApertura.length+' foto(s)':'')+'</div>'+
     '<button onclick="quitarHallazgoPendiente('+i+')">&times;</button></div>'
   )).join('');
   btn.disabled = hallazgosPendientes.length === 0;
@@ -1070,6 +1325,11 @@ function limpiarCaminata(){
   document.getElementById('a_numeroInforme').value = '';
   document.getElementById('a_respConstruccion').value = '';
   document.getElementById('h_desc').value = '';
+  document.getElementById('h_moduloFalla').value = '';
+  document.getElementById('h_parada').value = '';
+  document.getElementById('h_pkAprox').value = '';
+  h_ultimoAutoTexto = '';
+  actualizarAvisoFrente();
   actualizarPkPreview();
   hallazgosPendientes = [];
   h_fotos = [];
@@ -1114,6 +1374,8 @@ async function guardarCaminata(){
     },
     hallazgos: hallazgosPendientes.map(h => ({
       desc: h.desc, prioridad: h.prioridad, fcompromiso: h.fcompromiso,
+      moduloFalla: h.moduloFalla || null, clasificacionFalla: h.clasificacionFalla || null,
+      parada: h.parada || null, pkAprox: h.pkAprox || null,
       fotosApertura: h.fotosApertura || []
     }))
   };
@@ -1238,13 +1500,14 @@ function mostrarDetalleCerrar(){
   document.getElementById('c_form').style.display = '';
   c_fotos = [];
   renderGaleria('c_galeria', c_fotos, 'quitarFotoCierre');
+  resetRespCierrePicker();
 }
 
 async function guardarCierre(){
   const punch = document.getElementById('c_select').value;
   const r = sesion.registros.find(x => x.numeroPunch === punch);
   if(!r) return;
-  const resp = document.getElementById('c_resp').value.trim();
+  const resp = obtenerRespCierreElegido();
   if(!resp){ alert('Falta el responsable del cierre.'); return; }
   if(!r.dbId){ alert('Este DT todavía no está subido a la base. Sincronízalo primero y después ciérralo.'); return; }
 
@@ -1254,7 +1517,8 @@ async function guardarCierre(){
     cambios: {
       estado: 'CERRADA',
       fecha_real_cierre: document.getElementById('c_frealcierre').value || hoyISO(),
-      resp_cierre: resp,
+      resp_cierre: resp.nombre,
+      resp_cierre_user_id: resp.userId,
       clasificacion_desviacion: document.getElementById('c_clasif').value.trim() || null
     },
     fotos: c_fotos.slice()
@@ -1268,7 +1532,7 @@ async function guardarCierre(){
     await subirCierre(op);
     c_fotos = [];
     renderGaleria('c_galeria', c_fotos, 'quitarFotoCierre');
-    document.getElementById('c_resp').value = '';
+    resetRespCierrePicker();
     document.getElementById('c_clasif').value = '';
     await cargarDesdeBase();
     avisar('c_aviso', 'DT ' + punch + ' cerrado y guardado en la base.', 'ok');
@@ -1277,6 +1541,7 @@ async function guardarCierre(){
     if(res.ok){
       c_fotos = [];
       renderGaleria('c_galeria', c_fotos, 'quitarFotoCierre');
+      resetRespCierrePicker();
       avisar('c_aviso', (e.message === '__SIN_SENAL__' ? 'Sin señal: el cierre' : 'No se pudo subir ahora; el cierre') +
         ' quedó guardado en este dispositivo y se sube al recuperar conexión.' +
         (res.fotosPerdidas ? ' No alcanzó el espacio para ' + res.fotosPerdidas + ' foto(s).' : ''), 'err');
@@ -1338,10 +1603,11 @@ function tarjetaChicaHTML(r){
       : ' &middot; <span class="atraso no" style="display:inline;">a tiempo</span>';
   }
   const fotosN = (r.fotosApertura||[]).length + (r.fotosCierre||[]).length;
+  const moduloTxt = r.moduloFalla ? ' &middot; '+r.moduloFalla+(r.clasificacionFalla==='DETENCION_FRENTE'?' ⚠':'') : '';
   return '<div class="tarjeta-chica">'+
     '<div class="fila-top"><span class="corr">Punch '+r.numeroPunch+'</span><span class="estado-pill '+r.estado+'">'+r.estado+'</span></div>'+
     '<div class="desc">'+r.desc+'</div>'+
-    '<div class="meta">'+(r.ubicacion||'-')+' &middot; Prioridad '+r.prioridad+' &middot; '+fotosN+' foto(s)'+atrasoHTML+'</div>'+
+    '<div class="meta">'+(r.ubicacion||'-')+' &middot; Prioridad '+r.prioridad+' &middot; '+fotosN+' foto(s)'+moduloTxt+atrasoHTML+'</div>'+
   '</div>';
 }
 
@@ -1352,10 +1618,11 @@ function tarjetaHTML(r){
     else atrasoHTML = '<div class="atraso no">Cerrada a tiempo</div>';
   }
   const fotosN = (r.fotosApertura||[]).length + (r.fotosCierre||[]).length;
+  const moduloTxt = r.moduloFalla ? ' &middot; '+r.moduloFalla+(r.clasificacionFalla==='DETENCION_FRENTE'?' ⚠':'') : '';
   return '<div class="tarjeta">'+
     '<div class="fila-top"><span class="corr">Punch '+r.numeroPunch+ (r.ejemplo?' <span style="color:#999;font-weight:600;">(ejemplo)</span>':'') +'</span><span class="estado-pill '+r.estado+'">'+r.estado+'</span></div>'+
     '<div class="desc">'+r.desc+'</div>'+
-    '<div class="meta">'+(r.ubicacion||'-')+' &middot; Prioridad '+r.prioridad+' &middot; '+fotosN+' foto(s) &middot; emitida '+fmtCorta(r.femision)+'</div>'+
+    '<div class="meta">'+(r.ubicacion||'-')+' &middot; Prioridad '+r.prioridad+' &middot; '+fotosN+' foto(s) &middot; emitida '+fmtCorta(r.femision)+moduloTxt+'</div>'+
     atrasoHTML+
   '</div>';
 }
