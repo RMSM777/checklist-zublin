@@ -250,6 +250,10 @@
         <div class="campo"><label>PK inicio (m)</label><input id="a_pkini" type="number" step="1" placeholder="Ej: 52"></div>
         <div class="campo"><label>PK t&eacute;rmino (m)</label><input id="a_pkfin" type="number" step="1" placeholder="Ej: 126"></div>
       </div>
+      <div class="grid2">
+        <div class="campo"><label>N&deg; de Informe (opcional)</label><input id="a_numeroInforme" type="text" placeholder="Se completa cuando ya se sabe"></div>
+        <div class="campo"><label>Responsable de Construcci&oacute;n (opcional)</label><input id="a_respConstruccion" type="text" placeholder="Nombre del responsable"></div>
+      </div>
       <div class="pk-preview" id="a_pkPreview">Metros caminados: <b>--</b></div>
     </section>
 
@@ -712,7 +716,9 @@ async function subirCaminata(op){
     sistema: op.caminata.sistema || null,
     subsistema: op.caminata.subsistema || null,
     plano: op.caminata.plano || null,
-    originador: op.caminata.inspectores || op.caminata.iniciales_inspector || null
+    originador: op.caminata.inspectores || op.caminata.iniciales_inspector || null,
+    numero_informe: op.caminata.numero_informe || null,
+    resp_construccion: op.caminata.resp_construccion || null
   }));
   const dts = await SB.insertar('detalles_terminacion', filas);
   if(!dts || dts.length !== filas.length){
@@ -1044,6 +1050,8 @@ function limpiarCaminata(){
   document.getElementById('a_pkini').value = '';
   document.getElementById('a_pkfin').value = '';
   document.getElementById('a_turno').value = '';
+  document.getElementById('a_numeroInforme').value = '';
+  document.getElementById('a_respConstruccion').value = '';
   document.getElementById('h_desc').value = '';
   actualizarPkPreview();
   hallazgosPendientes = [];
@@ -1064,6 +1072,8 @@ async function guardarCaminata(){
 
   const fecha = document.getElementById('a_fecha').value || hoyISO();
   const turno = document.getElementById('a_turno').value;
+  const numeroInforme = document.getElementById('a_numeroInforme').value.trim();
+  const respConstruccion = document.getElementById('a_respConstruccion').value.trim();
 
   let frenteTexto, wbs=null, area=null, subarea=null, sistema=null, subsistema=null, plano=null;
   if(frenteElegido.manual){
@@ -1082,7 +1092,8 @@ async function guardarCaminata(){
       fecha: fecha, turno: turno || null, frente: frenteTexto,
       wbs: wbs, area: area, subarea: subarea, sistema: sistema, subsistema: subsistema, plano: plano,
       pk_inicio: pkini, pk_termino: pkfin,
-      iniciales_inspector: ini, inspectores: ini
+      iniciales_inspector: ini, inspectores: ini,
+      numero_informe: numeroInforme || null, resp_construccion: respConstruccion || null
     },
     hallazgos: hallazgosPendientes.map(h => ({
       desc: h.desc, prioridad: h.prioridad, fcompromiso: h.fcompromiso,
@@ -1425,6 +1436,8 @@ window.guardarBorrador = function(){
     iniciales: (document.getElementById('a_iniciales')||{}).value || '',
     pkini: (document.getElementById('a_pkini')||{}).value || '',
     pkfin: (document.getElementById('a_pkfin')||{}).value || '',
+    numeroInforme: (document.getElementById('a_numeroInforme')||{}).value || '',
+    respConstruccion: (document.getElementById('a_respConstruccion')||{}).value || '',
     laborManual: (document.getElementById('a_laborManualInput')||{}).value || '',
     labor: (typeof laborSeleccionada !== 'undefined') ? laborSeleccionada : null,
     hallazgos: (typeof hallazgosPendientes !== 'undefined') ? hallazgosPendientes : []
@@ -1448,6 +1461,7 @@ window.recuperarBorrador = function(){
   const set = (id, v) => { const el = document.getElementById(id); if(el && v) el.value = v; };
   set('a_fecha', b.fecha); set('a_turno', b.turno); set('a_iniciales', b.iniciales);
   set('a_pkini', b.pkini); set('a_pkfin', b.pkfin);
+  set('a_numeroInforme', b.numeroInforme); set('a_respConstruccion', b.respConstruccion);
   if(b.labor && typeof laborSeleccionada !== 'undefined'){
     laborSeleccionada = b.labor;
     const inp = document.getElementById('a_laborBuscar');
