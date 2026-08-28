@@ -256,6 +256,33 @@
   .nav .act{ color:var(--acento); }
 
   .panel{ display:none; } .panel.act{ display:block; }
+
+  /* ======================================================================
+     VISTA DE ESCRITORIO (notebook / PC)
+     En el celular la app ocupa toda la pantalla, como corresponde. En una
+     pantalla ancha eso se veia como una app de telefono flotando en medio
+     de un monton de espacio gris vacio. De aqui para arriba se trata como
+     un panel propio: se ensancha un poco, queda centrado con bordes
+     redondeados y sombra, y un par de listas aprovechan el ancho extra
+     acomodandose en dos columnas. La barra de abajo se angosta para
+     quedar alineada con el panel en vez de estirarse de borde a borde.
+     ====================================================================== */
+  @media (min-width:860px){
+    body{ padding-top:28px; padding-left:16px; padding-right:16px; }
+    .wrap{
+      max-width:760px; margin:0 auto 16px;
+      border-radius:16px; overflow:hidden;
+      box-shadow:0 10px 34px rgba(13,21,38,.14);
+      border:1px solid var(--linea);
+    }
+    .lista{ display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:start; }
+    .lista-herr{ display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+    .nav{
+      max-width:760px; margin:0 auto; left:0; right:0;
+      border-radius:16px 16px 0 0; border:1px solid var(--linea); border-bottom:none;
+      box-shadow:0 -6px 20px rgba(13,21,38,.10);
+    }
+  }
 </style>
 </head>
 <body>
