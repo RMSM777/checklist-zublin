@@ -13,11 +13,10 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Zublin GCC-003">
 <title>Check List Inicio Turno Camioneta - Zublin</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="jspdf.umd.min.js"></script>
+<script src="qrious.min.js"></script>
 <script src="marca.js?v=2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="supabase-integration.js?v=2"></script>
+<script src="supabase-integration.js?v=1"></script>
 <script>
 (async function(){ await requerirSesion('checklist-camioneta.html'); })();
 </script>
@@ -82,6 +81,23 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
   .banner-recuperar .btn-no{ background:#ccc; color:#333; }
   .leyenda{ font-size:11px; color:#666; background:var(--gris); padding:8px 10px; border-radius:6px; margin-bottom:8px; }
   footer{ text-align:center; padding:16px; font-size:11px; color:#999; }
+
+  /* ======================================================================
+     VISTA DE ESCRITORIO (notebook / PC)
+     En una pantalla ancha, esta herramienta se trata como un panel propio
+     en vez de una franja angosta de telefono estirada en medio de la
+     pantalla: se ensancha un poco y queda centrada con bordes redondeados
+     y sombra sobre el fondo gris.
+     ====================================================================== */
+  @media (min-width:860px){
+    body{ padding:28px 16px; }
+    .wrap{
+      max-width:820px; min-height:auto; margin:0 auto;
+      border-radius:16px; overflow:hidden;
+      box-shadow:0 10px 34px rgba(13,21,38,.14);
+      border:1px solid var(--borde, #ddd);
+    }
+  }
 </style>
 </head>
 <body>
@@ -522,11 +538,11 @@ async function generarPDF(previo){
 
   const notaEl = document.getElementById('nota');
   let guardadoHtml = '';
-  if(typeof SB !== 'undefined'){
+  if(window.SB){
     notaEl.innerHTML = '<span style="color:#888;">Guardando en Supabase...</span>';
     notaEl.style.color = '';
     try{
-      const _filaGuardada = await guardarReportePDF({
+      await guardarReportePDF({
         tipoReporte: 'checklist-camioneta',
         correlativo: corr,
         claveVerificacion: claveQR,
@@ -536,11 +552,9 @@ async function generarPDF(previo){
         nombreArchivo: nombreArch
       });
       guardadoHtml = '<br><span style="color:#2e7d32;">Guardado en Supabase &#10003;</span>';
-      alert('DEBUG: guardado OK en Supabase. id=' + (_filaGuardada && _filaGuardada.id));
     }catch(err){
       console.warn('Supabase: no se pudo guardar el reporte.', err);
       guardadoHtml = '<br><span style="color:#c0392b;">No se pudo guardar en la base: ' + (err && err.message ? err.message : err) + '</span>';
-      alert('DEBUG: ERROR al guardar en Supabase: ' + (err && err.message ? err.message : err));
     }
   }
   doc.save(nombreArch);
