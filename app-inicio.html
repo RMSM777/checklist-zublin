@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="QC Digital">
 <script src="marca.js"></script>
 <script src="xlsx.full.min.js"></script>
+<script src="jszip.min.js"></script>
 <style>
   :root{
     --rojo:#0d1526;            /* header — lo reescribe marca.js */
@@ -601,6 +602,14 @@ const INFO_PROYECTO_SIC3PRO = {
   nombre:  'GERENCIA OBRAS MINA SUBTERRÁNEA - DCH',
 };
 
+/* Logo Züblin, incrustado en base64 (PNG 300x159) para que la exportación
+   a Excel lo lleve sin depender de ninguna descarga: así funciona igual
+   con o sin señal dentro del túnel. Se inyecta en el .xlsx con JSZip
+   porque la librería xlsx.full.min.js (SheetJS edición comunidad) no
+   sabe escribir imágenes — solo arma la planilla, no el dibujo. */
+const LOGO_ZUBLIN_B64 =
+'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';
+
 const COLS = [
   ['Ítem',                    (d,i) => i + 1,                      'n'],
   ['N° Punch',                 d => d.numero_punch || '',           's'],
@@ -624,10 +633,10 @@ const COLS = [
   ['Pk Final',                  d => (d.pk_termino != null ? d.pk_termino : ''), 'n'],
   ['Total m caminados',          d => (d.metros_caminados != null ? Number(d.metros_caminados) : ''), 'n'],
   ['Observaciones',             d => '',                             's'],
-  /* --- propias de CIZ DT: no existen en la planilla del equipo --- */
+  /* --- propia de CIZ DT: no existe en la planilla del equipo. Va en
+     el lugar donde antes iba TURNO (se sacó, a pedido). --- */
   ['Código caminata',           d => d.codigo_caminata || '',        's'],
   ['Días de atraso',            d => (d.dias_atraso != null ? d.dias_atraso : ''), 'n'],
-  ['TURNO',                    d => d.turno || '',                  's'],
 ];
 
 /* 'YYYY-MM-DD' (lo que manda Postgres) -> Date a medianoche LOCAL.
@@ -654,14 +663,21 @@ function construirLibro(dts){
   const empresaTxt    = (primero.empresa || (CONTRATO && CONTRATO.empresa_nombre) || '').toUpperCase();
   const tipoEmpresaTxt = (primero.tipo_empresa || 'Contratista').toUpperCase();
 
-  /* ---- Bloque de encabezado, igual en forma al de SIC3PRO ---- */
+  /* Ítem 1 = N° Punch más chico (orden ascendente), a pedido — la lista
+     de "Últimos DT" en pantalla sigue mostrando lo más nuevo primero,
+     esto solo ordena la exportación. Se clona el arreglo: no se toca
+     DT_CACHE. */
+  dts = dts.slice().sort((a,b) => (a.numero_punch||'').localeCompare(b.numero_punch||''));
+
+  /* ---- Bloque de encabezado. Se sacaron las líneas institucionales
+     (Vicepresidencia de Proyectos / Gerencia de Ingeniería y
+     Constructibilidad / Sistema de Control de Calidad VP / la palabra
+     "SIC3PRO"), a pedido — queda solo lo que identifica al reporte y
+     al contrato. ---- */
   const bloque = [
+    ['REPORTE DETALLES DE TERMINACIÓN'],
     [],
-    ['Vicepresidencia de Proyectos', '', '', 'REPORTE DETALLES DE TERMINACIÓN'],
-    ['Gerencia de Ingeniería y Constructibilidad'],
-    ['Sistema de Control de Calidad VP'],
-    [],
-    ['SIC3PRO : Fecha : ' + fechaStr + ' - Hora:' + horaStr],
+    ['Fecha : ' + fechaStr + ' - Hora:' + horaStr],
     [],
     ['Nro PROYECTO:' + INFO_PROYECTO_SIC3PRO.nro, '', '', 'NOMBRE DE PROYECTO:' + INFO_PROYECTO_SIC3PRO.nombre],
     [],
@@ -671,7 +687,6 @@ function construirLibro(dts){
     ['CONTRATO : ' + contratoTxt],
     ['FILTROS:'],
     ['[ Prioridad = P1, P2, P3, P4, P5 ]'],
-    [],
     [],
     ['Registros Encontrados:' + dts.length],
     ['Estado de los Registros: Pendientes = 0   Abiertas = ' + ab + '   Cerradas = ' + ce + '   Atrasadas = ' + at],
@@ -685,14 +700,11 @@ function construirLibro(dts){
   const aoa = bloque.concat([titulos], filas);
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-  /* Fusionar las celdas de las líneas institucionales, para que se vean
-     como un título y no como texto cortado en la columna A. */
-  const finTabla = 'X';
+  /* Fusionar el título y la línea de Nro/Nombre de proyecto, para que
+     se vean enteras y no cortadas en la columna A. */
   ws['!merges'] = [
-    { s:{r:1,c:0}, e:{r:1,c:2} }, { s:{r:1,c:3}, e:{r:1,c:7} },
-    { s:{r:2,c:0}, e:{r:2,c:7} }, { s:{r:3,c:0}, e:{r:3,c:7} },
-    { s:{r:5,c:0}, e:{r:5,c:7} },
-    { s:{r:7,c:0}, e:{r:7,c:2} }, { s:{r:7,c:3}, e:{r:7,c:10} },
+    { s:{r:0,c:0}, e:{r:0,c:7} },
+    { s:{r:4,c:0}, e:{r:4,c:2} }, { s:{r:4,c:3}, e:{r:4,c:10} },
   ];
 
   /* Formato de fecha chileno en las columnas que son fechas. SheetJS
@@ -713,17 +725,23 @@ function construirLibro(dts){
   XLSX.utils.book_append_sheet(wb, ws, 'DT');
 
   /* ---- Segunda hoja: resumen rápido, para usar en los otros reportes
-     sin tener que recontar a mano. ---- */
-  const porSistema = new Map();
-  dts.forEach(d => {
-    const k = d.sistema || '(sin sistema)';
-    if(!porSistema.has(k)) porSistema.set(k, { total:0, abiertos:0, cerrados:0, atrasados:0 });
-    const v = porSistema.get(k);
-    v.total++;
-    if(d.estado === 'CERRADA') v.cerrados++;
-    else if((d.estado_visual || d.estado) === 'ATRASADA') v.atrasados++;
-    else v.abiertos++;
-  });
+     sin tener que recontar a mano — por sistema, por N° de informe y
+     por inspector (originador). ---- */
+  function agrupar(campo, etiquetaVacio){
+    const m = new Map();
+    dts.forEach(d => {
+      const k = d[campo] || etiquetaVacio;
+      if(!m.has(k)) m.set(k, { total:0, abiertos:0, cerrados:0, atrasados:0 });
+      const v = m.get(k);
+      v.total++;
+      if(d.estado === 'CERRADA') v.cerrados++;
+      else if((d.estado_visual || d.estado) === 'ATRASADA') v.atrasados++;
+      else v.abiertos++;
+    });
+    return [...m.entries()].sort((a,b) => b[1].total - a[1].total)
+      .map(([nom,v]) => [nom, v.total, v.abiertos, v.cerrados, v.atrasados]);
+  }
+
   const resumenAOA = [
     ['Resumen generado ' + fechaStr + ' ' + horaStr],
     [],
@@ -732,9 +750,17 @@ function construirLibro(dts){
     ['Atrasados', at],
     ['Cerrados', ce],
     [],
+    ['Por sistema'],
     ['Sistema', 'Total', 'Abiertos', 'Cerrados', 'Atrasados'],
-    ...[...porSistema.entries()].sort((a,b) => b[1].total - a[1].total)
-      .map(([nom,v]) => [nom, v.total, v.abiertos, v.cerrados, v.atrasados]),
+    ...agrupar('sistema', '(sin sistema)'),
+    [],
+    ['Por N° de informe'],
+    ['N° de Informe', 'Total', 'Abiertos', 'Cerrados', 'Atrasados'],
+    ...agrupar('numero_informe', '(sin informe)'),
+    [],
+    ['Por inspector (originador)'],
+    ['Originador', 'Total', 'Abiertos', 'Cerrados', 'Atrasados'],
+    ...agrupar('originador', '(sin originador)'),
   ];
   const wsResumen = XLSX.utils.aoa_to_sheet(resumenAOA);
   wsResumen['!cols'] = [{ wch: 55 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }];
@@ -743,7 +769,65 @@ function construirLibro(dts){
   return wb;
 }
 
-function exportarExcel(){
+/* Incrusta el logo Züblin en el .xlsx ya generado por SheetJS, escribiendo
+   a mano las piezas OOXML que esa librería (edición comunidad) no sabe
+   crear: la imagen, el "drawing" que la ancla a una celda, y las
+   referencias cruzadas que las conectan entre sí y con la hoja "DT".
+   Se ancla en la columna D (index 3), filas 0-3: ahí no hay texto (el
+   título de la fila 1 es corto y no llega, y la fila 5 con el nombre del
+   proyecto recién empieza más abajo), y esas columnas quedan dentro del
+   área de impresión de la primera página. Si algo falla (por ejemplo,
+   JSZip no cargó por falta de señal la primera vez que se abre la app),
+   se atrapa el error más arriba y igual se entrega el Excel, solo que
+   sin el logo. */
+async function agregarLogoZublin(bufferXlsx){
+  if(typeof JSZip === 'undefined') return bufferXlsx;
+  const zip = await JSZip.loadAsync(bufferXlsx);
+
+  zip.file('xl/media/image1.png', LOGO_ZUBLIN_B64, { base64: true });
+
+  const dispW = 132, dispH = 70;
+  const emuW = dispW * 9525, emuH = dispH * 9525;
+  const drawingXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+    + '<xdr:oneCellAnchor>'
+    + '<xdr:from><xdr:col>3</xdr:col><xdr:colOff>19050</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>9525</xdr:rowOff></xdr:from>'
+    + '<xdr:ext cx="' + emuW + '" cy="' + emuH + '"/>'
+    + '<xdr:pic>'
+    + '<xdr:nvPicPr><xdr:cNvPr id="2" name="Logo Zublin"/><xdr:cNvPicPr/></xdr:nvPicPr>'
+    + '<xdr:blipFill><a:blip r:embed="rId1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>'
+    + '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + emuW + '" cy="' + emuH + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>'
+    + '</xdr:pic>'
+    + '<xdr:clientData/>'
+    + '</xdr:oneCellAnchor>'
+    + '</xdr:wsDr>';
+  zip.file('xl/drawings/drawing1.xml', drawingXml);
+
+  const drawingRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/>'
+    + '</Relationships>';
+  zip.file('xl/drawings/_rels/drawing1.xml.rels', drawingRels);
+
+  const sheetRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>'
+    + '</Relationships>';
+  zip.file('xl/worksheets/_rels/sheet1.xml.rels', sheetRels);
+
+  let sheet1 = await zip.file('xl/worksheets/sheet1.xml').async('string');
+  sheet1 = sheet1.replace('</worksheet>', '<drawing r:id="rId1"/></worksheet>');
+  zip.file('xl/worksheets/sheet1.xml', sheet1);
+
+  let ct = await zip.file('[Content_Types].xml').async('string');
+  const overrideDrawing = '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>';
+  if(!ct.includes(overrideDrawing)) ct = ct.replace('</Types>', overrideDrawing + '</Types>');
+  zip.file('[Content_Types].xml', ct);
+
+  return await zip.generateAsync({ type: 'arraybuffer' });
+}
+
+async function exportarExcel(){
   const nota = document.getElementById('notaExp');
   if(!DT_CACHE.length){
     nota.textContent = 'Todavía no hay DT cargados para exportar.';
@@ -755,7 +839,11 @@ function exportarExcel(){
   }
   try {
     const wb = construirLibro(DT_CACHE);
-    const buffer = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+    let buffer = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+
+    try { buffer = await agregarLogoZublin(buffer); }
+    catch(e){ /* si falla el logo (ej. JSZip no cargó sin señal), se
+                 entrega igual el Excel, solo que sin el logo */ }
 
     const hoy = new Date();
     const stamp = hoy.getFullYear() + String(hoy.getMonth()+1).padStart(2,'0') + String(hoy.getDate()).padStart(2,'0');

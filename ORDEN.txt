@@ -1,0 +1,64 @@
+ORDEN DE LOS ARCHIVOS SQL
+=========================
+
+Del 1 al 8 YA ESTAN APLICADOS en la base de Supabase (confirmado con
+capturas y consultas de comprobación el 27-08-2026 y el 8 el 28-08-2026).
+Estan aqui como respaldo y para poder rehacer todo desde cero si alguna
+vez hiciera falta. NO hay que volver a correrlos.
+
+  1-schema-v0.3.sql              Tablas base, RLS, vistas, bucket de fotos
+  2-migracion-v0.4-contratos.sql Agrega empresas / contratos / usuarios
+  3-import-174-dt.sql            Los 174 DT del Excel manual
+  4-limpiar-dt-prueba.sql        Borro los 2 DT de prueba
+
+  5-alta-inspectores-gcc003.sql  Da de alta a 5 inspectores (los que
+                                 tenian correo) en usuarios_contrato.
+                                 Faltan por correo: Celso Figueroa,
+                                 Jorge Candia, Juvenal Quintana y
+                                 Rosamel Tapia — queda para mas adelante,
+                                 sin apuro.
+
+  6-completar-datos-174-dt.sql   Completo Prioridad, Disciplina, fecha
+                                 real de cierre y responsable de cierre
+                                 de los 174 DT ya importados, usando la
+                                 planilla "Copia de EXCEL PUNCH NUEVO
+                                 268.xlsx". Comprobado: 83 CERRADA, las
+                                 83 con fecha_real_cierre.
+
+  7-resolver-choque-punch-175-176.sql
+                                 Renumeró la primera caminata real de la
+                                 app (RMSMDMM-CIZ-0001) de 000175/000176
+                                 a 000192/000193, e importó los 17 DT
+                                 reales de GA-03 MB N51 (000175-000191)
+                                 que traia esa misma planilla. Contador
+                                 de la app quedó en 193.
+
+  8-agregar-informe-resp.sql     Agrega dos campos que la base no tenia
+                                 (numero_informe y resp_construccion —
+                                 este ultimo ya existia en el schema pero
+                                 nunca se habia completado) y los llena
+                                 para los 191 DT historicos usando la
+                                 misma planilla "Copia de EXCEL PUNCH
+                                 NUEVO 268.xlsx", ahora con esas dos
+                                 columnas. Es la base para que la nueva
+                                 exportacion en Excel de la app pueda
+                                 traer las mismas columnas que esa
+                                 planilla. Se puede correr mas de una vez.
+                                 Los DT abiertos desde la app (192 en
+                                 adelante) quedan con estos dos campos
+                                 vacios hasta que se agreguen los campos
+                                 correspondientes en Abrir DT (pendiente,
+                                 sin apuro).
+
+  verificar-instalacion.sql      Comprobaciones. Este SI se puede correr
+                                 cuando se quiera: solo lee, no modifica.
+
+Si algun dia hay que levantar la base desde cero, se corren el 1, el 2
+y el 3 en ese orden. El 4 ya no aplicaria. Despues el 8 (los pasos del 5
+al 7 son de altas/renumeraciones puntuales que ya quedaron reflejadas en
+los datos, no hace falta repetirlos).
+
+PENDIENTE DE APLICAR
+=====================
+
+  (por ahora, ninguno — todos los scripts de arriba ya corrieron)
