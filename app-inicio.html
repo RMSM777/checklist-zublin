@@ -179,9 +179,17 @@
   .avance-aviso{ font-size:11.5px; margin-top:6px; display:none; }
   .avance-aviso.ok{ display:block; color:#2b5c2e; }
   .avance-aviso.err{ display:block; color:#7a2020; }
-  #grafWrap{ overflow-x:auto; }
-  #grafDias{ width:100%; min-width:290px; height:auto; display:block; }
+  #grafWrap, #grafWrapCie{ overflow-x:auto; }
+  #grafDias, #grafCierres{ width:100%; min-width:290px; height:auto; display:block; }
   .graf-pie{ font-size:11px; color:var(--tenue); text-align:center; margin-top:6px; min-height:15px; }
+  .graf-nav{ display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:6px; }
+  .graf-nav span{ font-size:12px; font-weight:700; text-transform:capitalize; min-width:112px; text-align:center; }
+  .graf-nav button{
+    border:1px solid var(--linea); background:var(--fondo); color:var(--texto);
+    width:26px; height:26px; border-radius:8px; font-size:15px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-family:inherit; flex:none;
+  }
+  .graf-nav button:disabled{ opacity:.35; cursor:not-allowed; }
 
   /* ---------- Lista de herramientas ---------- */
   .lista-herr{ display:flex; flex-direction:column; gap:7px; }
@@ -327,9 +335,28 @@
     <section style="padding-top:4px;">
       <p class="titulillo">DT emitidos por d&iacute;a</p>
       <div class="tarjeta-graf">
+        <div class="graf-nav">
+          <button type="button" onclick="cambiarMesGrafico('emitidos',-1)" aria-label="Mes anterior">&lsaquo;</button>
+          <span id="mesTxtEmi">&mdash;</span>
+          <button type="button" id="mesSigEmi" onclick="cambiarMesGrafico('emitidos',1)" aria-label="Mes siguiente">&rsaquo;</button>
+        </div>
         <div id="grafWrap"><svg id="grafDias" viewBox="0 0 320 120" role="img"
-             aria-label="DT emitidos por dia en las ultimas dos semanas"></svg></div>
+             aria-label="DT emitidos por dia en el mes elegido"></svg></div>
         <div class="graf-pie" id="grafPie">&nbsp;</div>
+      </div>
+    </section>
+
+    <section style="padding-top:4px;">
+      <p class="titulillo">Cierres por d&iacute;a</p>
+      <div class="tarjeta-graf">
+        <div class="graf-nav">
+          <button type="button" onclick="cambiarMesGrafico('cierres',-1)" aria-label="Mes anterior">&lsaquo;</button>
+          <span id="mesTxtCie">&mdash;</span>
+          <button type="button" id="mesSigCie" onclick="cambiarMesGrafico('cierres',1)" aria-label="Mes siguiente">&rsaquo;</button>
+        </div>
+        <div id="grafWrapCie"><svg id="grafCierres" viewBox="0 0 320 120" role="img"
+             aria-label="DT cerrados por dia en el mes elegido"></svg></div>
+        <div class="graf-pie" id="grafPieCierres">&nbsp;</div>
       </div>
     </section>
 
@@ -549,31 +576,71 @@ async function aplicarMarca(){
    datos que alcanzaron a bajar.
    ====================================================================== */
 
-function pintarGrafico(dts){
-  const svg = document.getElementById('grafDias');
-  const pie = document.getElementById('grafPie');
+/* ----------------------------------------------------------------------
+   Los dos graficos por dia (DT emitidos / Cierres) comparten esta misma
+   logica. Antes mostraban una ventana fija de 14 dias; ahora muestran el
+   mes elegido completo, dia por dia (hasta hoy si es el mes en curso), y
+   se navega con las flechas. Al recien empezar un mes se ve una sola
+   barra — es normal, se va llenando solo con los dias que pasan. Al
+   cerrarse un mes queda disponible para siempre yendo hacia atras con
+   la flecha "‹".
+   ---------------------------------------------------------------------- */
+
+const MES_HOY = (() => {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+})();
+const GRAF_ESTADO = { emitidos: { mes: MES_HOY }, cierres: { mes: MES_HOY } };
+const GRAF_SUF = { emitidos: 'Emi', cierres: 'Cie' };
+const MESES_NOMBRE = ['enero','febrero','marzo','abril','mayo','junio','julio',
+                       'agosto','septiembre','octubre','noviembre','diciembre'];
+
+function etiquetaMes(ym){
+  const [y,m] = ym.split('-').map(Number);
+  return MESES_NOMBRE[m-1] + ' ' + y;
+}
+
+/* Todos los dias del mes "ym" (YYYY-MM). Si es el mes en curso, se corta
+   en el dia de hoy — no tiene sentido mostrar casillas de dias futuros. */
+function diasDelMes(ym){
+  const [y,m] = ym.split('-').map(Number);
+  const hoy = new Date();
+  const ultimoDia = (ym === MES_HOY) ? hoy.getDate() : new Date(y, m, 0).getDate();
+  const dias = [];
+  for(let dd=1; dd<=ultimoDia; dd++){
+    dias.push({ iso: ym+'-'+String(dd).padStart(2,'0'), dia: dd, n: 0 });
+  }
+  return dias;
+}
+
+function cambiarMesGrafico(clave, delta){
+  const est = GRAF_ESTADO[clave];
+  const [y,m] = est.mes.split('-').map(Number);
+  const f = new Date(y, m-1+delta, 1);
+  const nuevo = f.getFullYear()+'-'+String(f.getMonth()+1).padStart(2,'0');
+  if(nuevo > MES_HOY) return; /* no se puede ir al futuro */
+  est.mes = nuevo;
+  if(clave === 'emitidos') pintarGraficoEmitidos(); else pintarGraficoCierres();
+}
+
+function pintarNavMes(clave){
+  const suf = GRAF_SUF[clave], mes = GRAF_ESTADO[clave].mes;
+  document.getElementById('mesTxt'+suf).textContent = etiquetaMes(mes);
+  document.getElementById('mesSig'+suf).disabled = (mes >= MES_HOY);
+}
+
+function pintarGraficoMes(svgId, pieId, dias, opts){
+  const svg = document.getElementById(svgId);
+  const pie = document.getElementById(pieId);
   if(!svg) return;
 
-  /* Ultimos 14 dias, contando por fecha de emision */
-  const dias = [];
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  for(let i=13; i>=0; i--){
-    const d = new Date(hoy); d.setDate(d.getDate()-i);
-    const iso = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    dias.push({ iso, dia: d.getDate(), n: 0 });
-  }
-  const idx = {}; dias.forEach((d,i)=> idx[d.iso] = i);
-  let fuera = 0;
-  dts.forEach(t => {
-    const f = (t.fecha_emision || '').slice(0,10);
-    if(f in idx) dias[idx[f]].n++; else if(f) fuera++;
-  });
-
+  const compacto = dias.length > 20;
   const max = Math.max(1, ...dias.map(d=>d.n));
   const W = 320, H = 120, top = 8, bot = 22, izq = 4, der = 4;
   const alto = H - top - bot;
   const paso = (W - izq - der) / dias.length;
-  const ancho = Math.max(6, paso - 5);
+  const ancho = Math.max(compacto ? 3 : 6, paso - (compacto ? 2 : 5));
+  const cadaCuantos = compacto ? 5 : 2; /* no amontonar los numeros de dia en meses largos */
 
   let g = '';
   /* Rejilla discreta: dos lineas de referencia, nada mas */
@@ -594,14 +661,16 @@ function pintarGrafico(dts){
            ' Q'+x.toFixed(1)+' '+y.toFixed(1)+' '+(x+r).toFixed(1)+' '+y.toFixed(1)+
            ' L'+(x+ancho-r).toFixed(1)+' '+y.toFixed(1)+
            ' Q'+(x+ancho).toFixed(1)+' '+y.toFixed(1)+' '+(x+ancho).toFixed(1)+' '+(y+r).toFixed(1)+
-           ' L'+(x+ancho).toFixed(1)+' '+(y+h).toFixed(1)+' Z" fill="var(--acento)"/>';
-      g += '<text x="'+(x+ancho/2).toFixed(1)+'" y="'+(y-2.5).toFixed(1)+
-           '" text-anchor="middle" font-size="7.5" font-weight="700" fill="currentColor" opacity=".55">'+d.n+'</text>';
+           ' L'+(x+ancho).toFixed(1)+' '+(y+h).toFixed(1)+' Z" fill="'+(opts.color || 'var(--acento)')+'"/>';
+      if(!compacto){
+        g += '<text x="'+(x+ancho/2).toFixed(1)+'" y="'+(y-2.5).toFixed(1)+
+             '" text-anchor="middle" font-size="7.5" font-weight="700" fill="currentColor" opacity=".55">'+d.n+'</text>';
+      }
     }
     /* zona sensible al toque, mas ancha que la barra */
     g += '<rect x="'+(izq+i*paso).toFixed(1)+'" y="'+top+'" width="'+paso.toFixed(1)+'" height="'+alto+
          '" fill="transparent" style="cursor:pointer" data-d="'+d.iso+'" data-n="'+d.n+'"></rect>';
-    if(i % 2 === 0){
+    if(i % cadaCuantos === 0){
       g += '<text x="'+(x+ancho/2).toFixed(1)+'" y="'+(H-7)+
            '" text-anchor="middle" font-size="8" fill="currentColor" opacity=".45">'+d.dia+'</text>';
     }
@@ -611,20 +680,47 @@ function pintarGrafico(dts){
   svg.querySelectorAll('rect[data-d]').forEach(r => {
     const mostrar = () => {
       const [y,m,dd] = r.dataset.d.split('-');
-      pie.textContent = dd+'/'+m+' · '+r.dataset.n+' DT emitido'+(r.dataset.n==='1'?'':'s');
+      pie.textContent = dd+'/'+m+' · '+r.dataset.n+' '+opts.unidad+(r.dataset.n==='1'?'':'s');
     };
     r.addEventListener('mouseenter', mostrar);
     r.addEventListener('touchstart', mostrar, {passive:true});
   });
-  svg.addEventListener('mouseleave', ()=>{ pie.innerHTML = base(); });
 
   function base(){
     const suma = dias.reduce((a,d)=>a+d.n,0);
     return suma
-      ? 'Últimas 2 semanas: <b>'+suma+'</b> DT' + (fuera ? ' · '+fuera+' más antiguos' : '')
-      : 'Sin DT emitidos en las últimas 2 semanas' + (fuera ? ' · '+fuera+' anteriores' : '');
+      ? etiquetaMes(opts.mes)+': <b>'+suma+'</b> '+opts.unidad+(suma===1?'':'s')
+      : 'Sin '+opts.unidadPlural+' en '+etiquetaMes(opts.mes);
   }
+  svg.onmouseleave = () => { pie.innerHTML = base(); };
   pie.innerHTML = base();
+}
+
+function pintarGraficoEmitidos(){
+  const mes = GRAF_ESTADO.emitidos.mes;
+  const dias = diasDelMes(mes);
+  const idx = {}; dias.forEach((d,i)=> idx[d.iso] = i);
+  (DT_CACHE||[]).forEach(t => {
+    const f = (t.fecha_emision || '').slice(0,10);
+    if(f in idx) dias[idx[f]].n++;
+  });
+  pintarNavMes('emitidos');
+  pintarGraficoMes('grafDias', 'grafPie', dias,
+    { mes, unidad:'DT emitido', unidadPlural:'DT emitidos' });
+}
+
+function pintarGraficoCierres(){
+  const mes = GRAF_ESTADO.cierres.mes;
+  const dias = diasDelMes(mes);
+  const idx = {}; dias.forEach((d,i)=> idx[d.iso] = i);
+  (DT_CACHE||[]).forEach(t => {
+    if(t.estado !== 'CERRADA') return;
+    const f = (t.fecha_real_cierre || '').slice(0,10);
+    if(f in idx) dias[idx[f]].n++;
+  });
+  pintarNavMes('cierres');
+  pintarGraficoMes('grafCierres', 'grafPieCierres', dias,
+    { mes, unidad:'cierre', unidadPlural:'cierres', color:'var(--ok)' });
 }
 
 function pintarFrentes(dts){
@@ -1005,7 +1101,8 @@ async function cargarTodo(){
     ce + ' de ' + dts.length + ' DT cerrados · ' + caminatas.size + ' caminata(s) este mes';
 
   DT_CACHE = dts;
-  pintarGrafico(dts);
+  pintarGraficoEmitidos();
+  pintarGraficoCierres();
   pintarFrentes(dts);
 
   document.getElementById('listaDT').innerHTML = dts.length
