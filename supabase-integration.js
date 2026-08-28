@@ -14,6 +14,19 @@
        para 'reportes-pdf', igual que subirFoto() ya sube a 'fotos-dt')
      - guardarReportePDF({...})          → sube el PDF + inserta la fila
        en la tabla reportes_pdf (ver claude/MIGRACION-SUPABASE.md, sección 3)
+     - actualizarLogExcel(tipoReporte)   → (28-ago) reconstruye, desde la
+       tabla reportes_pdf, un log.xlsx dentro de la carpeta de ese reporte
+       en el bucket (p.ej. 'checklist-camioneta/log.xlsx'). Reemplaza el
+       Sheet único de Drive (Hoja 1!A:I de drive-integration.js) por un
+       Excel por reporte con las mismas columnas. guardarReportePDF() ya
+       la llama sola al final — no hace falta invocarla a mano.
+       Requiere la librería SheeJS (XLSX) cargada en la página: agregar
+       ANTES de este script
+         <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+       Si no está cargada, se salta en silencio (console.warn) y el
+       guardado del PDF + la fila en la tabla NO se ven afectados — el
+       log.xlsx es un extra de mejor esfuerzo, nunca bloquea el guardado
+       real (que siempre vive, sin riesgo de pérdida, en la tabla).
 
    ⚠️ IMPORTANTE — dónde va este archivo y cómo se incluye:
      - Sube este archivo a la raíz del repo (junto a drive-integration.js).
@@ -254,5 +267,57 @@ async function guardarReportePDF({ tipoReporte, correlativo, claveVerificacion, 
   if(!filas || !filas.length){
     throw new Error('La base no registró el reporte. Puede que tu cuenta no tenga permiso (revisa la política RLS de reportes_pdf — debe permitir insertar a usuarios "authenticated").');
   }
+
+  /* Log en Excel: de mejor esfuerzo — si falla, no revienta el guardado
+     real (el PDF y la fila ya quedaron guardados arriba). */
+  try { await actualizarLogExcel(tipoReporte); }
+  catch(e){ console.warn('No se pudo actualizar log.xlsx de ' + tipoReporte + ':', e); }
+
   return filas[0];
+}
+
+/* ---------- actualizarLogExcel: reconstruye el Excel-log de un tipo de reporte ----------
+   Lee TODAS las filas de reportes_pdf para ese tipoReporte (la tabla es
+   la fuente de verdad — nunca se pierde nada aunque esto falle) y sube
+   un log.xlsx con esas mismas columnas a la carpeta del reporte en el
+   bucket. Al reconstruirlo completo cada vez (en vez de "agregarle una
+   fila" al archivo existente), dos inspectores guardando casi al mismo
+   tiempo nunca se pisan datos entre sí: en el peor caso el log.xlsx
+   queda un instante desactualizado en una fila, y se autocorrige solo
+   la próxima vez que alguien guarde un reporte de ese tipo — la tabla
+   reportes_pdf (no el Excel) es siempre el dato real. */
+async function actualizarLogExcel(tipoReporte){
+  if(typeof XLSX === 'undefined'){
+    console.warn('actualizarLogExcel: falta cargar la librería XLSX (SheetJS) en esta página — se omite el log.xlsx.');
+    return;
+  }
+  const filas = await SB.consultar(
+    TABLA_REPORTES,
+    'tipo_reporte=eq.' + encodeURIComponent(tipoReporte) +
+    '&select=creado_en,correlativo,clave_verificacion,empresa,generado_por,nombre_archivo,storage_path' +
+    '&order=creado_en.asc'
+  );
+
+  const encabezado = ['Fecha', 'Hora', 'Correlativo', 'Clave verificación', 'Empresa', 'Generado por', 'Nombre archivo', 'Ruta en Supabase'];
+  const filasHoja = (filas || []).map(function(f){
+    const ts = f.creado_en ? new Date(f.creado_en) : null;
+    return [
+      ts ? ts.toLocaleDateString('es-CL') : '',
+      ts ? ts.toLocaleTimeString('es-CL') : '',
+      f.correlativo || '',
+      f.clave_verificacion || '',
+      f.empresa || '',
+      f.generado_por || '',
+      f.nombre_archivo || '',
+      f.storage_path || ''
+    ];
+  });
+
+  const hoja = XLSX.utils.aoa_to_sheet([encabezado].concat(filasHoja));
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, 'Log');
+  const buffer = XLSX.write(libro, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+  await SB.subirArchivo(BUCKET_REPORTES, tipoReporte + '/log.xlsx', blob, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
