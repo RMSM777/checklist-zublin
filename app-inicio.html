@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="QC Digital">
 <script src="marca.js"></script>
+<script src="xlsx.full.min.js"></script>
 <style>
   :root{
     --rojo:#0d1526;            /* header — lo reescribe marca.js */
@@ -284,8 +285,8 @@
       <p class="titulillo">&Uacute;ltimos DT</p>
       <div class="lista" id="listaDT"><div class="vacio">Cargando&hellip;</div></div>
       <a class="btn-grande" href="ciz-dt-conectado.html">Abrir o cerrar un DT</a>
-      <button class="btn-secundario" onclick="exportarCSV()">&#11015; Descargar planilla de DT</button>
-      <p class="nota-exp" id="notaExp">Genera la misma planilla que llevaban a mano, con los datos de ahora. Se abre directo en Excel.</p>
+      <button class="btn-secundario" onclick="exportarExcel()">&#11015; Descargar planilla de DT</button>
+      <p class="nota-exp" id="notaExp">Genera un libro de Excel (.xlsx) con el mismo formato que usan los otros reportes, con los datos de ahora.</p>
     </section>
   </div>
 
@@ -576,64 +577,191 @@ function pintarFrentes(dts){
 
 
 /* ======================================================================
-   EXPORTAR LA PLANILLA
-   Se arma en CSV a proposito, no en .xlsx: un .xlsx de verdad obliga a
-   cargar una libreria desde internet, y esta app tiene que poder exportar
-   tambien bajo tierra, sin senal. El CSV se abre directo en Excel.
+   EXPORTAR LA PLANILLA — libro de Excel (.xlsx) real
+   =====================================================================
+   Antes se armaba en CSV a proposito, para no depender de internet.
+   Ahora se usa SheetJS (xlsx.full.min.js), pero GUARDADO EN EL REPO,
+   no cargado desde un CDN: el service worker lo cachea la primera vez
+   que se abre con señal, y de ahí en adelante genera el Excel también
+   bajo tierra, sin conexión.
 
-   Las columnas van en el MISMO orden que el Excel que llevaba el equipo,
-   para que a nadie le cambie el mapa. Las columnas nuevas van al final.
+   Las columnas 1 a 22 van en el MISMO orden que la planilla que lleva
+   el equipo (Copia de EXCEL PUNCH NUEVO 268.xlsx), para que el archivo
+   que descarga la app se pueda usar igual que ese Excel en cualquier
+   otro reporte de la suite. Las columnas propias de CIZ DT (que ese
+   Excel no tiene) van al final, después de la 22.
    ====================================================================== */
 
+/* Nro/Nombre de proyecto de Codelco en SIC3PRO: son fijos para este
+   contrato, no viven en nuestra base (son del lado Codelco, no de
+   Züblin). Si Codelco cambia de proyecto SIC3PRO habría que actualizar
+   esto a mano. */
+const INFO_PROYECTO_SIC3PRO = {
+  nro:     'AGD_GOMS_DCH',
+  nombre:  'GERENCIA OBRAS MINA SUBTERRÁNEA - DCH',
+};
+
 const COLS = [
-  ['&Iacute;tem',            (d,i) => i + 1],
-  ['N° Punch',               d => d.numero_punch || ''],
-  ['Área',                   d => d.area || ''],
-  ['Sistema',                d => d.sistema || ''],
-  ['SubSistema',             d => d.subsistema || ''],
-  ['Ubic.',                  d => d.ubicacion || ''],
-  ['Originador',             d => d.originador || ''],
-  ['PK CAMINADOS',           d => (d.pk_inicio != null && d.pk_termino != null) ? ('PK ' + d.pk_inicio + '-' + d.pk_termino) : ''],
-  ['Descripción',            d => d.descripcion || ''],
-  ['Fecha Emisión',          d => fmtCorta(d.fecha_emision)],
-  ['Estado',                 d => d.estado_visual || d.estado || ''],
-  ['Fecha Comp. Cierre',     d => fmtCorta(d.fecha_compromiso_cierre)],
-  ['TURNO',                  d => d.turno || ''],
-  /* --- lo que el Excel manual no tenia --- */
-  ['Código caminata',        d => d.codigo_caminata || ''],
-  ['Metros caminados',       d => (d.metros_caminados != null ? d.metros_caminados : '')],
-  ['Fecha real de cierre',   d => fmtCorta(d.fecha_real_cierre)],
-  ['Días de atraso',         d => (d.dias_atraso != null ? d.dias_atraso : '')],
-  ['Prioridad',              d => d.prioridad || ''],
+  ['Ítem',                    (d,i) => i + 1,                      'n'],
+  ['N° Punch',                 d => d.numero_punch || '',           's'],
+  ['Área',                     d => d.area || '',                   's'],
+  ['Sistema',                  d => d.sistema || '',                's'],
+  ['SubSistema',                d => d.subsistema || '',             's'],
+  ['Prio.',                    d => d.prioridad || '',              's'],
+  ['Disc.',                    d => d.disciplina || '',             's'],
+  ['Ubic.',                    d => d.ubicacion || '',              's'],
+  ['Contrato',                 d => d.contrato || '',               's'],
+  ['Originador',                d => d.originador || '',             's'],
+  ['Resp.',                    d => d.resp_construccion || '',      's'],
+  ['Descripción',              d => d.descripcion || '',            's'],
+  ['Fecha Emisión',             d => fechaLocal(d.fecha_emision),    'f'],
+  ['Estado',                   d => d.estado_visual || d.estado || '', 's'],
+  ['Fecha Comp. Cierre',        d => fechaLocal(d.fecha_compromiso_cierre), 'f'],
+  ['Responsable del cierre',    d => d.resp_cierre || '',            's'],
+  ['Fecha real de cierre',       d => fechaLocal(d.fecha_real_cierre), 'f'],
+  ['N° de Informe',             d => d.numero_informe || '',         's'],
+  ['PK Inicial',                d => (d.pk_inicio != null ? d.pk_inicio : ''), 'n'],
+  ['Pk Final',                  d => (d.pk_termino != null ? d.pk_termino : ''), 'n'],
+  ['Total m caminados',          d => (d.metros_caminados != null ? Number(d.metros_caminados) : ''), 'n'],
+  ['Observaciones',             d => '',                             's'],
+  /* --- propias de CIZ DT: no existen en la planilla del equipo --- */
+  ['Código caminata',           d => d.codigo_caminata || '',        's'],
+  ['Días de atraso',            d => (d.dias_atraso != null ? d.dias_atraso : ''), 'n'],
+  ['TURNO',                    d => d.turno || '',                  's'],
 ];
 
-function celdaCSV(v){
-  const s = (v == null ? '' : String(v));
-  /* Excel en Chile separa con punto y coma. Se entrecomilla si el texto
-     trae el separador, comillas o un salto de linea. */
-  return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+/* 'YYYY-MM-DD' (lo que manda Postgres) -> Date a medianoche LOCAL.
+   Si se usara `new Date('YYYY-MM-DD')` a secas, JS lo interpreta como
+   UTC y en Chile puede mostrar el día anterior. */
+function fechaLocal(iso){
+  if(!iso) return null;
+  const [y,m,d] = iso.split('-').map(Number);
+  if(!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
 }
 
-function exportarCSV(){
+function construirLibro(dts){
+  const hoy = new Date();
+  const fechaStr = String(hoy.getDate()).padStart(2,'0') + '-' + String(hoy.getMonth()+1).padStart(2,'0') + '-' + hoy.getFullYear();
+  const horaStr = String(hoy.getHours()).padStart(2,'0') + ':' + String(hoy.getMinutes()).padStart(2,'0') + ':' + String(hoy.getSeconds()).padStart(2,'0');
+
+  const ab = dts.filter(d => (d.estado_visual || d.estado) === 'ABIERTA').length;
+  const at = dts.filter(d => (d.estado_visual || d.estado) === 'ATRASADA').length;
+  const ce = dts.filter(d => d.estado === 'CERRADA').length;
+
+  const primero = dts[0] || {};
+  const contratoTxt   = primero.contrato || (CONTRATO && CONTRATO.numero ? CONTRATO.numero + '/' + CONTRATO.codigo : '');
+  const empresaTxt    = (primero.empresa || (CONTRATO && CONTRATO.empresa_nombre) || '').toUpperCase();
+  const tipoEmpresaTxt = (primero.tipo_empresa || 'Contratista').toUpperCase();
+
+  /* ---- Bloque de encabezado, igual en forma al de SIC3PRO ---- */
+  const bloque = [
+    [],
+    ['Vicepresidencia de Proyectos', '', '', 'REPORTE DETALLES DE TERMINACIÓN'],
+    ['Gerencia de Ingeniería y Constructibilidad'],
+    ['Sistema de Control de Calidad VP'],
+    [],
+    ['SIC3PRO : Fecha : ' + fechaStr + ' - Hora:' + horaStr],
+    [],
+    ['Nro PROYECTO:' + INFO_PROYECTO_SIC3PRO.nro, '', '', 'NOMBRE DE PROYECTO:' + INFO_PROYECTO_SIC3PRO.nombre],
+    [],
+    ['WBS : Todos'],
+    ['EMPRESA TIPO : ' + tipoEmpresaTxt],
+    ['EMPRESA : ' + empresaTxt],
+    ['CONTRATO : ' + contratoTxt],
+    ['FILTROS:'],
+    ['[ Prioridad = P1, P2, P3, P4, P5 ]'],
+    [],
+    [],
+    ['Registros Encontrados:' + dts.length],
+    ['Estado de los Registros: Pendientes = 0   Abiertas = ' + ab + '   Cerradas = ' + ce + '   Atrasadas = ' + at],
+    [],
+  ];
+
+  const filaTitulos = bloque.length;              // fila (0-index) donde va el encabezado de la tabla
+  const titulos = COLS.map(c => c[0]);
+  const filas = dts.map((d,i) => COLS.map(c => c[1](d,i)));
+
+  const aoa = bloque.concat([titulos], filas);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  /* Fusionar las celdas de las líneas institucionales, para que se vean
+     como un título y no como texto cortado en la columna A. */
+  const finTabla = 'X';
+  ws['!merges'] = [
+    { s:{r:1,c:0}, e:{r:1,c:2} }, { s:{r:1,c:3}, e:{r:1,c:7} },
+    { s:{r:2,c:0}, e:{r:2,c:7} }, { s:{r:3,c:0}, e:{r:3,c:7} },
+    { s:{r:5,c:0}, e:{r:5,c:7} },
+    { s:{r:7,c:0}, e:{r:7,c:2} }, { s:{r:7,c:3}, e:{r:7,c:10} },
+  ];
+
+  /* Formato de fecha chileno en las columnas que son fechas. SheetJS
+     guarda una fecha como celda numérica (t:'n') con el serial de Excel,
+     no como t:'d' — por eso el formato se fuerza sin filtrar por tipo. */
+  const colsFecha = COLS.map((c,idx) => c[2] === 'f' ? idx : -1).filter(i => i >= 0);
+  for(let r = 0; r < filas.length; r++){
+    colsFecha.forEach(c => {
+      const cell = ws[XLSX.utils.encode_cell({ r: filaTitulos + 1 + r, c })];
+      if(cell) cell.z = 'dd/mm/yyyy';
+    });
+  }
+
+  /* Ancho de columnas — a ojo, para que se lea sin tener que ajustar. */
+  ws['!cols'] = COLS.map(c => ({ wch: c[0] === 'Descripción' ? 45 : (c[0] === 'Observaciones' ? 25 : 14) }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'DT');
+
+  /* ---- Segunda hoja: resumen rápido, para usar en los otros reportes
+     sin tener que recontar a mano. ---- */
+  const porSistema = new Map();
+  dts.forEach(d => {
+    const k = d.sistema || '(sin sistema)';
+    if(!porSistema.has(k)) porSistema.set(k, { total:0, abiertos:0, cerrados:0, atrasados:0 });
+    const v = porSistema.get(k);
+    v.total++;
+    if(d.estado === 'CERRADA') v.cerrados++;
+    else if((d.estado_visual || d.estado) === 'ATRASADA') v.atrasados++;
+    else v.abiertos++;
+  });
+  const resumenAOA = [
+    ['Resumen generado ' + fechaStr + ' ' + horaStr],
+    [],
+    ['Total DT', dts.length],
+    ['Abiertos', ab],
+    ['Atrasados', at],
+    ['Cerrados', ce],
+    [],
+    ['Sistema', 'Total', 'Abiertos', 'Cerrados', 'Atrasados'],
+    ...[...porSistema.entries()].sort((a,b) => b[1].total - a[1].total)
+      .map(([nom,v]) => [nom, v.total, v.abiertos, v.cerrados, v.atrasados]),
+  ];
+  const wsResumen = XLSX.utils.aoa_to_sheet(resumenAOA);
+  wsResumen['!cols'] = [{ wch: 55 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }];
+  XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen');
+
+  return wb;
+}
+
+function exportarExcel(){
   const nota = document.getElementById('notaExp');
   if(!DT_CACHE.length){
     nota.textContent = 'Todavía no hay DT cargados para exportar.';
     return;
   }
-  const enc = document.createElement('div');
-  const titulos = COLS.map(c => { enc.innerHTML = c[0]; return celdaCSV(enc.textContent); }).join(';');
-  const filas = DT_CACHE.map((d, i) => COLS.map(c => celdaCSV(c[1](d, i))).join(';'));
-
-  /* El ﻿ del principio es lo que hace que Excel respete los acentos.
-     Sin eso, "Descripción" llega como "DescripciÃ³n". */
-  const csv = '﻿' + [titulos].concat(filas).join('\r\n');
-
-  const hoy = new Date();
-  const stamp = hoy.getFullYear() + String(hoy.getMonth()+1).padStart(2,'0') + String(hoy.getDate()).padStart(2,'0');
-  const nombre = 'DT_' + (CONTRATO && CONTRATO.codigo ? CONTRATO.codigo.replace(/[^A-Za-z0-9-]/g,'') : 'QCDigital') + '_' + stamp + '.csv';
-
+  if(typeof XLSX === 'undefined'){
+    nota.textContent = 'No se pudo cargar el generador de Excel. Prueba con señal la primera vez.';
+    return;
+  }
   try {
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const wb = construirLibro(DT_CACHE);
+    const buffer = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+
+    const hoy = new Date();
+    const stamp = hoy.getFullYear() + String(hoy.getMonth()+1).padStart(2,'0') + String(hoy.getDate()).padStart(2,'0');
+    const nombre = 'DT_' + (CONTRATO && CONTRATO.codigo ? CONTRATO.codigo.replace(/[^A-Za-z0-9-]/g,'') : 'QCDigital') + '_' + stamp + '.xlsx';
+
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = nombre;
@@ -641,7 +769,7 @@ function exportarCSV(){
     setTimeout(() => URL.revokeObjectURL(url), 2000);
     nota.textContent = 'Descargado: ' + nombre + ' · ' + DT_CACHE.length + ' DT';
   } catch(e){
-    nota.textContent = 'No se pudo descargar en este navegador. Ábrela desde Chrome o Safari.';
+    nota.textContent = 'No se pudo generar el Excel en este navegador. Ábrela desde Chrome o Safari.';
   }
 }
 
