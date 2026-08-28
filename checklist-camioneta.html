@@ -16,8 +16,6 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <script src="marca.js?v=2"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="drive-integration.js?v=3"></script>
 <script src="supabase-integration.js?v=1"></script>
 <script>
 (async function(){ await requerirSesion('checklist-camioneta.html'); })();
@@ -360,7 +358,6 @@ async function generarPDF(previo){
   const nombre = v('nombre') || 'Sin_nombre';
   const fecha = v('fecha') || new Date().toISOString().slice(0,10);
   const { jsPDF } = window.jspdf;
-  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
     const doc = new jsPDF({unit:'mm', format:'a4'});
   const izq = 12, ancho = 186;
   let y = 10;
