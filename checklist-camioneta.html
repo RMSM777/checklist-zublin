@@ -16,7 +16,8 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 <script src="marca.js?v=2"></script>
-<script src="supabase-integration.js?v=1"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="supabase-integration.js?v=2"></script>
 <script>
 (async function(){ await requerirSesion('checklist-camioneta.html'); })();
 </script>
@@ -521,7 +522,7 @@ async function generarPDF(previo){
 
   const notaEl = document.getElementById('nota');
   let guardadoHtml = '';
-  if(window.SB){
+  if(typeof SB !== 'undefined'){
     notaEl.innerHTML = '<span style="color:#888;">Guardando en Supabase...</span>';
     notaEl.style.color = '';
     try{
