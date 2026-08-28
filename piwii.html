@@ -17,7 +17,8 @@
   }
   *{box-sizing:border-box}
   html,body{height:100%}
-  body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);display:flex;flex-direction:column;height:100vh;overflow:hidden}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);height:100vh;overflow:hidden}
+  .wrap{display:flex;flex-direction:column;height:100%;overflow:hidden}
 
   /* Encabezado */
   header{padding:12px 16px;border-bottom:2px solid var(--naranjo);background:linear-gradient(160deg,var(--bg2),var(--bg));display:flex;align-items:center;gap:12px;flex:0 0 auto}
@@ -65,9 +66,33 @@
   .entrada button:active{transform:scale(.92)}
 
   .aviso-api{font-size:.68rem;color:var(--txt2);text-align:center;padding:5px;background:var(--bg2)}
+
+  /* ======================================================================
+     VISTA DE ESCRITORIO (notebook / PC)
+     Piwii es una app de chat a pantalla completa (no un formulario con
+     .wrap de por medio), asi que este caso requirio un cambio estructural
+     ademas del CSS: se agrego un <div class="wrap"> nuevo envolviendo el
+     header/.chat/.chips/.entrada/.aviso-api (el bloque de JavaScript que sigue queda
+     fuera, sin tocar -- usa getElementById, no depende del anidamiento).
+     En el celular .wrap se comporta exactamente igual que el body de
+     antes (mismo flex-column a pantalla completa). En una pantalla ancha
+     se encajona como panel propio, igual que el resto de la suite.
+     (Agregado 28-ago.)
+     ====================================================================== */
+  @media (min-width:860px){
+    body{ padding:28px 16px; box-sizing:border-box; }
+    .wrap{
+      max-width:820px; margin:0 auto;
+      border-radius:16px;
+      box-shadow:0 10px 34px rgba(0,0,0,.45);
+      border:1px solid var(--linea);
+    }
+  }
+
 </style>
 </head>
 <body>
+<div class="wrap">
 <header>
   <svg class="logo" width="42" height="42" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-label="QC Digital">
     <rect width="512" height="512" rx="100" fill="#0d1526"/>
@@ -91,6 +116,8 @@
   <button onclick="enviar()" aria-label="Enviar">➤</button>
 </div>
 <div class="aviso-api">Modo Aprendiz: respuestas basadas en la base de conocimiento QC de la faena. El análisis de casos no contemplados requiere integración con la API.</div>
+
+</div>
 
 <script>
 (function(){

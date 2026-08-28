@@ -13,8 +13,8 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Zublin GCC-003">
 <title>Cambio de Turno - Calidad Zublin</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="jspdf.umd.min.js"></script>
+<script src="qrious.min.js"></script>
 <script src="marca.js?v=2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="drive-integration.js?v=3"></script>
@@ -86,6 +86,25 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
   .banner-borrador{ background:#fff3cd; border:1px solid #ffe08a; color:#7a5c00; font-size:12px; padding:10px 14px; display:none; align-items:center; justify-content:space-between; gap:10px; }
   .banner-borrador button{ border:none; background:#7a5c00; color:#fff; font-size:11px; font-weight:700; padding:6px 10px; border-radius:6px; cursor:pointer; }
   footer{ text-align:center; padding:16px; font-size:11px; color:#999; }
+
+  /* ======================================================================
+     VISTA DE ESCRITORIO (notebook / PC)
+     En una pantalla ancha, este reporte se trata como un panel propio en
+     vez de una franja angosta de telefono estirada en medio de la
+     pantalla: se ensancha un poco y queda centrado con bordes redondeados
+     y sombra sobre el fondo gris. (Agregado 28-ago, mismo patron que ya
+     usan ciz-dt-conectado.html y app-inicio.html.)
+     ====================================================================== */
+  @media (min-width:860px){
+    body{ padding:28px 16px; }
+    .wrap{
+      max-width:820px; min-height:auto; margin:0 auto;
+      border-radius:16px; overflow:hidden;
+      box-shadow:0 10px 34px rgba(13,21,38,.14);
+      border:1px solid var(--borde);
+    }
+  }
+
 </style>
 </head>
 <body>

@@ -65,6 +65,26 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 
   footer{ text-align:center; padding:24px 16px 30px; font-size:11px; color:var(--fog); }
   footer .seal{ display:block; margin-bottom:8px; }
+
+  /* ======================================================================
+     VISTA DE ESCRITORIO (notebook / PC)
+     Adaptado del patron del resto de la suite: esta es una pagina de menu
+     (no un formulario), asi que ademas de encajonar el .wrap como panel
+     propio, se aprovecha el ancho extra acomodando las tarjetas del menu
+     en dos columnas -- mismo criterio que usa app-inicio.html con .lista.
+     (Agregado 28-ago.)
+     ====================================================================== */
+  @media (min-width:860px){
+    body{ padding:28px 16px; }
+    .wrap{
+      max-width:760px; min-height:auto; margin:0 auto;
+      border-radius:16px; overflow:hidden;
+      box-shadow:0 10px 34px rgba(0,0,0,.4);
+      border:1px solid var(--navy-700);
+    }
+    .menu{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  }
+
 </style>
 </head>
 <body>

@@ -333,6 +333,25 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
     .titulo-doc{font-size:14px;}
     .fila-2{flex-direction:column;}
   }
+
+  /* ======================================================================
+     VISTA DE ESCRITORIO (notebook / PC)
+     Mismo patron que el resto de la suite, adaptado: aqui el contenedor
+     principal se llama .contenedor (no .wrap) y ya traia max-width:760px
+     fijo desde antes (por eso no hace falta redeclararlo). Solo se agrega
+     el efecto de "panel propio" — bordes redondeados y sombra — cuando
+     hay espacio de sobra en pantallas anchas. (Agregado 28-ago.)
+     ====================================================================== */
+  @media (min-width:860px){
+    body{ padding:28px 16px; }
+    .contenedor{
+      min-height:auto;
+      border-radius:16px; overflow:hidden;
+      box-shadow:0 10px 34px rgba(13,21,38,.14);
+      border:1px solid var(--gris-borde);
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -463,8 +482,8 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 
 <canvas id="qrOculto" width="240" height="240"></canvas>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<script src="jspdf.umd.min.js"></script>
+<script src="qrious.min.js"></script>
 <script src="marca.js?v=2"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="drive-integration.js?v=3"></script>

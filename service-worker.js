@@ -1,7 +1,7 @@
 // Service Worker - Checklist Züblin GCC-003
 // Cachea las páginas y librerías para que la app abra aunque no haya señal.
 
-const CACHE_NAME = 'qcdigital-v28'; // sube este número cuando publiques cambios importantes
+const CACHE_NAME = 'qcdigital-v29'; // sube este número cuando publiques cambios importantes
 
 // OJO: si un archivo de esta lista no existe con ese nombre exacto, el
 // install del service worker falla ENTERO y ninguna pagina queda cacheada.
@@ -32,7 +32,10 @@ const ARCHIVOS_PROPIOS = [
   './xlsx.full.min.js',
   './jszip.min.js',
   './jspdf.umd.min.js',
+  './jspdf.plugin.autotable.min.js',
   './qrious.min.js',
+  './chart.umd.min.js',
+  './supabase-integration.js?v=2',
   './manifest.json',
   './dark-mode.css',
   './dark-mode.js',
