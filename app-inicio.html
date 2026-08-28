@@ -152,6 +152,33 @@
 
   /* ---------- Gráfico ---------- */
   .tarjeta-graf{ background:var(--tarjeta); border:1px solid var(--linea); border-radius:12px; padding:13px 12px 9px; }
+
+  /* ---------- Desarrollo v/s Caminata ---------- */
+  .avance-card{ background:var(--tarjeta); border:1px solid var(--linea); border-radius:12px; padding:13px 14px; }
+  .avance-fila{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .avance-fila + .avance-fila{ margin-top:8px; }
+  .avance-fila .et{ font-size:12.5px; color:var(--tenue); }
+  .avance-fila .va{ font-size:16px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .avance-fila .va small{ font-size:11px; font-weight:600; color:var(--tenue); margin-left:2px; }
+  .avance-pct{ margin-top:9px; }
+  .avance-nota{ font-size:10.5px; color:var(--tenue); margin-top:5px; }
+  .avance-link{ display:inline-block; margin-top:9px; font-size:12px; font-weight:700; color:var(--acento); cursor:pointer; }
+  .avance-form{ display:none; margin-top:10px; gap:8px; }
+  .avance-form.act{ display:flex; flex-wrap:wrap; }
+  .avance-form input{
+    border:1px solid var(--linea); border-radius:8px; padding:8px 9px; font-size:14px;
+    font-family:inherit; background:var(--fondo); color:var(--texto);
+  }
+  .avance-form input[type="date"]{ flex:1 1 128px; }
+  .avance-form input[type="number"]{ flex:1 1 110px; }
+  .avance-form button{
+    border:none; border-radius:8px; padding:8px 14px; font-weight:700; font-size:13px;
+    background:var(--acento); color:#fff; cursor:pointer;
+  }
+  .avance-form button.cancelar{ background:var(--linea); color:var(--texto); }
+  .avance-aviso{ font-size:11.5px; margin-top:6px; display:none; }
+  .avance-aviso.ok{ display:block; color:#2b5c2e; }
+  .avance-aviso.err{ display:block; color:#7a2020; }
   #grafWrap{ overflow-x:auto; }
   #grafDias{ width:100%; min-width:290px; height:auto; display:block; }
   .graf-pie{ font-size:11px; color:var(--tenue); text-align:center; margin-top:6px; min-height:15px; }
@@ -265,6 +292,35 @@
         <div class="tile ab"><div class="n" id="tAb">&mdash;</div><div class="l">Abiertos</div></div>
         <div class="tile at"><div class="n" id="tAt">&mdash;</div><div class="l">Atrasados</div></div>
         <div class="tile ce"><div class="n" id="tCe">&mdash;</div><div class="l">Cerrados</div></div>
+      </div>
+    </section>
+
+    <section style="padding-top:4px;">
+      <p class="titulillo">Desarrollo v/s Caminata</p>
+      <div class="avance-card">
+        <div class="avance-fila">
+          <span class="et">Desarrollado a la fecha</span>
+          <span class="va" id="avDesarrollado">&mdash;<small>m</small></span>
+        </div>
+        <div class="avance-fila">
+          <span class="et">Caminado acumulado</span>
+          <span class="va" id="avCaminado">&mdash;<small>m</small></span>
+        </div>
+        <div class="avance-fila avance-pct">
+          <span class="et">% cobertura</span>
+          <span class="va" id="avPct">&mdash;<small>%</small></span>
+        </div>
+        <div class="barra"><div class="barra-fill" id="avBarra"></div></div>
+        <div class="avance-nota" id="avNota">Cargando&hellip;</div>
+
+        <span class="avance-link" onclick="toggleAvanceForm()">Actualizar metros desarrollados</span>
+        <div class="avance-form" id="avForm">
+          <input type="date" id="avFecha">
+          <input type="number" id="avMetros" step="0.01" placeholder="Ej: 1420.5">
+          <button onclick="guardarAvanceDesarrollo()">Guardar</button>
+          <button class="cancelar" onclick="toggleAvanceForm(false)">Cancelar</button>
+          <div class="avance-aviso" id="avAviso"></div>
+        </div>
       </div>
     </section>
 
@@ -425,6 +481,24 @@ const SB = {
     const j = await leerJSON(r);
     if(!r.ok) throw new Error((j && j.message) || ('Error al leer ' + tabla));
     return j || [];
+  },
+
+  /* Inserta o, si ya existe una fila con el mismo valor en conflictoCol
+     (ej. la misma fecha), la sobrescribe. Se usa para la tarjeta de
+     avance de desarrollo: cargar el mismo día dos veces corrige el dato
+     en vez de duplicarlo. */
+  async upsertar(tabla, filas, conflictoCol){
+    const r = await pedirRed(SB_URL + '/rest/v1/' + tabla + '?on_conflict=' + conflictoCol, {
+      method:'POST',
+      headers: {
+        'apikey': SB_KEY, 'Authorization': 'Bearer ' + (this.ses ? this.ses.access : ''),
+        'Content-Type':'application/json', 'Prefer':'resolution=merge-duplicates,return=representation'
+      },
+      body: JSON.stringify(filas)
+    });
+    const j = await leerJSON(r);
+    if(!r.ok) throw new Error((j && (j.message || j.hint)) || ('Error al guardar en ' + tabla));
+    return j;
   }
 };
 
@@ -937,6 +1011,97 @@ async function cargarTodo(){
   document.getElementById('listaDT').innerHTML = dts.length
     ? dts.slice(0,6).map(filaHTML).join('')
     : '<div class="vacio">Todavía no hay DT registrados.<br>Empieza abriendo uno desde el botón de arriba.</div>';
+
+  cargarAvanceDesarrollo();
+}
+
+/* ======================================================================
+   Tarjeta "Desarrollo v/s Caminata" — cruza el último acumulado de
+   metros desarrollados (cargado a mano, ver avance_desarrollo_diario)
+   contra el acumulado de metros caminados que la app ya sabe calcular
+   sola (suma de avances_caminata.metros_caminados, TODAS las caminatas
+   registradas, no solo las del mes). Aparte de cargarTodo() para que un
+   error acá (ej. si todavía no se corrió el script 9 en Supabase) no
+   rompa el resto del panel de inicio.
+   ====================================================================== */
+function hoyISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function fmtCortaISO(iso){ if(!iso) return '—'; const [y,m,d]=iso.split('-'); return d+'/'+m+'/'+y; }
+
+let AVANCE_ACTUAL = null; /* { fecha, metros_acum } de la última carga leída */
+
+async function cargarAvanceDesarrollo(){
+  const nota = document.getElementById('avNota');
+  try {
+    const [ultimo, caminadas] = await Promise.all([
+      SB.consultar('avance_desarrollo_diario', 'select=fecha,metros_acum&order=fecha.desc&limit=1'),
+      SB.consultar('avances_caminata', 'select=metros_caminados')
+    ]);
+
+    const desarrollado = (ultimo && ultimo[0]) ? Number(ultimo[0].metros_acum) : null;
+    AVANCE_ACTUAL = (ultimo && ultimo[0]) ? ultimo[0] : null;
+
+    let caminado = 0;
+    (caminadas || []).forEach(c => caminado += Number(c.metros_caminados) || 0);
+
+    document.getElementById('avCaminado').innerHTML = Math.round(caminado) + '<small>m</small>';
+
+    if(desarrollado == null){
+      document.getElementById('avDesarrollado').innerHTML = '&mdash;<small>m</small>';
+      document.getElementById('avPct').innerHTML = '&mdash;<small>%</small>';
+      document.getElementById('avBarra').style.width = '0%';
+      nota.textContent = 'Todavía no se ha cargado el dato de desarrollo. Usa "Actualizar" para ingresar el primero.';
+      return;
+    }
+
+    document.getElementById('avDesarrollado').innerHTML = Math.round(desarrollado) + '<small>m</small>';
+    const pct = desarrollado > 0 ? Math.round(caminado / desarrollado * 1000) / 10 : 0;
+    document.getElementById('avPct').innerHTML = String(pct).replace('.', ',') + '<small>%</small>';
+    document.getElementById('avBarra').style.width = Math.min(pct, 100) + '%';
+
+    const dias = Math.round((new Date(hoyISO()) - new Date(AVANCE_ACTUAL.fecha)) / 86400000);
+    nota.textContent = 'Desarrollado al ' + fmtCortaISO(AVANCE_ACTUAL.fecha)
+      + (dias >= 3 ? ' — dato con ' + dias + ' días, conviene actualizarlo' : '');
+  } catch(e){
+    document.getElementById('avDesarrollado').innerHTML = '&mdash;<small>m</small>';
+    document.getElementById('avCaminado').innerHTML = '&mdash;<small>m</small>';
+    document.getElementById('avPct').innerHTML = '&mdash;<small>%</small>';
+    nota.textContent = e.message === '__SIN_SENAL__'
+      ? 'Sin señal. Al recuperar conexión se actualiza solo.'
+      : 'Todavía no está disponible esta tarjeta (falta correr el script 9 en Supabase).';
+  }
+}
+
+function toggleAvanceForm(mostrar){
+  const form = document.getElementById('avForm');
+  const av = document.getElementById('avAviso');
+  const abrir = mostrar !== undefined ? mostrar : !form.classList.contains('act');
+  form.classList.toggle('act', abrir);
+  av.className = 'avance-aviso';
+  if(abrir){
+    document.getElementById('avFecha').value = (AVANCE_ACTUAL && AVANCE_ACTUAL.fecha) || hoyISO();
+    document.getElementById('avMetros').value = AVANCE_ACTUAL ? AVANCE_ACTUAL.metros_acum : '';
+  }
+}
+
+async function guardarAvanceDesarrollo(){
+  const av = document.getElementById('avAviso');
+  const fecha = document.getElementById('avFecha').value;
+  const metros = parseFloat(document.getElementById('avMetros').value);
+  av.className = 'avance-aviso';
+  if(!fecha){ av.textContent = 'Falta la fecha.'; av.className = 'avance-aviso err'; return; }
+  if(isNaN(metros) || metros < 0){ av.textContent = 'El valor de metros no es válido.'; av.className = 'avance-aviso err'; return; }
+
+  try {
+    await SB.upsertar('avance_desarrollo_diario', [{ fecha: fecha, metros_acum: metros }], 'fecha');
+    av.textContent = 'Guardado.'; av.className = 'avance-aviso ok';
+    await cargarAvanceDesarrollo();
+    setTimeout(() => toggleAvanceForm(false), 900);
+  } catch(e){
+    av.textContent = e.message === '__SIN_SENAL__'
+      ? 'Sin señal: no se pudo guardar. Intenta de nuevo con conexión.'
+      : (e.message || 'No se pudo guardar.');
+    av.className = 'avance-aviso err';
+  }
 }
 
 function salir(){
