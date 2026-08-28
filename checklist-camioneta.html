@@ -525,7 +525,7 @@ async function generarPDF(previo){
     notaEl.innerHTML = '<span style="color:#888;">Guardando en Supabase...</span>';
     notaEl.style.color = '';
     try{
-      await guardarReportePDF({
+      const _filaGuardada = await guardarReportePDF({
         tipoReporte: 'checklist-camioneta',
         correlativo: corr,
         claveVerificacion: claveQR,
@@ -535,9 +535,11 @@ async function generarPDF(previo){
         nombreArchivo: nombreArch
       });
       guardadoHtml = '<br><span style="color:#2e7d32;">Guardado en Supabase &#10003;</span>';
+      alert('DEBUG: guardado OK en Supabase. id=' + (_filaGuardada && _filaGuardada.id));
     }catch(err){
       console.warn('Supabase: no se pudo guardar el reporte.', err);
       guardadoHtml = '<br><span style="color:#c0392b;">No se pudo guardar en la base: ' + (err && err.message ? err.message : err) + '</span>';
+      alert('DEBUG: ERROR al guardar en Supabase: ' + (err && err.message ? err.message : err));
     }
   }
   doc.save(nombreArch);
