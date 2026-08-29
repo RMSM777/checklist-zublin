@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Agregar acceso a Plano DT</title>
+<style>
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+        max-width:560px; margin:40px auto; padding:0 20px; color:#1B1D21; line-height:1.5; }
+  h1{ font-size:20px; }
+  p{ font-size:14px; color:#444; }
+  .caja{ background:#F2F3F5; border:1px solid #E3E5E8; border-radius:12px; padding:20px; margin-top:20px; }
+  input[type=file]{ margin:14px 0; }
+  button{ background:#f5851f; color:#fff; border:none; border-radius:8px; padding:11px 18px;
+          font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; }
+  button:disabled{ opacity:.45; cursor:not-allowed; }
+  .estado{ margin-top:14px; font-size:13.5px; font-weight:600; }
+  .ok{ color:#2E7D32; }
+  .err{ color:#C62828; }
+  code{ background:#eee; padding:1px 5px; border-radius:4px; font-size:12.5px; }
+</style>
+</head>
+<body>
+
+<h1>Agregar el acceso a "Plano de ubicación DT"</h1>
+<p>
+  Esta paginita hace UN solo cambio en tu <code>app-inicio.html</code>: agrega el
+  botón de acceso a la nueva pantalla <code>plano-dt.html</code> en la sección
+  "Reportes". No toca nada más del archivo — en particular, no toca el logo
+  incrustado, así se evita cualquier riesgo de dañarlo al editarlo a mano.
+</p>
+
+<div class="caja">
+  <div><b>1.</b> Elegí tu archivo <code>app-inicio.html</code> (el que ya tenés en GitHub / tu compu):</div>
+  <input type="file" id="archivo" accept=".html">
+  <div><b>2.</b> <button id="btnProcesar" disabled>Agregar el acceso y descargar</button></div>
+  <div class="estado" id="estado"></div>
+</div>
+
+<script>
+const inputArchivo = document.getElementById('archivo');
+const btn = document.getElementById('btnProcesar');
+const estado = document.getElementById('estado');
+
+const LINEA_EXISTENTE = 'class="herr destacada" href="ciz-dt-conectado.html"';
+const LINEA_NUEVA = '\n        <a class="herr destacada" href="plano-dt.html"><span class="emo">&#128506;</span><span class="cuerpo"><span class="nom">Plano de ubicación DT</span><span class="sub">Dónde quedaron los DT y las caminatas · solo lectura</span></span><span class="flecha">&rsaquo;</span></a>';
+
+let textoOriginal = null;
+let nombreArchivo = 'app-inicio.html';
+
+inputArchivo.addEventListener('change', () => {
+  const f = inputArchivo.files[0];
+  estado.textContent = '';
+  estado.className = 'estado';
+  if(!f){ btn.disabled = true; return; }
+  nombreArchivo = f.name;
+  const reader = new FileReader();
+  reader.onload = () => {
+    textoOriginal = reader.result;
+    if(!textoOriginal.includes(LINEA_EXISTENTE)){
+      estado.textContent = 'Este archivo no parece ser el app-inicio.html correcto (no encontré la línea de Caminatas · Detalles de Terminación). Revisa que elegiste el archivo correcto.';
+      estado.className = 'estado err';
+      btn.disabled = true;
+      return;
+    }
+    if(textoOriginal.includes('plano-dt.html')){
+      estado.textContent = 'Este archivo YA tiene el acceso a plano-dt.html agregado. No hace falta procesarlo de nuevo, pero si igual descargas quedará exactamente igual.';
+      estado.className = 'estado ok';
+    }
+    btn.disabled = false;
+  };
+  reader.readAsText(f, 'utf-8');
+});
+
+btn.addEventListener('click', () => {
+  if(!textoOriginal) return;
+  let resultado = textoOriginal;
+  if(!resultado.includes('plano-dt.html')){
+    const idx = resultado.indexOf(LINEA_EXISTENTE);
+    const finLinea = resultado.indexOf('</a>', idx) + '</a>'.length;
+    resultado = resultado.slice(0, finLinea) + LINEA_NUEVA + resultado.slice(finLinea);
+  }
+  const blob = new Blob([resultado], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nombreArchivo;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  estado.textContent = 'Listo — se descargó ' + nombreArchivo + ' con el acceso agregado. Ese archivo ya está listo para subir a GitHub tal cual.';
+  estado.className = 'estado ok';
+});
+</script>
+</body>
+</html>
