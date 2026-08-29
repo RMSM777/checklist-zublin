@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Plano de ubicación DT · QC Digital</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d1526">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Plano DT">
+<script src="marca.js"></script>
+<style>
+  :root{
+    --rojo:#0d1526; --acento:#f5851f;
+    --ok:#2E7D32; --ok-suave:#EAF3EB;
+    --alerta:#B26A00; --alerta-suave:#FBF1E0;
+    --critico:#C62828; --critico-suave:#FBEBEA;
+    --camin:#1565C0; --camin-suave:#E8F0FB;
+    --fondo:#F2F3F5; --tarjeta:#fff; --linea:#E3E5E8;
+    --texto:#1B1D21; --tenue:#6B7078;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{
+    margin:0; background:var(--fondo); color:var(--texto);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    font-size:15px; line-height:1.5;
+  }
+  .wrap{ max-width:760px; margin:0 auto; }
+
+  .top{
+    background:var(--rojo); color:#fff; padding:12px 16px;
+    padding-top:calc(12px + env(safe-area-inset-top));
+    display:flex; align-items:center; gap:10px;
+  }
+  .top a.volver{ color:#fff; text-decoration:none; font-size:20px; line-height:1; flex:none; padding:4px 2px; }
+  .top .tit{ flex:1; min-width:0; }
+  .top .tit .nom{ font-size:15.5px; font-weight:700; }
+  .top .tit .sub{ font-size:11px; opacity:.75; margin-top:1px; }
+
+  .estado-linea{
+    display:flex; align-items:center; gap:7px; padding:6px 16px;
+    font-size:11.5px; background:var(--ok-suave); color:#2b5c2e;
+    border-bottom:1px solid var(--linea);
+  }
+  .estado-linea.off{ background:var(--alerta-suave); color:#7a4a05; }
+  .estado-linea .punto{ width:7px; height:7px; border-radius:50%; background:var(--ok); flex:none; }
+  .estado-linea.off .punto{ background:var(--alerta); }
+
+  section{ padding:12px 14px; }
+
+  /* ---------- Tabs de nivel ---------- */
+  .niveles{ display:flex; gap:6px; overflow-x:auto; padding:10px 14px 0; }
+  .niveles button{
+    flex:none; border:1px solid var(--linea); background:var(--tarjeta); color:var(--tenue);
+    font-family:inherit; font-size:12.5px; font-weight:700; padding:8px 13px; border-radius:20px;
+    cursor:pointer; white-space:nowrap;
+  }
+  .niveles button.act{ background:var(--acento); border-color:var(--acento); color:#fff; }
+
+  /* ---------- Leyenda ---------- */
+  .leyenda{ display:flex; flex-wrap:wrap; gap:10px; font-size:11px; color:var(--tenue); padding:0 14px 8px; }
+  .leyenda span{ display:inline-flex; align-items:center; gap:5px; }
+  .leyenda i{ width:9px; height:9px; border-radius:50%; display:inline-block; flex:none; }
+
+  /* ---------- Visor del plano ---------- */
+  .visor{
+    position:relative; overflow:hidden; touch-action:none;
+    background:#fff; border-top:1px solid var(--linea); border-bottom:1px solid var(--linea);
+    height:60vh; min-height:340px;
+  }
+  .visor-lienzo{
+    position:absolute; left:0; top:0; transform-origin:0 0;
+    width:2000px; /* ancho de referencia; alto se ajusta solo por el aspect-ratio de la imagen */
+  }
+  .visor-lienzo img{ display:block; width:100%; height:auto; pointer-events:none; user-select:none; -webkit-user-drag:none; }
+  .visor.armado{ cursor:crosshair; }
+
+  .pin{
+    position:absolute; width:15px; height:15px; margin:-7.5px 0 0 -7.5px;
+    border-radius:50%; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.35);
+    cursor:pointer;
+  }
+  .pin.cerrado{ background:var(--ok); }
+  .pin.abierto{ background:var(--alerta); }
+  .pin.atrasado{ background:var(--critico); }
+  .pin.caminado{ background:var(--camin); }
+
+  .visor-controles{
+    position:absolute; right:8px; bottom:8px; display:flex; flex-direction:column; gap:6px; z-index:5;
+  }
+  .visor-controles button{
+    width:34px; height:34px; border-radius:9px; border:1px solid var(--linea); background:#fff;
+    font-size:17px; font-weight:700; color:var(--texto); cursor:pointer; font-family:inherit;
+  }
+  .visor-vacio{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    color:var(--tenue); font-size:13px; text-align:center; padding:20px;
+  }
+
+  .aviso-armado{
+    display:none; background:var(--acento); color:#fff; font-size:12.5px; font-weight:600;
+    padding:9px 14px; text-align:center;
+  }
+  .aviso-armado.act{ display:block; }
+
+  /* ---------- Popover del pin ---------- */
+  .popover{
+    display:none; background:var(--tarjeta); border:1px solid var(--linea); border-radius:11px;
+    padding:12px 14px; margin:10px 14px 0; font-size:13px;
+  }
+  .popover.act{ display:block; }
+  .popover .cod{ font-weight:800; font-size:13px; }
+  .popover .nom{ color:var(--tenue); font-size:12px; margin-top:2px; }
+  .popover .fila{ display:flex; justify-content:space-between; margin-top:8px; font-size:12.5px; }
+  .popover .cerrar{ float:right; color:var(--tenue); cursor:pointer; font-size:18px; line-height:1; }
+
+  /* ---------- Ubicar frentes ---------- */
+  .ubicar-caja{
+    background:var(--tarjeta); border:1px solid var(--linea); border-radius:11px;
+    padding:12px 14px; margin:10px 14px;
+  }
+  .ubicar-tit{ font-weight:700; font-size:13.5px; display:flex; justify-content:space-between; align-items:center; }
+  .ubicar-nota{ font-size:11.5px; color:var(--tenue); margin-top:4px; line-height:1.45; }
+  .ubicar-lista{ margin-top:9px; display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto; }
+  .ubicar-item{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    border:1px solid var(--linea); border-radius:9px; padding:8px 10px; font-size:12.5px;
+  }
+  .ubicar-item b{ display:block; font-size:12px; }
+  .ubicar-item span{ color:var(--tenue); font-size:11px; }
+  .ubicar-item button{
+    flex:none; border:none; background:var(--acento); color:#fff; font-weight:700; font-size:11.5px;
+    padding:7px 11px; border-radius:8px; cursor:pointer; font-family:inherit;
+  }
+  .ubicar-item.armado-item button{ background:var(--critico); }
+  .btn-toggle-ubicar{
+    border:1px solid var(--linea); background:var(--fondo); color:var(--texto); font-weight:700;
+    font-size:12px; padding:7px 12px; border-radius:8px; cursor:pointer; font-family:inherit;
+  }
+
+  .vacio{ background:var(--tarjeta); border:1px dashed var(--linea); border-radius:11px;
+          padding:22px 16px; text-align:center; color:var(--tenue); font-size:13px; line-height:1.5; margin:10px 14px; }
+
+  @media (min-width:860px){
+    body{ padding-top:28px; padding-left:16px; padding-right:16px; }
+    .wrap{ border-radius:16px; overflow:hidden; box-shadow:0 10px 34px rgba(13,21,38,.14); border:1px solid var(--linea); margin-bottom:24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="top">
+    <a class="volver" href="app-inicio.html">&larr;</a>
+    <div class="tit">
+      <div class="nom">Plano de ubicaci&oacute;n DT</div>
+      <div class="sub">D&oacute;nde quedaron los DT y las caminatas &middot; solo lectura</div>
+    </div>
+  </div>
+
+  <div class="estado-linea" id="estadoLinea">
+    <span class="punto"></span>
+    <span id="estadoTxt">Conectado</span>
+  </div>
+
+  <div class="niveles" id="niveles"></div>
+  <div class="leyenda">
+    <span><i style="background:var(--critico)"></i> DT atrasado</span>
+    <span><i style="background:var(--alerta)"></i> DT abierto</span>
+    <span><i style="background:var(--ok)"></i> DT cerrado</span>
+    <span><i style="background:var(--camin)"></i> Solo caminado (sin DT)</span>
+  </div>
+
+  <div class="aviso-armado" id="avisoArmado">Toca el plano en el punto donde cae este frente&hellip; <span id="avisoArmadoNombre"></span></div>
+
+  <div class="visor" id="visor">
+    <div class="visor-lienzo" id="visorLienzo">
+      <img id="visorImg" alt="Plano de nivel" draggable="false">
+      <div id="capaPines"></div>
+    </div>
+    <div class="visor-controles">
+      <button type="button" onclick="zoomBoton(1.3)">+</button>
+      <button type="button" onclick="zoomBoton(0.77)">&minus;</button>
+    </div>
+    <div class="visor-vacio" id="visorVacio" style="display:none;">Cargando plano&hellip;</div>
+  </div>
+
+  <div class="popover" id="popover">
+    <span class="cerrar" onclick="cerrarPopover()">&times;</span>
+    <div class="cod" id="popCod">&mdash;</div>
+    <div class="nom" id="popNom"></div>
+    <div class="fila"><span>DT cerrados</span><b id="popCerrados">0</b></div>
+    <div class="fila"><span>DT abiertos</span><b id="popAbiertos">0</b></div>
+    <div class="fila"><span>DT atrasados</span><b id="popAtrasados">0</b></div>
+    <div class="fila"><span>Caminatas</span><b id="popCaminatas">0</b></div>
+  </div>
+
+  <div class="ubicar-caja">
+    <div class="ubicar-tit">
+      <span>Ubicar frentes en el plano</span>
+      <button class="btn-toggle-ubicar" id="btnToggleUbicar" onclick="toggleUbicar()">Mostrar</button>
+    </div>
+    <div class="ubicar-nota" id="ubicarNota" style="display:none;">
+      Frentes con DT o caminatas en este nivel que todav&iacute;a no est&aacute;n marcados en el plano.
+      Toca &laquo;Ubicar&raquo;, despu&eacute;s toca el punto exacto en el plano de arriba.
+    </div>
+    <div class="ubicar-lista" id="ubicarLista" style="display:none;"></div>
+  </div>
+
+  <div class="vacio" id="sinDatos" style="display:none;">
+    No hay DT ni caminatas registrados en este nivel todav&iacute;a.
+  </div>
+</div>
+
+<script>
+const CATALOGO_LABORES = [{"codigo":"221161F-01-01","nombre":"CRUZADO PRINCIPAL DE PRODUCCION NORTE, INCLUYE FRONTONES","wbs":"221000 [INFRAESTRUCTURA DE NIVEL]","area":"221100 [INFRAESTRUCTURA DE NIVEL]","subarea":"221160F [ACCESO DE NIVEL]","sistema":"221161F-01 [CRUZADO PRINCIPAL DE PRODUCCION NORTE ]","subsistema":"221161F-01-01 [CRUZADO PRINCIPAL DE PRODUCCION NORTE, INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65505_221161F-01-01.pdf"},{"codigo":"221162F-01-01","nombre":"GALERIAS DE CARGA Y DESCARGA, ESTACIONAMIENTO, TALLERES, OFICINAS,BAÑOS Y COMEDOR MB N06 , INCLUYE FRONTONES","wbs":"221000 [INFRAESTRUCTURA DE NIVEL]","area":"221100 [INFRAESTRUCTURA DE NIVEL]","subarea":"221160F [ACCESO DE NIVEL]","sistema":"221162F-01 [ACCESO A BARRIO INDUSTRIAL SUBTE NORTE ]","subsistema":"221162F-01-01 [GALERIAS DE CARGA Y DESCARGA, ESTACIONAMIENTO, TALLERES, OFICINAS,BAÑOS Y COMEDOR MB N06 , INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65506_221162F-01-01.pdf"},{"codigo":"221323F-01-01","nombre":"INTERSECCIONES PERNOS CABLES C-45, C-47 NP MB N51","wbs":"221000 [INFRAESTRUCTURA DE NIVEL]","area":"221300 [ACCESOS A SUBNIVELES]","subarea":"221320F [FACILIDADES CONSTRUCTIVA PARA PREPARACION MINERA INICIAL]","sistema":"221323F-01 [ACCESO DESDE RAMPA DE EXPLORACION A SUBNIVEL DE PRODUCCION ]","subsistema":"221323F-01-01 [INTERSECCIONES PERNOS CABLES C-45, C-47 NP MB N51 ]","clasificacion":"Sistema No Operable","plano":"1673_66701_221323F-01-01.pdf"},{"codigo":"221340F-01-06","nombre":"RAMPA ACCESO NP-NH (N52_N06); INCLUYE GALERIA ESTACIONAMIENTO Y CABLES EN INTERSECCIÓN CON XC (CONTINUIDAD)","wbs":"221000 [INFRAESTRUCTURA DE NIVEL]","area":"221300 [ACCESOS A SUBNIVELES]","subarea":"221340F [ACCESOS A SUBNIVEL DE PRODUCCION DESDE XC PRODUCCION PPAL]","sistema":"221340F-01 [ACCESO A SUBNIVEL DE PRODUCCION MB N04-N05 ]","subsistema":"221340F-01-06 [RAMPA ACCESO NP-NH (N52_N06); INCLUYE GALERIA ESTACIONAMIENTO Y CABLES EN INTERSECCIÓN CON XC (CONTINUIDAD) ]","clasificacion":"Sistema No Operable","plano":"1673_64730_221340F-01-06.pdf"},{"codigo":"221345F-02-01","nombre":"C-53-PD-N51-N06 CONTINUIDAD, INCLUYE FRM-P-14 Y FR-SEU-PD-N05-01","wbs":"221000 [INFRAESTRUCTURA DE NIVEL]","area":"221300 [ACCESOS A SUBNIVELES]","subarea":"221340F [ACCESOS A SUBNIVEL DE PRODUCCION DESDE XC PRODUCCION PPAL]","sistema":"221345F-02 [ACCESO A SUBNIVEL DE PRODUCCION 05 ]","subsistema":"221345F-02-01 [C-53-PD-N51-N06 CONTINUIDAD, INCLUYE FRM-P-14 Y FR-SEU-PD-N05-01 ]","clasificacion":"Sistema No Operable","plano":"1673_64728_221345F-02-01.pdf"},{"codigo":"221345F-02-02","nombre":"C-53-PD-N52-N62 CONTINUIDAD, INCLUYE FRM-P-02 Y FRM-P-15","wbs":"221000 [INFRAESTRUCTURA DE NIVEL]","area":"221300 [ACCESOS A SUBNIVELES]","subarea":"221340F [ACCESOS A SUBNIVEL DE PRODUCCION DESDE XC PRODUCCION PPAL]","sistema":"221345F-02 [ACCESO A SUBNIVEL DE PRODUCCION 05 ]","subsistema":"221345F-02-02 [C-53-PD-N52-N62 CONTINUIDAD, INCLUYE FRM-P-02 Y FRM-P-15 ]","clasificacion":"Sistema No Operable","plano":"1673_64754_221345F-02-02.pdf"},{"codigo":"222612F-02-01","nombre":"C-41-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-01 [C-41-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64715_222612F-02-01.pdf"},{"codigo":"222612F-02-02","nombre":"C-43-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-02 [C-43-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64716_222612F-02-02.pdf"},{"codigo":"222612F-02-03","nombre":"C-45-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-03 [C-45-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64717_222612F-02-03.pdf"},{"codigo":"222612F-02-04","nombre":"C-47-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-04 [C-47-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64718_222612F-02-04.pdf"},{"codigo":"222612F-02-05","nombre":"C-49-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-05 [C-49-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64719_222612F-02-05.pdf"},{"codigo":"222612F-02-06","nombre":"C-51-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-06 [C-51-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64740_222612F-02-06.pdf"},{"codigo":"222612F-02-07","nombre":"C-53-NH-N51 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222600 [MB - N51 N1]","subarea":"222610F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"222612F-02 [CALLES ]","subsistema":"222612F-02-07 [C-53-NH-N51 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64741_222612F-02-07.pdf"},{"codigo":"222712F-02-01","nombre":"C-41-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-01 [C-41-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64744_222712F-02-01.pdf"},{"codigo":"222712F-02-02","nombre":"C-43-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-02 [C-43-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64745_222712F-02-02.pdf"},{"codigo":"222712F-02-03","nombre":"C-45-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-03 [C-45-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64746_222712F-02-03.pdf"},{"codigo":"222712F-02-04","nombre":"C-47-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-04 [C-47-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64747_222712F-02-04.pdf"},{"codigo":"222712F-02-05","nombre":"C-49-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-05 [C-49-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64723_222712F-02-05.pdf"},{"codigo":"222712F-02-06","nombre":"C-51-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-06 [C-51-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64748_222712F-02-06.pdf"},{"codigo":"222712F-02-07","nombre":"C-53-NH-N52 CONTINUIDAD, INCLUYE FRM-H-03","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-07 [C-53-NH-N52 CONTINUIDAD, INCLUYE FRM-H-03 ]","clasificacion":"Sistema No Operable","plano":"1673_64724_222712F-02-07.pdf"},{"codigo":"222712F-02-08","nombre":"C-53 E-NH-N52 CONTINUIDAD","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222700 [MB - N52 N1]","subarea":"222710F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"222712F-02 [CALLES ]","subsistema":"222712F-02-08 [C-53 E-NH-N52 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65540_222712F-02-08.pdf"},{"codigo":"222812F-01-01","nombre":"CALLE 55 NH-N06 TRAMO 01","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-01 [CALLES TRAMO 01 ]","subsistema":"222812F-01-01 [CALLE 55 NH-N06 TRAMO 01 ]","clasificacion":"Sistema No Operable","plano":"1673_65320_222812F-01-01.pdf"},{"codigo":"222812F-01-02","nombre":"CALLE 57 NH-N06 TRAMO 01","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-01 [CALLES TRAMO 01 ]","subsistema":"222812F-01-02 [CALLE 57 NH-N06 TRAMO 01 ]","clasificacion":"Sistema No Operable","plano":"1673_65321_222812F-01-02.pdf"},{"codigo":"222812F-01-03","nombre":"CALLE 59 NH-N06 TRAMO 01","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-01 [CALLES TRAMO 01 ]","subsistema":"222812F-01-03 [CALLE 59 NH-N06 TRAMO 01 ]","clasificacion":"Sistema No Operable","plano":"1673_65301_222812F-01-03.pdf"},{"codigo":"222812F-01-04","nombre":"CALLE 61 NH-N06 TRAMO 01","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-01 [CALLES TRAMO 01 ]","subsistema":"222812F-01-04 [CALLE 61 NH-N06 TRAMO 01 ]","clasificacion":"Sistema No Operable","plano":"1673_65302_222812F-01-04.pdf"},{"codigo":"222812F-01-05","nombre":"CALLE 63 NH-N06 TRAMO 01, INCLUYE FR-HD-N06-03@04","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-01 [CALLES TRAMO 01 ]","subsistema":"222812F-01-05 [CALLE 63 NH-N06 TRAMO 01, INCLUYE FR-HD-N06-03@04 ]","clasificacion":"Sistema No Operable","plano":"1673_65303_222812F-01-05.pdf"},{"codigo":"222812F-01-06","nombre":"CALLE 65 NH-N06 TRAMO 01","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-01 [CALLES TRAMO 01 ]","subsistema":"222812F-01-06 [CALLE 65 NH-N06 TRAMO 01 ]","clasificacion":"Sistema No Operable","plano":"1673_65304_222812F-01-06.pdf"},{"codigo":"222812F-02-01","nombre":"CALLE 55 NH-N06 TRAMO 02","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-02 [CALLES TRAMO 02 ]","subsistema":"222812F-02-01 [CALLE 55 NH-N06 TRAMO 02 ]","clasificacion":"Sistema No Operable","plano":"1673_65322_222812F-02-01.pdf"},{"codigo":"222812F-02-02","nombre":"CALLE 57 NH-N06 TRAMO 02","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-02 [CALLES TRAMO 02 ]","subsistema":"222812F-02-02 [CALLE 57 NH-N06 TRAMO 02 ]","clasificacion":"Sistema No Operable","plano":"1673_65323_222812F-02-02.pdf"},{"codigo":"222812F-02-03","nombre":"CALLE 59 NH-N06 TRAMO 02","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-02 [CALLES TRAMO 02 ]","subsistema":"222812F-02-03 [CALLE 59 NH-N06 TRAMO 02 ]","clasificacion":"Sistema No Operable","plano":"1673_65324_222812F-02-03.pdf"},{"codigo":"222812F-02-04","nombre":"CALLE 61 NH-N06 TRAMO 02","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-02 [CALLES TRAMO 02 ]","subsistema":"222812F-02-04 [CALLE 61 NH-N06 TRAMO 02 ]","clasificacion":"Sistema No Operable","plano":"1673_65325_222812F-02-04.pdf"},{"codigo":"222812F-02-05","nombre":"CALLE 63 NH-N06 TRAMO 02, INCLUYE FR-HD-N06-07@08","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-02 [CALLES TRAMO 02 ]","subsistema":"222812F-02-05 [CALLE 63 NH-N06 TRAMO 02, INCLUYE FR-HD-N06-07@08 ]","clasificacion":"Sistema No Operable","plano":"1673_65326_222812F-02-05.pdf"},{"codigo":"222812F-02-06","nombre":"CALLE 65 NH-N06 TRAMO 02","wbs":"222000 [UNIDADES DE EXPLOTACION SECTOR NORTE]","area":"222800 [MB - N06 N1]","subarea":"222810F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"222812F-02 [CALLES TRAMO 02 ]","subsistema":"222812F-02-06 [CALLE 65 NH-N06 TRAMO 02 ]","clasificacion":"Sistema No Operable","plano":"1673_65305_222812F-02-06.pdf"},{"codigo":"224111F-01-01","nombre":"CAB-HD-N51-01 CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224110F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"224111F-01 [CABECERAS ]","subsistema":"224111F-01-01 [CAB-HD-N51-01 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64749_224111F-01-01.pdf"},{"codigo":"224111F-01-02","nombre":"CAB-HD-N51-02 CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224110F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"224111F-01 [CABECERAS ]","subsistema":"224111F-01-02 [CAB-HD-N51-02 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64750_224111F-01-02.pdf"},{"codigo":"224111F-01-03","nombre":"CAB-HD-N51-03 CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224110F [SUBNIVEL DE HUNDIMIENTO MB-N51]","sistema":"224111F-01 [CABECERAS ]","subsistema":"224111F-01-03 [CAB-HD-N51-03 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_64751_224111F-01-03.pdf"},{"codigo":"224121F-01-01","nombre":"CABECERA CAB-HD-N52-03 CONTINUIDAD, INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224120F [SUBNIVEL DE HUNDIMIENTO MB-N52]","sistema":"224121F-01 [CABECERAS ]","subsistema":"224121F-01-01 [CABECERA CAB-HD-N52-03 CONTINUIDAD, INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_64743_224121F-01-01.pdf"},{"codigo":"224131F-01-01","nombre":"CAB-HD-N6-01, INCLUYE FRONTONES FRE-HD-N6-01 Y FRE-HD-N6-03","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224130F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"224131F-01 [CABECERAS MB-N61 ]","subsistema":"224131F-01-01 [CAB-HD-N6-01, INCLUYE FRONTONES FRE-HD-N6-01 Y FRE-HD-N6-03 ]","clasificacion":"Sistema No Operable","plano":"1673_64947_224131F-01-01.pdf"},{"codigo":"224131F-01-02","nombre":"CAB-HD-N6-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224130F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"224131F-01 [CABECERAS MB-N61 ]","subsistema":"224131F-01-02 [CAB-HD-N6-02 ]","clasificacion":"Sistema No Operable","plano":"1673_64948_224131F-01-02.pdf"},{"codigo":"224131F-01-03","nombre":"CAB-HD-N6-03","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224130F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"224131F-01 [CABECERAS MB-N61 ]","subsistema":"224131F-01-03 [CAB-HD-N6-03 ]","clasificacion":"Sistema No Operable","plano":"1673_64949_224131F-01-03.pdf"},{"codigo":"224131F-02-01","nombre":"CAB-HD-N6-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224130F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"224131F-02 [CABECERAS MB-N62 ]","subsistema":"224131F-02-01 [CAB-HD-N6-04 ]","clasificacion":"Sistema No Operable","plano":"1673_64969_224131F-02-01.pdf"},{"codigo":"224131F-02-02","nombre":"CAB-HD-N6-05, INCLUYE FRONTÓN FRI-HD-N06-05","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224130F [NIVEL DE HUNDIMIENTO MB-N06]","sistema":"224131F-02 [CABECERAS MB-N62 ]","subsistema":"224131F-02-02 [CAB-HD-N6-05, INCLUYE FRONTÓN FRI-HD-N06-05 ]","clasificacion":"Sistema No Operable","plano":"1673_64970_224131F-02-02.pdf"},{"codigo":"224141F-01-01","nombre":"CAB-HD-N63-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224140F [NIVEL DE HUNDIMIENTO MB-N63]","sistema":"224141F-01 [CABECERAS ]","subsistema":"224141F-01-01 [CAB-HD-N63-01 ]","clasificacion":"Sistema No Operable","plano":"1673_64943_224141F-01-01.pdf"},{"codigo":"224141F-01-02","nombre":"CAB-HD-N63-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224140F [NIVEL DE HUNDIMIENTO MB-N63]","sistema":"224141F-01 [CABECERAS ]","subsistema":"224141F-01-02 [CAB-HD-N63-02 ]","clasificacion":"Sistema No Operable","plano":"1673_64944_224141F-01-02.pdf"},{"codigo":"224141F-01-03","nombre":"CAB-HD-N63-03","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224140F [NIVEL DE HUNDIMIENTO MB-N63]","sistema":"224141F-01 [CABECERAS ]","subsistema":"224141F-01-03 [CAB-HD-N63-03 ]","clasificacion":"Sistema No Operable","plano":"1673_64945_224141F-01-03.pdf"},{"codigo":"224141F-01-04","nombre":"CAB-HD-N63-04, INCLUYE FRE-HD-N06-05","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224100 [NIVEL DE HUNDIMIENTO]","subarea":"224140F [NIVEL DE HUNDIMIENTO MB-N63]","sistema":"224141F-01 [CABECERAS ]","subsistema":"224141F-01-04 [CAB-HD-N63-04, INCLUYE FRE-HD-N06-05 ]","clasificacion":"Sistema No Operable","plano":"1673_64946_224141F-01-04.pdf"},{"codigo":"224212F-02-01","nombre":"C-47-PD-N51, INCLUYE ZANJAS AL SUR Y ZANJAS 8 Y 9 AL SUR C-45, FRI-PD-N51-03@04, CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224210F [MB-N51]","sistema":"224212F-02 [CALLES ]","subsistema":"224212F-02-01 [C-47-PD-N51, INCLUYE ZANJAS AL SUR Y ZANJAS 8 Y 9 AL SUR C-45, FRI-PD-N51-03@04, CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65080_224212F-02-01.pdf"},{"codigo":"224212F-02-02","nombre":"C-49-PD-N51, INCLUYE ZANJAS SUR, FRE-PD-N51-04 CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224210F [MB-N51]","sistema":"224212F-02 [CALLES ]","subsistema":"224212F-02-02 [C-49-PD-N51, INCLUYE ZANJAS SUR, FRE-PD-N51-04 CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65081_224212F-02-02.pdf"},{"codigo":"224212F-02-03","nombre":"C-51-PD-N51, INCLUYE ZANJAS NORTE Y SUR, FRI-PD-N51-06, CONEX-PD-N51-03A CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224210F [MB-N51]","sistema":"224212F-02 [CALLES ]","subsistema":"224212F-02-03 [C-51-PD-N51, INCLUYE ZANJAS NORTE Y SUR, FRI-PD-N51-06, CONEX-PD-N51-03A CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65082_224212F-02-03.pdf"},{"codigo":"224215F-05-01","nombre":"PVAC-PD-N51-1@4 / FRE-PD-N51-07,08 Y 10","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224210F [MB-N51]","sistema":"224215F-05 [PUNTOS DE VACIADO DE PALAS (LHD) ]","subsistema":"224215F-05-01 [PVAC-PD-N51-1@4 / FRE-PD-N51-07,08 Y 10 ]","clasificacion":"Sistema No Operable","plano":"1673_65124_224215F-05-01.pdf"},{"codigo":"224222F-02-01","nombre":"C-45-PD-N52, INCLUYE ZANJAS 20@23 AL SUR CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224220F [MB-N52]","sistema":"224222F-02 [CALLES ]","subsistema":"224222F-02-01 [C-45-PD-N52, INCLUYE ZANJAS 20@23 AL SUR CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65083_224222F-02-01.pdf"},{"codigo":"224222F-02-02","nombre":"C-47-PD-N52, INCLUYE ZANJAS AL SUR CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224220F [MB-N52]","sistema":"224222F-02 [CALLES ]","subsistema":"224222F-02-02 [C-47-PD-N52, INCLUYE ZANJAS AL SUR CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65084_224222F-02-02.pdf"},{"codigo":"224222F-02-03","nombre":"C-49-PD-N52, INCLUYE ZANJAS SUR CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224220F [MB-N52]","sistema":"224222F-02 [CALLES ]","subsistema":"224222F-02-03 [C-49-PD-N52, INCLUYE ZANJAS SUR CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65085_224222F-02-03.pdf"},{"codigo":"224222F-02-04","nombre":"C-51-PD-N52, INCLUYE ZANJAS SUR Y NORTE CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224220F [MB-N52]","sistema":"224222F-02 [CALLES ]","subsistema":"224222F-02-04 [C-51-PD-N52, INCLUYE ZANJAS SUR Y NORTE CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65086_224222F-02-04.pdf"},{"codigo":"224225F-05-01","nombre":"PVAC-PD-N52-1@5 / FRE-PD-N6-15@17","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224220F [MB-N52]","sistema":"224225F-05 [PUNTOS DE VACIADO DE PALAS (LHD) ]","subsistema":"224225F-05-01 [PVAC-PD-N52-1@5 / FRE-PD-N6-15@17 ]","clasificacion":"Sistema No Operable","plano":"1673_65102_224225F-05-01.pdf"},{"codigo":"224231F-01-01","nombre":"CAB-PD-N6-01 / FRI-PD-N6-01 / RE-PD-N6-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224231F-01 [CABECERAS ]","subsistema":"224231F-01-01 [CAB-PD-N6-01 / FRI-PD-N6-01 / RE-PD-N6-02 ]","clasificacion":"Sistema No Operable","plano":"1673_65145_224231F-01-01.pdf"},{"codigo":"224231F-01-02","nombre":"CAB-PD-N6-02 / FRRISES-PD-N6-01 / RE-PD-N6-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224231F-01 [CABECERAS ]","subsistema":"224231F-01-02 [CAB-PD-N6-02 / FRRISES-PD-N6-01 / RE-PD-N6-04 ]","clasificacion":"Sistema No Operable","plano":"1673_65146_224231F-01-02.pdf"},{"codigo":"224232F-01-02","nombre":"C-55-NP-N6 TRAMO 1, ZANJAS 01@16 AL SUR, EMN-PD-N6-01, CONEX-PD-N6-01, FRE-PD-N6-01 Y 10, FRI-PD-N6-03","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-02 [C-55-NP-N6 TRAMO 1, ZANJAS 01@16 AL SUR, EMN-PD-N6-01, CONEX-PD-N6-01, FRE-PD-N6-01 Y 10, FRI-PD-N6-03 ]","clasificacion":"Sistema No Operable","plano":"1673_65100_224232F-01-02.pdf"},{"codigo":"224232F-01-03","nombre":"C-57-NP-N6 TRAMO 1, ZANJA 2 NORTE Y SUR Y ZANJAS SUR DE LA 3@16, FRE-PD-N6-02, FRI-PD-N6-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-03 [C-57-NP-N6 TRAMO 1, ZANJA 2 NORTE Y SUR Y ZANJAS SUR DE LA 3@16, FRE-PD-N6-02, FRI-PD-N6-04 ]","clasificacion":"Sistema No Operable","plano":"1673_65101_224232F-01-03.pdf"},{"codigo":"224232F-01-04","nombre":"C-59-NP-N6 TRAMO 1, ZANJAS AL SUR DE LA 3@16, FRE-PD-N6-03, FRI-PD-N6-05 EMN-PD-N6-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-04 [C-59-NP-N6 TRAMO 1, ZANJAS AL SUR DE LA 3@16, FRE-PD-N6-03, FRI-PD-N6-05 EMN-PD-N6-02 ]","clasificacion":"Sistema No Operable","plano":"1673_65120_224232F-01-04.pdf"},{"codigo":"224232F-01-05","nombre":"C-61-NP-N6 TRAMO 1 ZANJAS AL SUR DE LA 3@16, FRE-PD-N6-04, FRI-PD-N6-06","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-05 [C-61-NP-N6 TRAMO 1 ZANJAS AL SUR DE LA 3@16, FRE-PD-N6-04, FRI-PD-N6-06 ]","clasificacion":"Sistema No Operable","plano":"1673_65121_224232F-01-05.pdf"},{"codigo":"224232F-01-06","nombre":"C-63-NP-N6 TRAMO 1 ZANJAS AL SUR DE LA 4 @16, FRE-PD-N6-04, FRI-PD-N6-07, EMN-PD-N6-03","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-06 [C-63-NP-N6 TRAMO 1 ZANJAS AL SUR DE LA 4 @16, FRE-PD-N6-04, FRI-PD-N6-07, EMN-PD-N6-03 ]","clasificacion":"Sistema No Operable","plano":"1673_65122_224232F-01-06.pdf"},{"codigo":"224232F-01-07","nombre":"C-65-NP-N6 TRAMO 1 ZANJAS AL SUR Y AL NORTE DE LA 5 @16, FRE-PD-N6-06, FRI-PD-N6-08, EMN-PD-N6-04, CONEX-PD-N6-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-07 [C-65-NP-N6 TRAMO 1 ZANJAS AL SUR Y AL NORTE DE LA 5 @16, FRE-PD-N6-06, FRI-PD-N6-08, EMN-PD-N6-04, CONEX-PD-N6-02 ]","clasificacion":"Sistema No Operable","plano":"1673_65123_224232F-01-07.pdf"},{"codigo":"224232F-01-08","nombre":"C-67-NP-N6 TRAMO 1, FRI-PD-N6-02 Y 2A, FREM-PD-N6-01, FRE-PD-N63-01, RE-PD-N63-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-01-08 [C-67-NP-N6 TRAMO 1, FRI-PD-N6-02 Y 2A, FREM-PD-N6-01, FRE-PD-N63-01, RE-PD-N63-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65460_224232F-01-08.pdf"},{"codigo":"224232F-02-15","nombre":"ACC-PD-N6-00/CALLE 53 (TRAMO 1) / FRI-PD-N6-02 Y 2A / FREM-PD-N6-01 / FRE-PD-N63-01 / RE-PD-N63-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-01 [CALLES - TRAMO 1 ]","subsistema":"224232F-02-15 [ACC-PD-N6-00/CALLE 53 (TRAMO 1) / FRI-PD-N6-02 Y 2A / FREM-PD-N6-01 / FRE-PD-N63-01 / RE-PD-N63-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65140_224232F-02-15.pdf"},{"codigo":"224232F-02-01","nombre":"C-55-NP-N6 TRAMO 2 ZANJAS 17 @ 30 AL SUR, EMN-PD-N6-05, CONEX-PD-N6-03, FRE-PD-N6-17, FRI-PD-N6-10","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-01 [C-55-NP-N6 TRAMO 2 ZANJAS 17 @ 30 AL SUR, EMN-PD-N6-05, CONEX-PD-N6-03, FRE-PD-N6-17, FRI-PD-N6-10 ]","clasificacion":"Sistema No Operable","plano":"1673_65441_224232F-02-01.pdf"},{"codigo":"224232F-02-02","nombre":"C-57-NP-N6 TRAMO 2 ZANJAS 17 @ 31 AL SUR, FRE-PD-N6-11 Y 18, FRI-PD-N6-11","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-02 [C-57-NP-N6 TRAMO 2 ZANJAS 17 @ 31 AL SUR, FRE-PD-N6-11 Y 18, FRI-PD-N6-11 ]","clasificacion":"Sistema No Operable","plano":"1673_65461_224232F-02-02.pdf"},{"codigo":"224232F-02-03","nombre":"C-59-NP-N6 TRAMO 2 ZANJAS 17 @ 32 AL SUR, FRE-PD-N6-12 Y 19, FRI-PD-N6-12, EMN-PD-N6-06","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-03 [C-59-NP-N6 TRAMO 2 ZANJAS 17 @ 32 AL SUR, FRE-PD-N6-12 Y 19, FRI-PD-N6-12, EMN-PD-N6-06 ]","clasificacion":"Sistema No Operable","plano":"1673_65462_224232F-02-03.pdf"},{"codigo":"224232F-02-04","nombre":"C-61-NP-N6 TRAMO 2 ZANJAS 17, 19 @ 33 AL SUR, FRE-PD-N6-13 Y 20, FRI-PD-N6-13","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-04 [C-61-NP-N6 TRAMO 2 ZANJAS 17, 19 @ 33 AL SUR, FRE-PD-N6-13 Y 20, FRI-PD-N6-13 ]","clasificacion":"Sistema No Operable","plano":"1673_65442_224232F-02-04.pdf"},{"codigo":"224232F-02-05","nombre":"C-63-NP-N6 TRAMO 2 ZANJAS 17 @ 34 AL SUR, FRE-PD-N6-14 Y 21, FRI-PD-N6-14, EMN-PD-N6-07","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-05 [C-63-NP-N6 TRAMO 2 ZANJAS 17 @ 34 AL SUR, FRE-PD-N6-14 Y 21, FRI-PD-N6-14, EMN-PD-N6-07 ]","clasificacion":"Sistema No Operable","plano":"1673_65443_224232F-02-05.pdf"},{"codigo":"224232F-02-06","nombre":"C-65-NP-N6 TRAMO 2 ZANJAS 17@19 Y 21 @ 35 AL NORTE Y SUR, FRE-PD-N6-15, FRI-PD-N6-15","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-06 [C-65-NP-N6 TRAMO 2 ZANJAS 17@19 Y 21 @ 35 AL NORTE Y SUR, FRE-PD-N6-15, FRI-PD-N6-15 ]","clasificacion":"Sistema No Operable","plano":"1673_65444_224232F-02-06.pdf"},{"codigo":"224232F-02-07","nombre":"C-67-NP-N6 TRAMO 2, FRE-PD-N6-22 y 23, RE-PD-N63-02-EMN-PD-N6-08","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-07 [C-67-NP-N6 TRAMO 2, FRE-PD-N6-22 y 23, RE-PD-N63-02-EMN-PD-N6-08 ]","clasificacion":"Sistema No Operable","plano":"1673_65463_224232F-02-07.pdf"},{"codigo":"224232F-02-08","nombre":"FC-NP-N6 (C-57), TRASVASIJE, CONTINUIDAD","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224232F-02 [CALLES - TRAMO 2 ]","subsistema":"224232F-02-08 [FC-NP-N6 (C-57), TRASVASIJE, CONTINUIDAD ]","clasificacion":"Sistema No Operable","plano":"1673_65464_224232F-02-08.pdf"},{"codigo":"224235F-05-01","nombre":"PVAC-PD-N6-01@3 FRE-PD-N51-09 FRE-PD-N6-07 Y 09","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224235F-05 [PUNTO DE VACIADO DE PALAS (LHD) ]","subsistema":"224235F-05-01 [PVAC-PD-N6-01@3 FRE-PD-N51-09 FRE-PD-N6-07 Y 09 ]","clasificacion":"Sistema No Operable","plano":"1673_65142_224235F-05-01.pdf"},{"codigo":"224235F-05-02","nombre":"PVAC-PD-N6-04@6","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224235F-05 [PUNTO DE VACIADO DE PALAS (LHD) ]","subsistema":"224235F-05-02 [PVAC-PD-N6-04@6 ]","clasificacion":"Sistema No Operable","plano":"1673_65143_224235F-05-02.pdf"},{"codigo":"224235F-05-03","nombre":"PVAC-PD-N6-07@9 / FRE-PD-N6-24@26","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224230F [MB-N06]","sistema":"224235F-05 [PUNTO DE VACIADO DE PALAS (LHD) ]","subsistema":"224235F-05-03 [PVAC-PD-N6-07@9 / FRE-PD-N6-24@26 ]","clasificacion":"Sistema No Operable","plano":"1673_65144_224235F-05-03.pdf"},{"codigo":"224241F-01-01","nombre":"CAB-PD-N63-01, INCLUYE FRRISES-PD-N63-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224241F-01 [CABECERAS ]","subsistema":"224241F-01-01 [CAB-PD-N63-01, INCLUYE FRRISES-PD-N63-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65306_224241F-01-01.pdf"},{"codigo":"224241F-01-02","nombre":"CAB-PD-N63-02, INCLUYE FRI-PD-N63-06, RE-PD-N63-03, FREM-PD-N63-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224241F-01 [CABECERAS ]","subsistema":"224241F-01-02 [CAB-PD-N63-02, INCLUYE FRI-PD-N63-06, RE-PD-N63-03, FREM-PD-N63-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65307_224241F-01-02.pdf"},{"codigo":"224242F-01-01","nombre":"C-69 (TRAMO 01), INCLUYE ZANJAS 01@10 AL SUR, FRE-PD-N63-03","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224242F-01 [CALLES TRAMO 01 ]","subsistema":"224242F-01-01 [C-69 (TRAMO 01), INCLUYE ZANJAS 01@10 AL SUR, FRE-PD-N63-03 ]","clasificacion":"Sistema No Operable","plano":"1673_65327_224242F-01-01.pdf"},{"codigo":"224242F-01-02","nombre":"C-71 (TRAMO 01), INCLUYE ZANJAS 02@10 AL SUR, FRE-PD-N63-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224242F-01 [CALLES TRAMO 01 ]","subsistema":"224242F-01-02 [C-71 (TRAMO 01), INCLUYE ZANJAS 02@10 AL SUR, FRE-PD-N63-04 ]","clasificacion":"Sistema No Operable","plano":"1673_65328_224242F-01-02.pdf"},{"codigo":"224242F-01-03","nombre":"C-73 (TRAMO 01), INCLUYE ZANJA 02 AL SUR, ZANJAS 03@10 AL NORTE Y SUR, FRE-PD-N63-06","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224242F-01 [CALLES TRAMO 01 ]","subsistema":"224242F-01-03 [C-73 (TRAMO 01), INCLUYE ZANJA 02 AL SUR, ZANJAS 03@10 AL NORTE Y SUR, FRE-PD-N63-06 ]","clasificacion":"Sistema No Operable","plano":"1673_65329_224242F-01-03.pdf"},{"codigo":"224242F-01-04","nombre":"C-75, INCLUYE FRE-PD-N63-07 ,FRI-PD-N63-05 Y FRE-PD-N63-14","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224242F-01 [CALLES TRAMO 01 ]","subsistema":"224242F-01-04 [C-75, INCLUYE FRE-PD-N63-07 ,FRI-PD-N63-05 Y FRE-PD-N63-14 ]","clasificacion":"Sistema No Operable","plano":"1673_65330_224242F-01-04.pdf"},{"codigo":"224245F-01-01","nombre":"PVAC-PD-N63-01@02, EMN-PD-N63-01@02 Y FRE-PD-N63-02/05","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224245F-01 [PUNTOS DE VACIADO ]","subsistema":"224245F-01-01 [PVAC-PD-N63-01@02, EMN-PD-N63-01@02 Y FRE-PD-N63-02/05 ]","clasificacion":"Sistema No Operable","plano":"1673_65308_224245F-01-01.pdf"},{"codigo":"224245F-01-02","nombre":"PVAC-PD-N63-03@04, EMN-PD-N63-03@04 Y FRE-PD-N63-08/11","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224200 [NIVEL DE PRODUCCION]","subarea":"224240F [NIVEL DE PRODUCCION MB-N63]","sistema":"224245F-01 [PUNTOS DE VACIADO ]","subsistema":"224245F-01-02 [PVAC-PD-N63-03@04, EMN-PD-N63-03@04 Y FRE-PD-N63-08/11 ]","clasificacion":"Sistema No Operable","plano":"1673_65309_224245F-01-02.pdf"},{"codigo":"224312F-01-02","nombre":"FRONTONES FR-INS-N51-01@04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224310F [NIVEL DE INYECCION MB-N51]","sistema":"224312F-01 [FRONTONES MB-N51 ]","subsistema":"224312F-01-02 [FRONTONES FR-INS-N51-01@04 ]","clasificacion":"Sistema No Operable","plano":"1673_64980_224312F-01-02.pdf"},{"codigo":"224312F-01-03","nombre":"FRONTONES FR-INS-N51-05_07_08_10_11","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224310F [NIVEL DE INYECCION MB-N51]","sistema":"224312F-01 [FRONTONES MB-N51 ]","subsistema":"224312F-01-03 [FRONTONES FR-INS-N51-05_07_08_10_11 ]","clasificacion":"Sistema No Operable","plano":"1673_65502_224312F-01-03.pdf"},{"codigo":"224312F-01-04","nombre":"FRONTON FR-INS-N51-12@15","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224310F [NIVEL DE INYECCION MB-N51]","sistema":"224312F-01 [FRONTONES MB-N51 ]","subsistema":"224312F-01-04 [FRONTON FR-INS-N51-12@15 ]","clasificacion":"Sistema No Operable","plano":"1673_65503_224312F-01-04.pdf"},{"codigo":"224314F-01-01","nombre":"XCI-05 N51,INCLUYE FRONTONES FR-INS-N51-14@17","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224310F [NIVEL DE INYECCION MB-N51]","sistema":"224314F-01 [CRUZADO DE INYECCION MB-N51 ]","subsistema":"224314F-01-01 [XCI-05 N51,INCLUYE FRONTONES FR-INS-N51-14@17 ]","clasificacion":"Sistema No Operable","plano":"1673_65580_224314F-01-01.pdf"},{"codigo":"224322F-01-02","nombre":"FRONTONES FR-INS-N52-01@02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224320F [NIVEL DE INYECCION MB-N52]","sistema":"224322F-01 [FRONTONES MB-N52 ]","subsistema":"224322F-01-02 [FRONTONES FR-INS-N52-01@02 ]","clasificacion":"Sistema No Operable","plano":"1673_64951_ 224322F-01-02.pdf"},{"codigo":"224322F-01-03","nombre":"FRONTONES FR-INS-N52-04@09","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224320F [NIVEL DE INYECCION MB-N52]","sistema":"224322F-01 [FRONTONES MB-N52 ]","subsistema":"224322F-01-03 [FRONTONES FR-INS-N52-04@09 ]","clasificacion":"Sistema No Operable","plano":"1673_64952_224322F-01-03.pdf"},{"codigo":"224322F-01-04","nombre":"FRONTONES FR-INS-N52-10@12 Y FR-INS-N52-17@18","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224320F [NIVEL DE INYECCION MB-N52]","sistema":"224322F-01 [FRONTONES MB-N52 ]","subsistema":"224322F-01-04 [FRONTONES FR-INS-N52-10@12 Y FR-INS-N52-17@18 ]","clasificacion":"Sistema No Operable","plano":"1673_64953_224322F-01-04.pdf"},{"codigo":"224322F-01-05","nombre":"FRONTONES FR-INS-N52-13@14A","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224320F [NIVEL DE INYECCION MB-N52]","sistema":"224322F-01 [FRONTONES MB-N52 ]","subsistema":"224322F-01-05 [FRONTONES FR-INS-N52-13@14A ]","clasificacion":"Sistema No Operable","plano":"1673_64954_224322F-01-05.pdf"},{"codigo":"224331F-01-01","nombre":"GAL-INS-N06-01, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224330F [NIVEL DE INYECCI&Oacute;N MB-N06]","sistema":"224331F-01 [GALERÍAS DE INYECCIÓN ]","subsistema":"224331F-01-01 [GAL-INS-N06-01, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65481_224331F-01-01.pdf"},{"codigo":"224331F-01-02","nombre":"GAL-INS-N06-02, FRONTONES, ENSACHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224330F [NIVEL DE INYECCI&Oacute;N MB-N06]","sistema":"224331F-01 [GALERÍAS DE INYECCIÓN ]","subsistema":"224331F-01-02 [GAL-INS-N06-02, FRONTONES, ENSACHES ]","clasificacion":"Sistema No Operable","plano":"1673_65482_224331F-01-02.pdf"},{"codigo":"224331F-01-03","nombre":"GAL-INS-N06-03, FRONTONES, ENSACHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224330F [NIVEL DE INYECCI&Oacute;N MB-N06]","sistema":"224331F-01 [GALERÍAS DE INYECCIÓN ]","subsistema":"224331F-01-03 [GAL-INS-N06-03, FRONTONES, ENSACHES ]","clasificacion":"Sistema No Operable","plano":"1673_65453_224331F-01-03.pdf"},{"codigo":"224331F-01-04","nombre":"GAL-INS-N06-04, FRONTONES, ENSACHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224330F [NIVEL DE INYECCI&Oacute;N MB-N06]","sistema":"224331F-01 [GALERÍAS DE INYECCIÓN ]","subsistema":"224331F-01-04 [GAL-INS-N06-04, FRONTONES, ENSACHES ]","clasificacion":"Sistema No Operable","plano":"1673_65483_224331F-01-04.pdf"},{"codigo":"224334F-01-01","nombre":"XC-INS-N06-01, TRAMO 1 FRONTONES, ENSACHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224330F [NIVEL DE INYECCI&Oacute;N MB-N06]","sistema":"224334F-01 [[CRUZADO DE INYECCIÓN] ]","subsistema":"224334F-01-01 [XC-INS-N06-01, TRAMO 1 FRONTONES, ENSACHES ]","clasificacion":"Sistema No Operable","plano":"1673_65484_224334F-01-01.pdf"},{"codigo":"224334F-01-02","nombre":"XC-INS-N06-01, TRAMO 2 FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224330F [NIVEL DE INYECCI&Oacute;N MB-N06]","sistema":"224334F-01 [[CRUZADO DE INYECCIÓN] ]","subsistema":"224334F-01-02 [XC-INS-N06-01, TRAMO 2 FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65485_224334F-01-02.pdf"},{"codigo":"224341F-01-01","nombre":"GAL-INS-N63-01, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224340F [NIVEL DE INYECCI&Oacute;N MB-N63]","sistema":"224341F-01 [GALERÍAS DE INYECCIÓN ]","subsistema":"224341F-01-01 [GAL-INS-N63-01, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65486_224341F-01-01.pdf"},{"codigo":"224341F-01-02","nombre":"GAL-INS-N63-02, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224300 [NIVEL DE INYECCION]","subarea":"224340F [NIVEL DE INYECCI&Oacute;N MB-N63]","sistema":"224341F-01 [GALERÍAS DE INYECCIÓN ]","subsistema":"224341F-01-02 [GAL-INS-N63-02, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65487_224341F-01-02.pdf"},{"codigo":"224412F-01-01","nombre":"FRONTONES XCE-01 MB-N51 SECTOR SUR Y SSEE-EXS-N51-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224410F [NIVEL DE EXTRACCION MB-N51]","sistema":"224412F-01 [FRONTONES MB-N51 ]","subsistema":"224412F-01-01 [FRONTONES XCE-01 MB-N51 SECTOR SUR Y SSEE-EXS-N51-01 ]","clasificacion":"Sistema No Operable","plano":"1673_64955_224412F-01-01.pdf"},{"codigo":"224412F-01-02","nombre":"FRONTONES XCE-01 MB-N51 SECTOR NORTE","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224410F [NIVEL DE EXTRACCION MB-N51]","sistema":"224412F-01 [FRONTONES MB-N51 ]","subsistema":"224412F-01-02 [FRONTONES XCE-01 MB-N51 SECTOR NORTE ]","clasificacion":"Sistema No Operable","plano":"1673_64981_224412F-01-02.pdf"},{"codigo":"224422F-01-01","nombre":"FRONTONES XCE-03 MB-N52 SECTOR SUR","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224420F [SUBNIVEL DE EXTRACCION MB-N52]","sistema":"224422F-01 [FRONTONES MB-N52 ]","subsistema":"224422F-01-01 [FRONTONES XCE-03 MB-N52 SECTOR SUR ]","clasificacion":"Sistema No Operable","plano":"1673_64956_224422F-01-01.pdf"},{"codigo":"224422F-01-02","nombre":"FRONTONES XCE-03 MB-N52 SECTOR NORTE","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224420F [SUBNIVEL DE EXTRACCION MB-N52]","sistema":"224422F-01 [FRONTONES MB-N52 ]","subsistema":"224422F-01-02 [FRONTONES XCE-03 MB-N52 SECTOR NORTE ]","clasificacion":"Sistema No Operable","plano":"1673_64957_224422F-01-02.pdf"},{"codigo":"224422F-01-03","nombre":"FRONTONES XCE-05 MB-N52 SECTOR SUR","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224420F [SUBNIVEL DE EXTRACCION MB-N52]","sistema":"224422F-01 [FRONTONES MB-N52 ]","subsistema":"224422F-01-03 [FRONTONES XCE-05 MB-N52 SECTOR SUR ]","clasificacion":"Sistema No Operable","plano":"1673_64958_224422F-01-03.pdf"},{"codigo":"224422F-01-04","nombre":"FRONTONES XCE-05 MB-N52 SECTOR NORTE","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224420F [SUBNIVEL DE EXTRACCION MB-N52]","sistema":"224422F-01 [FRONTONES MB-N52 ]","subsistema":"224422F-01-04 [FRONTONES XCE-05 MB-N52 SECTOR NORTE ]","clasificacion":"Sistema No Operable","plano":"1673_64959_224422F-01-04.pdf"},{"codigo":"224424F-01-02","nombre":"XCE-03 MB-N52 / FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224420F [SUBNIVEL DE EXTRACCION MB-N52]","sistema":"224424F-01 [CRUZADO EXTRACCION MB-N52 ]","subsistema":"224424F-01-02 [XCE-03 MB-N52 / FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65581_224424F-01-02.pdf"},{"codigo":"224431F-01-01","nombre":"GAL-EXS-N06-01, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224431F-01 [GALERÍAS DE EXTRACCIÓN ]","subsistema":"224431F-01-01 [GAL-EXS-N06-01, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65473_224431F-01-01.pdf"},{"codigo":"224431F-01-02","nombre":"GAL-EXS-N06-02, FRONTONES, ENSANCHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224431F-01 [GALERÍAS DE EXTRACCIÓN ]","subsistema":"224431F-01-02 [GAL-EXS-N06-02, FRONTONES, ENSANCHES ]","clasificacion":"Sistema No Operable","plano":"1673_65474_224431F-01-02.pdf"},{"codigo":"224431F-01-03","nombre":"GAL-EXS-N06-03, FRONTONES, ENSANCHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224431F-01 [GALERÍAS DE EXTRACCIÓN ]","subsistema":"224431F-01-03 [GAL-EXS-N06-03, FRONTONES, ENSANCHES ]","clasificacion":"Sistema No Operable","plano":"1673_65475_224431F-01-03.pdf"},{"codigo":"224434F-01-01","nombre":"XC-EXS-N6-01 TRAMO 1, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224434F-01 [CRUZADO EXTRACCIÓN ]","subsistema":"224434F-01-01 [XC-EXS-N6-01 TRAMO 1, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65476_224434F-01-01.pdf"},{"codigo":"224434F-01-02","nombre":"XC-EXS-N6-01 TRAMO 2, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224434F-01 [CRUZADO EXTRACCIÓN ]","subsistema":"224434F-01-02 [XC-EXS-N6-01 TRAMO 2, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65477_224434F-01-02.pdf"},{"codigo":"224434F-01-03","nombre":"XC-EXS-N6-01, SSEE-EXS-N6-01, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224434F-01 [CRUZADO EXTRACCIÓN ]","subsistema":"224434F-01-03 [XC-EXS-N6-01, SSEE-EXS-N6-01, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65478_224434F-01-03.pdf"},{"codigo":"224434F-01-04","nombre":"XC-EXS-N6-01, SSEE-EXS-N6-02, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224434F-01 [CRUZADO EXTRACCIÓN ]","subsistema":"224434F-01-04 [XC-EXS-N6-01, SSEE-EXS-N6-02, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65479_224434F-01-04.pdf"},{"codigo":"224434F-01-05","nombre":"XC-EXS-N6-01, SSEE-EXS-N6-04, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224430F [NIVEL DE EXTRACCI&Oacute;N MB-N06]","sistema":"224434F-01 [CRUZADO EXTRACCIÓN ]","subsistema":"224434F-01-05 [XC-EXS-N6-01, SSEE-EXS-N6-04, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65480_224434F-01-05.pdf"},{"codigo":"224441F-01-01","nombre":"GAL-EXS-N63-01, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224440F [NIVEL DE EXTRACCI&Oacute;N MB-N63]","sistema":"224441F-01 [GALERÍAS DE EXTRACCIÓN ]","subsistema":"224441F-01-01 [GAL-EXS-N63-01, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65451_224441F-01-01.pdf"},{"codigo":"224441F-01-02","nombre":"GAL-EXS-N63-02, SEE-EXS-N63-01, FRONTONES, ENSANCHES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224400 [NIVEL DE EXTRACCION]","subarea":"224440F [NIVEL DE EXTRACCI&Oacute;N MB-N63]","sistema":"224441F-01 [GALERÍAS DE EXTRACCIÓN ]","subsistema":"224441F-01-02 [GAL-EXS-N63-02, SEE-EXS-N63-01, FRONTONES, ENSANCHES ]","clasificacion":"Sistema No Operable","plano":"1673_65452_224441F-01-02.pdf"},{"codigo":"224511F-01-01","nombre":"GA-03 MB N51(CONTINUIDAD)","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-01 [GA-03 MB N51(CONTINUIDAD) ]","clasificacion":"Sistema No Operable","plano":"1673_65001_224511F-01-01.pdf"},{"codigo":"224511F-01-02","nombre":"XCA-01 N51, INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-02 [XCA-01 N51, INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65002_224511F-01-02.pdf"},{"codigo":"224511F-01-03","nombre":"XCA-03 N51, INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-03 [XCA-03 N51, INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65003_224511F-01-03.pdf"},{"codigo":"224511F-01-04","nombre":"GAC-01 N51, INCLUYE FRONTON GAC-03 N51","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-04 [GAC-01 N51, INCLUYE FRONTON GAC-03 N51 ]","clasificacion":"Sistema No Operable","plano":"1673_65004_224511F-01-04.pdf"},{"codigo":"224511F-01-05","nombre":"XCA-05 (CONTINUIDAD), INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-05 [XCA-05 (CONTINUIDAD), INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65005_224511F-01-05.pdf"},{"codigo":"224511F-01-06","nombre":"RAC-ACA-N51-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-06 [RAC-ACA-N51-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65006_224511F-01-06.pdf"},{"codigo":"224511F-01-07","nombre":"RAC-A-02 N51, INCLUYE FRCOMP-ACA-N51-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-07 [RAC-A-02 N51, INCLUYE FRCOMP-ACA-N51-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65007_224511F-01-07.pdf"},{"codigo":"224511F-01-08","nombre":"GAL-ACA-N51/N6-00, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224510F [NIVEL DE ACARREO MB-N51]","sistema":"224511F-01 [DESARROLLOS HORIZONTALES MB-N51 ]","subsistema":"224511F-01-08 [GAL-ACA-N51/N6-00, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65008_224511F-01-08.pdf"},{"codigo":"224521F-01-01","nombre":"XCA-07 N52 (CONTINUIDAD), INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-01 [XCA-07 N52 (CONTINUIDAD), INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_64982_224521F-01-01.pdf"},{"codigo":"224521F-01-02","nombre":"XCA-09 N52 (CONTINUIDAD), INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-02 [XCA-09 N52 (CONTINUIDAD), INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65009_224521F-01-02.pdf"},{"codigo":"224521F-01-03","nombre":"XCA-11 N52","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-03 [XCA-11 N52 ]","clasificacion":"Sistema No Operable","plano":"1673_65010_224521F-01-03.pdf"},{"codigo":"224521F-01-04","nombre":"XCA-13 N52, INCLUYE FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-04 [XCA-13 N52, INCLUYE FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65011_224521F-01-04.pdf"},{"codigo":"224521F-01-05","nombre":"GA-03 N52 (CONTINUIDAD)","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-05 [GA-03 N52 (CONTINUIDAD) ]","clasificacion":"Sistema No Operable","plano":"1673_65012_224521F-01-05.pdf"},{"codigo":"224521F-01-06","nombre":"GALMN-ACA-N52-01,INCLUYEFRONTON;GALMN-ACA-N52-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-06 [GALMN-ACA-N52-01,INCLUYEFRONTON;GALMN-ACA-N52-02 ]","clasificacion":"Sistema No Operable","plano":"1673_65013_224521F-01-06.pdf"},{"codigo":"224521F-01-07","nombre":"RAC-A-01 N52 (EX RAC-ACA-N52-01)","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224520F [NIVEL DE ACARREO MB-N52]","sistema":"224521F-01 [DESARROLLOS HORIZONTALES MB-N52 ]","subsistema":"224521F-01-07 [RAC-A-01 N52 (EX RAC-ACA-N52-01) ]","clasificacion":"Sistema No Operable","plano":"1673_65014_224521F-01-07.pdf"},{"codigo":"224531F-01-01","nombre":"GALBZN-ACA-N06-01, FRSERV-ACA-N06-01/02, FRSERV-ACA-N06-03/04, FRSERV-ACA-N06-05/06, FRE-ACA-N06-01, FRE-ACA-N06-02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-01 [GALBZN-ACA-N06-01, FRSERV-ACA-N06-01/02, FRSERV-ACA-N06-03/04, FRSERV-ACA-N06-05/06, FRE-ACA-N06-01, FRE-ACA-N06-02 ]","clasificacion":"Sistema No Operable","plano":"1673_65465_224531F-01-01.pdf"},{"codigo":"224531F-01-02","nombre":"GAL-ACA-N06-01, FRI-ACA-N06-01, REL-ACA-N06-01, GALMN-ACA-N06-01/02","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-02 [GAL-ACA-N06-01, FRI-ACA-N06-01, REL-ACA-N06-01, GALMN-ACA-N06-01/02 ]","clasificacion":"Sistema No Operable","plano":"1673_65466_224531F-01-02.pdf"},{"codigo":"224531F-01-03","nombre":"GALBZN-ACA-N06-02, FRSERV-ACA-N06-07/08, FRSERV-ACA-N06-09/10, FRSERV-ACA-N06-11/12, FRRISES-ACA-N06-01, FRE-ACA-N06-03, FRE-ACA-N06-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-03 [GALBZN-ACA-N06-02, FRSERV-ACA-N06-07/08, FRSERV-ACA-N06-09/10, FRSERV-ACA-N06-11/12, FRRISES-ACA-N06-01, FRE-ACA-N06-03, FRE-ACA-N06-04 ]","clasificacion":"Sistema No Operable","plano":"1673_65467_224531F-01-03.pdf"},{"codigo":"224531F-01-04","nombre":"GAL-ACA-N06-02, FRI-ACA-N06-03, REL-ACA-N06-03, GALMN-ACA-N06-03, GALMN-ACA-N06-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-04 [GAL-ACA-N06-02, FRI-ACA-N06-03, REL-ACA-N06-03, GALMN-ACA-N06-03, GALMN-ACA-N06-04 ]","clasificacion":"Sistema No Operable","plano":"1673_65468_224531F-01-04.pdf"},{"codigo":"224531F-01-05","nombre":"GAL-ACA-N06-03, FRI-ACA-N06-05, GALMN-ACA-N06-05, GALMN-ACA-N06-06, REL-ACA-N06-04","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-05 [GAL-ACA-N06-03, FRI-ACA-N06-05, GALMN-ACA-N06-05, GALMN-ACA-N06-06, REL-ACA-N06-04 ]","clasificacion":"Sistema No Operable","plano":"1673_65445_224531F-01-05.pdf"},{"codigo":"224531F-01-06","nombre":"GALBZN-ACA-N06-03, FRE-ACA-N06-05 y 06, FRI-ACA-N06-06, FRSERV-ACA-N06-13@18","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-06 [GALBZN-ACA-N06-03, FRE-ACA-N06-05 y 06, FRI-ACA-N06-06, FRSERV-ACA-N06-13@18 ]","clasificacion":"Sistema No Operable","plano":"1673_65469_224531F-01-06.pdf"},{"codigo":"224531F-01-07","nombre":"GAL-ACA-N06/N63-00, TRAMO 1, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-07 [GAL-ACA-N06/N63-00, TRAMO 1, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65470_224531F-01-07.pdf"},{"codigo":"224531F-01-08","nombre":"GAL-ACA-N06/N63-00 TRAMO 2, FRONTONES, REL-ACA-N06-05","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224530F [NIVEL DE ACARREO MB-N06]","sistema":"224531F-01 [Desarrollos Horizontales ]","subsistema":"224531F-01-08 [GAL-ACA-N06/N63-00 TRAMO 2, FRONTONES, REL-ACA-N06-05 ]","clasificacion":"Sistema No Operable","plano":"1673_65471_224531F-01-08.pdf"},{"codigo":"224541F-01-01","nombre":"GALBZN-ACA-N63-01, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224540F [NIVEL DE ACARREO MB-N63]","sistema":"224541F-01 [Desarrollos Horizontales ]","subsistema":"224541F-01-01 [GALBZN-ACA-N63-01, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65446_224541F-01-01.pdf"},{"codigo":"224541F-01-02","nombre":"GAL-ACA-N63-01, GALMN-ACA-N63-01","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224540F [NIVEL DE ACARREO MB-N63]","sistema":"224541F-01 [Desarrollos Horizontales ]","subsistema":"224541F-01-02 [GAL-ACA-N63-01, GALMN-ACA-N63-01 ]","clasificacion":"Sistema No Operable","plano":"1673_65472_224541F-01-02.pdf"},{"codigo":"224541F-01-03","nombre":"GAL-ACA-N63-03, GALMN-ACA-N63-02, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224540F [NIVEL DE ACARREO MB-N63]","sistema":"224541F-01 [Desarrollos Horizontales ]","subsistema":"224541F-01-03 [GAL-ACA-N63-03, GALMN-ACA-N63-02, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65447_224541F-01-03.pdf"},{"codigo":"224541F-01-04","nombre":"GALBZN-ACA-N63-02, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224540F [NIVEL DE ACARREO MB-N63]","sistema":"224541F-01 [Desarrollos Horizontales ]","subsistema":"224541F-01-04 [GALBZN-ACA-N63-02, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65448_224541F-01-04.pdf"},{"codigo":"224541F-01-05","nombre":"GAL-ACA-N63-02 TRAMO 1","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224540F [NIVEL DE ACARREO MB-N63]","sistema":"224541F-01 [Desarrollos Horizontales ]","subsistema":"224541F-01-05 [GAL-ACA-N63-02 TRAMO 1 ]","clasificacion":"Sistema No Operable","plano":"1673_65449_224541F-01-05.pdf"},{"codigo":"224541F-01-06","nombre":"GAL-ACA-N63-02 TRAMO 2, FRONTONES","wbs":"224000 [UNIDADES DE EXPLOTACION CONTINUIDAD NIVEL 1 SECTOR NORTE]","area":"224500 [NIVEL DE ACARREO]","subarea":"224540F [NIVEL DE ACARREO MB-N63]","sistema":"224541F-01 [Desarrollos Horizontales ]","subsistema":"224541F-01-06 [GAL-ACA-N63-02 TRAMO 2, FRONTONES ]","clasificacion":"Sistema No Operable","plano":"1673_65450_224541F-01-06.pdf"}];
+
+/* ======================================================================
+   Conexion a Supabase. Comparte la MISMA sesion que el resto de la
+   suite (misma clave de almacenamiento, mismo origen).
+   ====================================================================== */
+const SB_URL = 'https://wbdmlwmnmompoamvlant.supabase.co';
+const SB_KEY = 'sb_publishable_0SWuQqmBvxJYNKIal8MQNQ_NbyEMCCe';
+const CLAVE_SESION = 'cizdt_sesion';
+
+const almacen = (function(){
+  let mem = {}, ok = false;
+  try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); ok = true; } catch(e){}
+  return {
+    get(k){ try { return ok ? localStorage.getItem(k) : (k in mem ? mem[k] : null); } catch(e){ return null; } },
+    set(k,v){ try { ok ? localStorage.setItem(k,v) : (mem[k]=v); } catch(e){ mem[k]=v; } },
+    del(k){ try { ok ? localStorage.removeItem(k) : delete mem[k]; } catch(e){} }
+  };
+})();
+
+async function pedirRed(url, opts){
+  try { return await fetch(url, opts); }
+  catch(e){ const err = new Error('__SIN_SENAL__'); err.red = true; throw err; }
+}
+async function leerJSON(r){
+  const txt = await r.text();
+  if(txt === '') return null;
+  try { return JSON.parse(txt); }
+  catch(e){
+    const err = new Error(!navigator.onLine || r.status === 503
+      ? '__SIN_SENAL__'
+      : 'La respuesta no vino de la base. Puede que la sesión de acceso haya vencido.');
+    throw err;
+  }
+}
+
+const SB = {
+  ses: null,
+  cargar(){ try { this.ses = JSON.parse(almacen.get(CLAVE_SESION) || 'null'); } catch(e){ this.ses = null; } return this.ses; },
+  guardar(){ try { almacen.set(CLAVE_SESION, JSON.stringify(this.ses)); } catch(e){} },
+  limpiar(){ this.ses = null; almacen.del(CLAVE_SESION); },
+
+  async refrescar(){
+    if(!this.ses || !this.ses.refresh) throw new Error('Sin sesion');
+    const r = await pedirRed(SB_URL + '/auth/v1/token?grant_type=refresh_token', {
+      method:'POST', headers:{ 'apikey': SB_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ refresh_token: this.ses.refresh })
+    });
+    const j = await leerJSON(r);
+    if(!r.ok) throw new Error('Sesion expirada');
+    this.ses.access = j.access_token;
+    this.ses.refresh = j.refresh_token || this.ses.refresh;
+    this.ses.vence = Date.now() + ((j.expires_in||3600)*1000);
+    this.guardar(); return this.ses;
+  },
+  async consultar(tabla, query){
+    const r = await pedirRed(SB_URL + '/rest/v1/' + tabla + '?' + query, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (this.ses ? this.ses.access : '') }
+    });
+    const j = await leerJSON(r);
+    if(!r.ok) throw new Error((j && j.message) || ('Error al leer ' + tabla));
+    return j || [];
+  },
+  async insertar(tabla, filas){
+    const r = await pedirRed(SB_URL + '/rest/v1/' + tabla, {
+      method:'POST',
+      headers: {
+        'apikey': SB_KEY, 'Authorization': 'Bearer ' + (this.ses ? this.ses.access : ''),
+        'Content-Type':'application/json', 'Prefer':'resolution=merge-duplicates,return=representation'
+      },
+      body: JSON.stringify(filas)
+    });
+    const j = await leerJSON(r);
+    if(!r.ok) throw new Error((j && (j.message || j.hint)) || ('Error al guardar en ' + tabla));
+    return j;
+  }
+};
+
+function pintarEstado(){
+  const el = document.getElementById('estadoLinea');
+  const online = navigator.onLine;
+  el.classList.toggle('off', !online);
+  document.getElementById('estadoTxt').textContent = online ? 'Conectado' : 'Sin señal — se puede mirar lo ya bajado, pero no ubicar frentes nuevos';
+}
+window.addEventListener('online', pintarEstado);
+window.addEventListener('offline', pintarEstado);
+
+async function aplicarMarca(){
+  if(typeof MARCA === 'undefined') return;
+  try { await MARCA.iniciar(); } catch(e){}
+  MARCA.aplicarCSS();
+  const emp = MARCA.empresa || {};
+  document.documentElement.style.setProperty('--acento', emp.colorPrimario || emp.colorFondoHeader || '#f5851f');
+}
+
+/* ======================================================================
+   Niveles: 1 a 1 con los 5 planos de avance. El nivel de un codigo WBS
+   se calcula solo por el prefijo de su AREA en el catalogo — no hace
+   falta que nadie lo elija a mano al ubicar un frente.
+   ====================================================================== */
+const NIVELES = [
+  { id:'PRODUCCION',  nombre:'Producción',  prefijo:'224200', imagen:'plano-produccion.png'  },
+  { id:'HUNDIMIENTO', nombre:'Hundimiento', prefijo:'224100', imagen:'plano-hundimiento.png' },
+  { id:'INYECCION',   nombre:'Inyección',   prefijo:'224300', imagen:'plano-inyeccion.png'   },
+  { id:'EXTRACCION',  nombre:'Extracción',  prefijo:'224400', imagen:'plano-extraccion.png'  },
+  { id:'ACARREO',     nombre:'Acarreo',     prefijo:'224500', imagen:'plano-acarreo.png'     },
+];
+
+const CODIGO_A_NIVEL = {}; /* codigo_labor -> {id,nombre} | undefined si no cae en ningun nivel */
+CATALOGO_LABORES.forEach(l => {
+  const pref = (l.area || '').slice(0,6);
+  const niv = NIVELES.find(n => n.prefijo === pref);
+  if(niv) CODIGO_A_NIVEL[l.codigo] = niv;
+});
+const CODIGO_A_LABOR = {};
+CATALOGO_LABORES.forEach(l => { CODIGO_A_LABOR[l.codigo] = l; });
+
+let nivelActual = NIVELES[0].id;
+let PINES = [];         // filas de plano_pines, todas (todos los niveles)
+let PUNTOS = {};        // codigo_labor -> { cerrados,abiertos,atrasados,caminatas }
+let frentesPendientes = []; // codigos del nivel actual sin pin, con datos
+let armado = null;      // codigo_labor en modo "toca el plano para ubicar" | null
+let ubicarAbierto = false;
+
+/* ---------------------------------------------------------------------
+   Extrae el codigo WBS del texto guardado en el campo "frente"
+   (formato "224222F-02-01 — Nombre largo..."). Si no matchea (frente
+   escrito a mano, sin pasar por el catalogo), devuelve null: ese
+   registro no se puede ubicar en el plano por ahora.
+   --------------------------------------------------------------------- */
+function extraerCodigo(frenteTexto){
+  if(!frenteTexto) return null;
+  const partes = frenteTexto.split(' — ');
+  const cod = partes[0].trim();
+  return CODIGO_A_NIVEL[cod] ? cod : null;
+}
+
+/* ======================================================================
+   Carga de datos: DT + caminatas, agrupados por codigo de labor.
+   ====================================================================== */
+async function cargarDatos(){
+  document.getElementById('visorVacio').style.display = '';
+  document.getElementById('visorVacio').textContent = 'Cargando datos…';
+  PUNTOS = {};
+  try {
+    const [dts, caminatas, pines] = await Promise.all([
+      SB.consultar('detalles_terminacion', 'select=frente,estado,fecha_compromiso_cierre'),
+      SB.consultar('avances_caminata', 'select=frente'),
+      SB.consultar('plano_pines', 'select=*')
+    ]);
+    PINES = pines || [];
+
+    (dts||[]).forEach(d => {
+      const cod = extraerCodigo(d.frente);
+      if(!cod) return;
+      if(!PUNTOS[cod]) PUNTOS[cod] = { cerrados:0, abiertos:0, atrasados:0, caminatas:0 };
+      if(d.estado === 'CERRADA'){ PUNTOS[cod].cerrados++; return; }
+      const atrasado = d.fecha_compromiso_cierre && d.fecha_compromiso_cierre < hoyISO();
+      if(atrasado) PUNTOS[cod].atrasados++; else PUNTOS[cod].abiertos++;
+    });
+    (caminatas||[]).forEach(c => {
+      const cod = extraerCodigo(c.frente);
+      if(!cod) return;
+      if(!PUNTOS[cod]) PUNTOS[cod] = { cerrados:0, abiertos:0, atrasados:0, caminatas:0 };
+      PUNTOS[cod].caminatas++;
+    });
+  } catch(e){
+    document.getElementById('visorVacio').textContent = e.message === '__SIN_SENAL__'
+      ? 'Sin señal: no se pudo leer la base. Reintenta con conexión.'
+      : 'No se pudo leer la base: ' + (e.message || e);
+    return;
+  }
+  document.getElementById('visorVacio').style.display = 'none';
+  pintarNivel();
+}
+
+function hoyISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+/* ======================================================================
+   Tabs de nivel
+   ====================================================================== */
+function pintarTabsNivel(){
+  const cont = document.getElementById('niveles');
+  cont.innerHTML = NIVELES.map(n =>
+    '<button class="'+(n.id===nivelActual?'act':'')+'" onclick="cambiarNivel(\''+n.id+'\')">'+n.nombre+'</button>'
+  ).join('');
+}
+function cambiarNivel(id){
+  nivelActual = id;
+  cancelarArmado();
+  cerrarPopover();
+  pintarTabsNivel();
+  pintarNivel();
+}
+
+/* ======================================================================
+   Pintar el plano del nivel actual: imagen + pines + lista de pendientes
+   ====================================================================== */
+function pintarNivel(){
+  const nivel = NIVELES.find(n => n.id === nivelActual);
+  const img = document.getElementById('visorImg');
+  img.src = nivel.imagen;
+  resetZoomPan();
+
+  const capa = document.getElementById('capaPines');
+  const pinesNivel = PINES.filter(p => p.nivel === nivelActual);
+  const pinesPorCodigo = {}; pinesNivel.forEach(p => pinesPorCodigo[p.codigo_labor] = p);
+
+  let html = '';
+  let hayDatos = false;
+  Object.keys(PUNTOS).forEach(cod => {
+    if(CODIGO_A_NIVEL[cod] && CODIGO_A_NIVEL[cod].id !== nivelActual) return;
+    if(!CODIGO_A_NIVEL[cod]) return;
+    hayDatos = true;
+    const pin = pinesPorCodigo[cod];
+    if(!pin) return; // sin ubicar todavia: no se puede dibujar
+    const v = PUNTOS[cod];
+    let clase = 'caminado';
+    if(v.atrasados > 0) clase = 'atrasado';
+    else if(v.abiertos > 0) clase = 'abierto';
+    else if(v.cerrados > 0) clase = 'cerrado';
+    html += '<div class="pin '+clase+'" style="left:'+pin.x_pct+'%; top:'+pin.y_pct+'%;" onclick="verPopover(\''+cod+'\')"></div>';
+  });
+  capa.innerHTML = html;
+
+  document.getElementById('sinDatos').style.display = hayDatos ? 'none' : '';
+
+  pintarListaPendientes();
+}
+
+/* ======================================================================
+   Zoom / pan del plano — arrastrar con el dedo o el mouse, rueda o
+   pellizco para acercar, botones +/- como respaldo. Los pines viven
+   dentro del mismo elemento que se transforma, asi que se mueven y
+   escalan junto con la imagen sin ningun calculo aparte.
+   ====================================================================== */
+let zoom = 1, panX = 0, panY = 0;
+let arrastrando = false, arrX = 0, arrY = 0;
+let pellizcoIni = 0, zoomIni = 1;
+
+function aplicarTransform(){
+  document.getElementById('visorLienzo').style.transform =
+    'translate('+panX+'px,'+panY+'px) scale('+zoom+')';
+}
+function resetZoomPan(){ zoom = 1; panX = 0; panY = 0; aplicarTransform(); }
+function zoomBoton(factor){
+  const visor = document.getElementById('visor');
+  const cx = visor.clientWidth/2, cy = visor.clientHeight/2;
+  const nuevoZoom = Math.min(6, Math.max(0.5, zoom * factor));
+  panX = cx - (cx - panX) * (nuevoZoom/zoom);
+  panY = cy - (cy - panY) * (nuevoZoom/zoom);
+  zoom = nuevoZoom;
+  aplicarTransform();
+}
+
+const visorEl = document.getElementById('visor');
+
+visorEl.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const rect = visorEl.getBoundingClientRect();
+  const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+  const factor = e.deltaY < 0 ? 1.15 : 0.87;
+  const nuevoZoom = Math.min(6, Math.max(0.5, zoom * factor));
+  panX = cx - (cx - panX) * (nuevoZoom/zoom);
+  panY = cy - (cy - panY) * (nuevoZoom/zoom);
+  zoom = nuevoZoom;
+  aplicarTransform();
+}, { passive:false });
+
+visorEl.addEventListener('pointerdown', (e) => {
+  if(e.pointerType === 'mouse' && e.button !== 0) return;
+  arrastrando = true; arrX = e.clientX - panX; arrY = e.clientY - panY;
+  visorEl.setPointerCapture(e.pointerId);
+});
+visorEl.addEventListener('pointermove', (e) => {
+  if(!arrastrando) return;
+  panX = e.clientX - arrX; panY = e.clientY - arrY;
+  aplicarTransform();
+});
+visorEl.addEventListener('pointerup', (e) => {
+  const fueClick = arrastrando && Math.abs(e.clientX - (arrX+panX)) < 4 && Math.abs(e.clientY - (arrY+panY)) < 4;
+  arrastrando = false;
+  if(fueClick && armado) manejarClickUbicar(e);
+});
+
+/* Pellizco de dos dedos (tablets/celulares que no traducen touch a
+   wheel). Se implementa aparte porque pointer events solo entrega un
+   puntero a la vez. */
+let toques = {};
+visorEl.addEventListener('touchstart', (e) => {
+  if(e.touches.length === 2){
+    const [a,b] = e.touches;
+    pellizcoIni = Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+    zoomIni = zoom;
+  }
+}, { passive:true });
+visorEl.addEventListener('touchmove', (e) => {
+  if(e.touches.length === 2){
+    e.preventDefault();
+    const [a,b] = e.touches;
+    const dist = Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+    if(pellizcoIni){
+      zoom = Math.min(6, Math.max(0.5, zoomIni * (dist/pellizcoIni)));
+      aplicarTransform();
+    }
+  }
+}, { passive:false });
+
+/* ======================================================================
+   Popover con el detalle de un pin
+   ====================================================================== */
+function verPopover(cod){
+  const l = CODIGO_A_LABOR[cod] || {};
+  const v = PUNTOS[cod] || { cerrados:0, abiertos:0, atrasados:0, caminatas:0 };
+  document.getElementById('popCod').textContent = cod;
+  document.getElementById('popNom').textContent = l.nombre || '';
+  document.getElementById('popCerrados').textContent = v.cerrados;
+  document.getElementById('popAbiertos').textContent = v.abiertos;
+  document.getElementById('popAtrasados').textContent = v.atrasados;
+  document.getElementById('popCaminatas').textContent = v.caminatas;
+  document.getElementById('popover').classList.add('act');
+}
+function cerrarPopover(){ document.getElementById('popover').classList.remove('act'); }
+
+/* ======================================================================
+   Ubicar frentes — calibración "sobre la marcha". Lista los códigos con
+   datos en el nivel actual que todavía no tienen pin; al elegir uno se
+   arma el modo "toca el plano", y el próximo click sobre la imagen
+   guarda ese punto (como % del ancho/alto de la imagen, no en píxeles).
+   ====================================================================== */
+function toggleUbicar(){
+  ubicarAbierto = !ubicarAbierto;
+  document.getElementById('ubicarNota').style.display = ubicarAbierto ? '' : 'none';
+  document.getElementById('ubicarLista').style.display = ubicarAbierto ? '' : 'none';
+  document.getElementById('btnToggleUbicar').textContent = ubicarAbierto ? 'Ocultar' : 'Mostrar';
+  if(!ubicarAbierto) cancelarArmado();
+}
+
+function pintarListaPendientes(){
+  const pinesNivel = PINES.filter(p => p.nivel === nivelActual);
+  const yaUbicados = new Set(pinesNivel.map(p => p.codigo_labor));
+  frentesPendientes = Object.keys(PUNTOS).filter(cod =>
+    CODIGO_A_NIVEL[cod] && CODIGO_A_NIVEL[cod].id === nivelActual && !yaUbicados.has(cod)
+  );
+  const cont = document.getElementById('ubicarLista');
+  if(!frentesPendientes.length){
+    cont.innerHTML = '<div style="font-size:12px;color:var(--tenue);padding:4px 2px;">No quedan frentes pendientes de ubicar en este nivel &mdash; se dibujaron todos los que tienen pin.</div>';
+    return;
+  }
+  cont.innerHTML = frentesPendientes.map(cod => {
+    const l = CODIGO_A_LABOR[cod] || {};
+    const esteArmado = armado === cod;
+    return '<div class="ubicar-item'+(esteArmado?' armado-item':'')+'">'
+      + '<span><b>'+cod+'</b><span>'+(l.nombre||'').slice(0,46)+'</span></span>'
+      + '<button onclick="armarUbicar(\''+cod+'\')">'+(esteArmado?'Cancelar':'Ubicar')+'</button>'
+      + '</div>';
+  }).join('');
+}
+
+function armarUbicar(cod){
+  if(armado === cod){ cancelarArmado(); return; }
+  armado = cod;
+  const l = CODIGO_A_LABOR[cod] || {};
+  document.getElementById('avisoArmadoNombre').textContent = cod + ' — ' + (l.nombre||'');
+  document.getElementById('avisoArmado').classList.add('act');
+  document.getElementById('visor').classList.add('armado');
+  pintarListaPendientes();
+}
+function cancelarArmado(){
+  armado = null;
+  document.getElementById('avisoArmado').classList.remove('act');
+  document.getElementById('visor').classList.remove('armado');
+  if(ubicarAbierto) pintarListaPendientes();
+}
+
+async function manejarClickUbicar(e){
+  const img = document.getElementById('visorImg');
+  const rect = img.getBoundingClientRect();
+  const xPct = Math.min(100, Math.max(0, (e.clientX - rect.left) / rect.width * 100));
+  const yPct = Math.min(100, Math.max(0, (e.clientY - rect.top) / rect.height * 100));
+  const cod = armado;
+  cancelarArmado();
+  try {
+    const fila = { codigo_labor: cod, nivel: nivelActual, x_pct: xPct.toFixed(2), y_pct: yPct.toFixed(2) };
+    const guardado = await SB.insertar('plano_pines?on_conflict=codigo_labor', [fila]);
+    PINES = PINES.filter(p => p.codigo_labor !== cod);
+    if(guardado && guardado[0]) PINES.push(guardado[0]);
+    pintarNivel();
+  } catch(err){
+    alert(err.message === '__SIN_SENAL__'
+      ? 'Sin señal: no se pudo guardar la ubicación. Intenta de nuevo con conexión.'
+      : ('No se pudo guardar: ' + (err.message || err)));
+  }
+}
+
+/* ======================================================================
+   Arranque — misma sesión compartida que el resto de la suite.
+   ====================================================================== */
+(async function(){
+  SB.cargar();
+  if(!SB.ses || !SB.ses.refresh){
+    location.replace('login.html?volver=plano-dt.html');
+    return;
+  }
+  if(navigator.onLine){
+    try { await SB.refrescar(); }
+    catch(e){
+      if(e && e.message === 'Sesion expirada'){
+        SB.limpiar();
+        location.replace('login.html?volver=plano-dt.html');
+        return;
+      }
+    }
+  }
+  pintarEstado();
+  await aplicarMarca();
+  pintarTabsNivel();
+  await cargarDatos();
+})();
+</script>
+</body>
+</html>
