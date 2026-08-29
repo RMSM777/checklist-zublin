@@ -20,13 +20,27 @@
        Sheet único de Drive (Hoja 1!A:I de drive-integration.js) por un
        Excel por reporte con las mismas columnas. guardarReportePDF() ya
        la llama sola al final — no hace falta invocarla a mano.
-       Requiere la librería SheeJS (XLSX) cargada en la página: agregar
-       ANTES de este script
-         <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+       Requiere la librería SheetJS (XLSX) cargada en la página — usa el
+       archivo ya vendorizado en el repo, ANTES de este script:
+         <script src="xlsx.full.min.js"></script>
        Si no está cargada, se salta en silencio (console.warn) y el
        guardado del PDF + la fila en la tabla NO se ven afectados — el
        log.xlsx es un extra de mejor esfuerzo, nunca bloquea el guardado
        real (que siempre vive, sin riesgo de pérdida, en la tabla).
+
+       (28-ago, v3) El log.xlsx ahora también lleva el logo de la
+       empresa activa (vía MARCA.logoDataUrl) y un encabezado con el
+       nombre de la empresa, mismo criterio "plantilla" del resto de la
+       suite. Para esto hace falta, ADEMÁS de xlsx.full.min.js, también
+       JSZip (ya vendorizado, usado por el mismo truco en app-inicio.html
+       para el Excel de Caminatas/DT) y que marca.js se cargue ANTES que
+       este archivo:
+         <script src="marca.js?v=2"></script>
+         <script src="jszip.min.js"></script>
+         <script src="xlsx.full.min.js"></script>
+         <script src="supabase-integration.js?v=3"></script>
+       Si falta JSZip o marca.js/MARCA aún no cargó el logo, el log.xlsx
+       se genera igual, solo que sin el logo — nunca bloquea nada.
 
    ⚠️ IMPORTANTE — dónde va este archivo y cómo se incluye:
      - Sube este archivo a la raíz del repo (junto a drive-integration.js).
@@ -286,6 +300,10 @@ async function guardarReportePDF({ tipoReporte, correlativo, claveVerificacion, 
    queda un instante desactualizado en una fila, y se autocorrige solo
    la próxima vez que alguien guarde un reporte de ese tipo — la tabla
    reportes_pdf (no el Excel) es siempre el dato real. */
+function _tituloTipoReporte(tipoReporte){
+  return String(tipoReporte || '').replace(/-/g, ' ').replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+}
+
 async function actualizarLogExcel(tipoReporte){
   if(typeof XLSX === 'undefined'){
     console.warn('actualizarLogExcel: falta cargar la librería XLSX (SheetJS) en esta página — se omite el log.xlsx.');
@@ -313,11 +331,111 @@ async function actualizarLogExcel(tipoReporte){
     ];
   });
 
-  const hoja = XLSX.utils.aoa_to_sheet([encabezado].concat(filasHoja));
+  /* Encabezado institucional (fila 1: título, fila 2: empresa activa) —
+     mismo criterio "plantilla" que el resto de la suite: el nombre y el
+     logo salen de MARCA (empresa activa), no de un texto fijo, para que
+     el mismo código sirva para Zublin, QC Digital o cualquier empresa
+     que se agregue despues. Deja las columnas E en adelante libres para
+     el logo (ver incrustarLogoEnExcel), igual que ya hace el Excel de
+     Caminatas/DT en app-inicio.html. */
+  const nombreEmpresa = (typeof MARCA !== 'undefined' && MARCA.empresa)
+    ? (MARCA.empresa.nombreCorto || MARCA.empresa.nombre) : '';
+  const filaTitulo = ['Log de reportes — ' + _tituloTipoReporte(tipoReporte)];
+  const filaEmpresa = [nombreEmpresa ? (nombreEmpresa + ' · QC Digital') : 'QC Digital'];
+  const filaEncabezadoIdx = 3; // 0-based: 0=titulo, 1=empresa, 2=espacio, 3=encabezado de columnas
+
+  const aoa = [filaTitulo, filaEmpresa, []].concat([encabezado], filasHoja);
+  const hoja = XLSX.utils.aoa_to_sheet(aoa);
+  hoja['!merges'] = [
+    { s:{ r:0, c:0 }, e:{ r:0, c:3 } },
+    { s:{ r:1, c:0 }, e:{ r:1, c:3 } }
+  ];
+  hoja['!cols'] = [
+    { wch: 12 }, { wch: 10 }, { wch: 16 }, { wch: 18 },
+    { wch: 14 }, { wch: 22 }, { wch: 32 }, { wch: 34 }
+  ];
+  const ultimaFila = filaEncabezadoIdx + 1 + filasHoja.length; // 1-based, para el rango del autofiltro
+  hoja['!autofilter'] = { ref: 'A' + (filaEncabezadoIdx + 1) + ':H' + ultimaFila };
+
   const libro = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(libro, hoja, 'Log');
-  const buffer = XLSX.write(libro, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  let buffer = XLSX.write(libro, { bookType: 'xlsx', type: 'array' });
 
+  /* Logo de la empresa activa (mejor esfuerzo — si MARCA o JSZip no
+     están cargados, o el logo aún no terminó de cargar, se entrega el
+     Excel igual, solo que sin el logo). */
+  try{
+    const logoDataUrl = (typeof MARCA !== 'undefined' && MARCA.logoDataUrl) ? MARCA.logoDataUrl : null;
+    if(logoDataUrl) buffer = await incrustarLogoEnExcel(buffer, logoDataUrl, { columna: 4 });
+  }catch(e){
+    console.warn('actualizarLogExcel: no se pudo incrustar el logo en el log.xlsx.', e);
+  }
+
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   await SB.subirArchivo(BUCKET_REPORTES, tipoReporte + '/log.xlsx', blob, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+}
+
+/* ---------- incrustarLogoEnExcel: incrusta una imagen (logo de la empresa activa) ----------
+   en un .xlsx ya generado por SheetJS, escribiendo a mano las piezas
+   OOXML que la edición comunidad de SheetJS no sabe crear: la imagen,
+   el "drawing" que la ancla a una celda, y las referencias cruzadas que
+   las conectan entre sí y con la hoja. Generalizado a partir del mismo
+   truco ya usado y probado en producción para el logo de Zublin en el
+   Excel de Caminatas/DT (app-inicio.html, función agregarLogoZublin) —
+   aquí recibe el logo como parámetro (data URL de MARCA.logoDataUrl) en
+   vez de tenerlo fijo, para que sirva con cualquier empresa activa.
+   Solo soporta PNG (igual que el original) — es lo que usan los logos
+   de la suite (logo-zublin.txt, logo-qcdigital.txt). Si el logo viniera
+   en otro formato, se omite sin romper el Excel. */
+async function incrustarLogoEnExcel(bufferXlsx, logoDataUrl, opciones){
+  if(typeof JSZip === 'undefined' || !logoDataUrl) return bufferXlsx;
+  const m = /^data:image\/png;base64,(.+)$/i.exec(logoDataUrl);
+  if(!m) return bufferXlsx;
+  const base64 = m[1];
+
+  const zip = await JSZip.loadAsync(bufferXlsx);
+  zip.file('xl/media/image1.png', base64, { base64: true });
+
+  const dispW = (opciones && opciones.anchoPx) || 100;
+  const dispH = (opciones && opciones.altoPx) || 40;
+  const col = (opciones && opciones.columna != null) ? opciones.columna : 4;
+  const emuW = dispW * 9525, emuH = dispH * 9525;
+
+  const drawingXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+    + '<xdr:oneCellAnchor>'
+    + '<xdr:from><xdr:col>' + col + '</xdr:col><xdr:colOff>19050</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>9525</xdr:rowOff></xdr:from>'
+    + '<xdr:ext cx="' + emuW + '" cy="' + emuH + '"/>'
+    + '<xdr:pic>'
+    + '<xdr:nvPicPr><xdr:cNvPr id="2" name="Logo"/><xdr:cNvPicPr/></xdr:nvPicPr>'
+    + '<xdr:blipFill><a:blip r:embed="rId1" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>'
+    + '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="' + emuW + '" cy="' + emuH + '"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>'
+    + '</xdr:pic>'
+    + '<xdr:clientData/>'
+    + '</xdr:oneCellAnchor>'
+    + '</xdr:wsDr>';
+  zip.file('xl/drawings/drawing1.xml', drawingXml);
+
+  const drawingRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/>'
+    + '</Relationships>';
+  zip.file('xl/drawings/_rels/drawing1.xml.rels', drawingRels);
+
+  const sheetRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+    + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/>'
+    + '</Relationships>';
+  zip.file('xl/worksheets/_rels/sheet1.xml.rels', sheetRels);
+
+  let sheet1 = await zip.file('xl/worksheets/sheet1.xml').async('string');
+  sheet1 = sheet1.replace('</worksheet>', '<drawing r:id="rId1"/></worksheet>');
+  zip.file('xl/worksheets/sheet1.xml', sheet1);
+
+  let ct = await zip.file('[Content_Types].xml').async('string');
+  const overrideDrawing = '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>';
+  if(!ct.includes(overrideDrawing)) ct = ct.replace('</Types>', overrideDrawing + '</Types>');
+  zip.file('[Content_Types].xml', ct);
+
+  return await zip.generateAsync({ type: 'arraybuffer' });
 }
