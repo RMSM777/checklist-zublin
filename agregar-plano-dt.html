@@ -23,16 +23,17 @@
 
 <h1>Agregar el acceso a "Plano de ubicación DT"</h1>
 <p>
-  Esta paginita hace UN solo cambio en tu <code>app-inicio.html</code>: agrega el
-  botón de acceso a la nueva pantalla <code>plano-dt.html</code> en la sección
-  "Reportes". No toca nada más del archivo — en particular, no toca el logo
-  incrustado, así se evita cualquier riesgo de dañarlo al editarlo a mano.
+  Esta paginita hace UN solo cambio en tu <code>app-inicio.html</code>: agrega una
+  5ta pestaña "Plano" en la barra de navegación de abajo (junto a Inicio, Reportes,
+  Piwii y Perfil), que lleva directo a <code>plano-dt.html</code>. No toca nada más
+  del archivo — en particular, no toca el logo incrustado, así se evita cualquier
+  riesgo de dañarlo al editarlo a mano.
 </p>
 
 <div class="caja">
   <div><b>1.</b> Elegí tu archivo <code>app-inicio.html</code> (el que ya tenés en GitHub / tu compu):</div>
   <input type="file" id="archivo" accept=".html">
-  <div><b>2.</b> <button id="btnProcesar" disabled>Agregar el acceso y descargar</button></div>
+  <div><b>2.</b> <button id="btnProcesar" disabled>Agregar la pestaña y descargar</button></div>
   <div class="estado" id="estado"></div>
 </div>
 
@@ -41,8 +42,12 @@ const inputArchivo = document.getElementById('archivo');
 const btn = document.getElementById('btnProcesar');
 const estado = document.getElementById('estado');
 
-const LINEA_EXISTENTE = 'class="herr destacada" href="ciz-dt-conectado.html"';
-const LINEA_NUEVA = '\n        <a class="herr destacada" href="plano-dt.html"><span class="emo">&#128506;</span><span class="cuerpo"><span class="nom">Plano de ubicación DT</span><span class="sub">Dónde quedaron los DT y las caminatas · solo lectura</span></span><span class="flecha">&rsaquo;</span></a>';
+const ANCLA = '<button data-p="perfil" onclick="irA(\'perfil\')">';
+const CIERRE_BOTON_PERFIL = '</button>\n</nav>';
+const PESTANA_NUEVA =
+  '  <a href="plano-dt.html">\n' +
+  '    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.58 7-12A7 7 0 1 0 5 9c0 4.42 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>\n' +
+  '    Plano</a>\n</nav>';
 
 let textoOriginal = null;
 let nombreArchivo = 'app-inicio.html';
@@ -56,14 +61,14 @@ inputArchivo.addEventListener('change', () => {
   const reader = new FileReader();
   reader.onload = () => {
     textoOriginal = reader.result;
-    if(!textoOriginal.includes(LINEA_EXISTENTE)){
-      estado.textContent = 'Este archivo no parece ser el app-inicio.html correcto (no encontré la línea de Caminatas · Detalles de Terminación). Revisa que elegiste el archivo correcto.';
+    if(!textoOriginal.includes(ANCLA) || !textoOriginal.includes('</nav>')){
+      estado.textContent = 'Este archivo no parece ser el app-inicio.html correcto (no encontré la barra de navegación con el botón Perfil). Revisa que elegiste el archivo correcto.';
       estado.className = 'estado err';
       btn.disabled = true;
       return;
     }
     if(textoOriginal.includes('plano-dt.html')){
-      estado.textContent = 'Este archivo YA tiene el acceso a plano-dt.html agregado. No hace falta procesarlo de nuevo, pero si igual descargas quedará exactamente igual.';
+      estado.textContent = 'Este archivo YA tiene una referencia a plano-dt.html. Si igual descargas, no se duplica nada — se deja tal cual está.';
       estado.className = 'estado ok';
     }
     btn.disabled = false;
@@ -75,9 +80,15 @@ btn.addEventListener('click', () => {
   if(!textoOriginal) return;
   let resultado = textoOriginal;
   if(!resultado.includes('plano-dt.html')){
-    const idx = resultado.indexOf(LINEA_EXISTENTE);
-    const finLinea = resultado.indexOf('</a>', idx) + '</a>'.length;
-    resultado = resultado.slice(0, finLinea) + LINEA_NUEVA + resultado.slice(finLinea);
+    const idxAncla = resultado.indexOf(ANCLA);
+    const idxCierre = resultado.indexOf(CIERRE_BOTON_PERFIL, idxAncla);
+    if(idxCierre === -1){
+      estado.textContent = 'No pude ubicar el cierre de la barra de navegación (</nav>) después del botón Perfil. No se hizo ningún cambio — avísame para revisarlo.';
+      estado.className = 'estado err';
+      return;
+    }
+    const finCierre = idxCierre + CIERRE_BOTON_PERFIL.length;
+    resultado = resultado.slice(0, finCierre - '</nav>'.length) + PESTANA_NUEVA.replace('</nav>', '') + '</nav>' + resultado.slice(finCierre);
   }
   const blob = new Blob([resultado], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -85,7 +96,7 @@ btn.addEventListener('click', () => {
   a.href = url; a.download = nombreArchivo;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 2000);
-  estado.textContent = 'Listo — se descargó ' + nombreArchivo + ' con el acceso agregado. Ese archivo ya está listo para subir a GitHub tal cual.';
+  estado.textContent = 'Listo — se descargó ' + nombreArchivo + ' con la pestaña "Plano" agregada. Ese archivo ya está listo para subir a GitHub tal cual.';
   estado.className = 'estado ok';
 });
 </script>
