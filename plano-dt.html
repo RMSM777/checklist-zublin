@@ -361,14 +361,14 @@ async function cargarDatos(){
   PUNTOS = {};
   try {
     const [dts, caminatas, pines] = await Promise.all([
-      SB.consultar('detalles_terminacion', 'select=frente,estado,fecha_compromiso_cierre'),
+      SB.consultar('detalles_terminacion', 'select=ubicacion,estado,fecha_compromiso_cierre'),
       SB.consultar('avances_caminata', 'select=frente'),
       SB.consultar('plano_pines', 'select=*')
     ]);
     PINES = pines || [];
 
     (dts||[]).forEach(d => {
-      const cod = extraerCodigo(d.frente);
+      const cod = extraerCodigo(d.ubicacion);
       if(!cod) return;
       if(!PUNTOS[cod]) PUNTOS[cod] = { cerrados:0, abiertos:0, atrasados:0, caminatas:0 };
       if(d.estado === 'CERRADA'){ PUNTOS[cod].cerrados++; return; }
