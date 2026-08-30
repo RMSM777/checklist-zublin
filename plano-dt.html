@@ -340,15 +340,15 @@ let armado = null;      // codigo_labor en modo "toca el plano para ubicar" | nu
 let ubicarAbierto = false;
 
 /* ---------------------------------------------------------------------
-   Extrae el codigo WBS del texto guardado en el campo "frente"
-   (formato "224222F-02-01 — Nombre largo..."). Si no matchea (frente
-   escrito a mano, sin pasar por el catalogo), devuelve null: ese
-   registro no se puede ubicar en el plano por ahora.
+   Valida el codigo de labor (columna codigo_labor, propia y separada
+   del texto de ubicacion/frente desde el 30-08-2026). Si viene vacío
+   (frente escrito a mano, sin pasar por el catálogo — o un registro
+   viejo, de antes de existir esta columna, sin backfill) devuelve
+   null: ese registro no se puede ubicar en el plano por ahora.
    --------------------------------------------------------------------- */
-function extraerCodigo(frenteTexto){
-  if(!frenteTexto) return null;
-  const partes = frenteTexto.split(' — ');
-  const cod = partes[0].trim();
+function extraerCodigo(codigoLabor){
+  if(!codigoLabor) return null;
+  const cod = codigoLabor.trim();
   return CODIGO_A_NIVEL[cod] ? cod : null;
 }
 
@@ -361,14 +361,14 @@ async function cargarDatos(){
   PUNTOS = {};
   try {
     const [dts, caminatas, pines] = await Promise.all([
-      SB.consultar('detalles_terminacion', 'select=ubicacion,estado,fecha_compromiso_cierre'),
-      SB.consultar('avances_caminata', 'select=frente'),
+      SB.consultar('detalles_terminacion', 'select=codigo_labor,estado,fecha_compromiso_cierre'),
+      SB.consultar('avances_caminata', 'select=codigo_labor'),
       SB.consultar('plano_pines', 'select=*')
     ]);
     PINES = pines || [];
 
     (dts||[]).forEach(d => {
-      const cod = extraerCodigo(d.ubicacion);
+      const cod = extraerCodigo(d.codigo_labor);
       if(!cod) return;
       if(!PUNTOS[cod]) PUNTOS[cod] = { cerrados:0, abiertos:0, atrasados:0, caminatas:0 };
       if(d.estado === 'CERRADA'){ PUNTOS[cod].cerrados++; return; }
@@ -376,7 +376,7 @@ async function cargarDatos(){
       if(atrasado) PUNTOS[cod].atrasados++; else PUNTOS[cod].abiertos++;
     });
     (caminatas||[]).forEach(c => {
-      const cod = extraerCodigo(c.frente);
+      const cod = extraerCodigo(c.codigo_labor);
       if(!cod) return;
       if(!PUNTOS[cod]) PUNTOS[cod] = { cerrados:0, abiertos:0, atrasados:0, caminatas:0 };
       PUNTOS[cod].caminatas++;
