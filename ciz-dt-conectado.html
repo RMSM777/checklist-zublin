@@ -1658,8 +1658,14 @@ function tarjetaHTML(r){
 let CONTRATO = { codigo: '', sufijo: 'CIZ', nombre: '' };
 
 function nombreApp(){
-  const suf = CONTRATO.sufijo || 'CIZ';
-  return suf + ' DT';
+  /* Nombre elegido por Rodrigo (30-08-2026) para dejar de amarrar el
+     nombre visible de la herramienta a la Z de Züblin: "Sistema
+     Caminatas Internas", sigla SCI. Es fijo -- ya NO depende del
+     contrato. El sufijo del contrato (CONTRATO.sufijo, ej. "CIZ") sigue
+     existiendo aparte y solo se usa para el código de cada caminata
+     (ej. RMSM-CIZ-0001), que lo genera la base de datos: son dos cosas
+     separadas a propósito. */
+  return 'SCI';
 }
 
 async function aplicarMarca(){

@@ -316,17 +316,26 @@ async function aplicarMarca(){
    falta que nadie lo elija a mano al ubicar un frente.
    ====================================================================== */
 const NIVELES = [
-  { id:'PRODUCCION',  nombre:'Producción',  prefijo:'224200', imagen:'plano-produccion.png'  },
-  { id:'HUNDIMIENTO', nombre:'Hundimiento', prefijo:'224100', imagen:'plano-hundimiento.png' },
-  { id:'INYECCION',   nombre:'Inyección',   prefijo:'224300', imagen:'plano-inyeccion.png'   },
-  { id:'EXTRACCION',  nombre:'Extracción',  prefijo:'224400', imagen:'plano-extraccion.png'  },
-  { id:'ACARREO',     nombre:'Acarreo',     prefijo:'224500', imagen:'plano-acarreo.png'     },
+  { id:'PRODUCCION',  nombre:'Producción',  prefijos:['224200'],                     imagen:'plano-produccion.png'  },
+  { id:'HUNDIMIENTO', nombre:'Hundimiento', prefijos:['224100','222600','222700','222800'], imagen:'plano-hundimiento.png' },
+  { id:'INYECCION',   nombre:'Inyección',   prefijos:['224300'],                     imagen:'plano-inyeccion.png'   },
+  { id:'EXTRACCION',  nombre:'Extracción',  prefijos:['224400'],                     imagen:'plano-extraccion.png'  },
+  { id:'ACARREO',     nombre:'Acarreo',     prefijos:['224500'],                     imagen:'plano-acarreo.png'     },
 ];
+/* OJO (30-08-2026): "Hundimiento" tiene DOS familias de códigos WBS para
+   la misma idea física de nivel -- 224100 (calles "C-XX-NH-N51/N52
+   CONTINUIDAD" del WBS mas nuevo) y 222600/222700/222800 (las mismas
+   calles NH-N51/N52/N06, pero del WBS anterior a la "continuidad").
+   Antes solo se reconocía 224100: cualquier DT o caminata en una labor
+   222600/700/800 (ej. "C-41-NH-N51 CONTINUIDAD", código 222612F-02-01)
+   no aparecía ni como pin ni como pendiente de ubicar en el Plano --
+   quedaba invisible sin ningún aviso. Se agregan aquí para que también
+   cuenten como Hundimiento. */
 
 const CODIGO_A_NIVEL = {}; /* codigo_labor -> {id,nombre} | undefined si no cae en ningun nivel */
 CATALOGO_LABORES.forEach(l => {
   const pref = (l.area || '').slice(0,6);
-  const niv = NIVELES.find(n => n.prefijo === pref);
+  const niv = NIVELES.find(n => n.prefijos.includes(pref));
   if(niv) CODIGO_A_NIVEL[l.codigo] = niv;
 });
 const CODIGO_A_LABOR = {};
