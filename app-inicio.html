@@ -430,7 +430,14 @@
   <div class="panel" id="p-piwii">
     <section>
       <div class="piwii-caja">
-        <div class="piwii-emo">&#10024;</div>
+        <div class="piwii-emo">
+          <svg width="40" height="40" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-label="QC Digital">
+            <rect width="512" height="512" rx="100" fill="#0d1526"/>
+            <polygon points="256,66 420.5,161 420.5,351 256,446 91.5,351 91.5,161" fill="none" stroke="#f5851f" stroke-width="10"/>
+            <polygon points="256,106 385.9,181 385.9,331 256,406 126.1,331 126.1,181" fill="none" stroke="#f5851f" stroke-width="18"/>
+            <path d="M181,260 L231,310 L339,194" fill="none" stroke="#f5851f" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="piwii-nom">Piwii</div>
         <div class="piwii-sub">Asistente QC Digital</div>
         <p class="piwii-txt">Ayuda a completar los reportes y a resolver dudas de calidad
@@ -465,14 +472,21 @@
     <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6M10 17h6"/></svg>
     Reportes</button>
   <button data-p="piwii" onclick="irA('piwii')">
-    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18 16.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/></svg>
+    <!-- Icono QCDigital (mismo mark que el header de piwii.html), reemplaza
+         las estrellas que tenia antes, a pedido (31-08-2026). -->
+    <svg class="ico" width="21" height="21" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" aria-label="QC Digital">
+      <rect width="512" height="512" rx="100" fill="#0d1526"/>
+      <polygon points="256,66 420.5,161 420.5,351 256,446 91.5,351 91.5,161" fill="none" stroke="#f5851f" stroke-width="20"/>
+      <polygon points="256,106 385.9,181 385.9,331 256,406 126.1,331 126.1,181" fill="none" stroke="#f5851f" stroke-width="34"/>
+      <path d="M181,260 L231,310 L339,194" fill="none" stroke="#f5851f" stroke-width="46" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
     Piwii</button>
-  <button data-p="perfil" onclick="irA('perfil')">
-    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
-    Perfil</button>
   <a href="plano-dt.html">
     <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-7.58 7-12A7 7 0 1 0 5 9c0 4.42 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>
     Plano</a>
+  <button data-p="perfil" onclick="irA('perfil')">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>
+    Perfil</button>
 </nav>
 
 <script>
@@ -789,7 +803,7 @@ function pintarFrentes(dts){
    Las columnas 1 a 22 van en el MISMO orden que la planilla que lleva
    el equipo (Copia de EXCEL PUNCH NUEVO 268.xlsx), para que el archivo
    que descarga la app se pueda usar igual que ese Excel en cualquier
-   otro reporte de la suite. Las columnas propias de CIZ DT (que ese
+   otro reporte de la suite. Las columnas propias de SCI (que ese
    Excel no tiene) van al final, después de la 22.
    ====================================================================== */
 
@@ -828,16 +842,36 @@ const COLS = [
   ['Fecha Comp. Cierre',        d => fechaLocal(d.fecha_compromiso_cierre), 'f'],
   ['Responsable del cierre',    d => d.resp_cierre || '',            's'],
   ['Fecha real de cierre',       d => fechaLocal(d.fecha_real_cierre), 'f'],
-  ['N° de Informe',             d => d.numero_informe || '',         's'],
   ['PK Inicial',                d => (d.pk_inicio != null ? d.pk_inicio : ''), 'n'],
   ['Pk Final',                  d => (d.pk_termino != null ? d.pk_termino : ''), 'n'],
   ['Total m caminados',          d => (d.metros_caminados != null ? Number(d.metros_caminados) : ''), 'n'],
-  ['Observaciones',             d => '',                             's'],
-  /* --- propia de CIZ DT: no existe en la planilla del equipo. Va en
+  ['KPI',                       d => calcularKPICaminata(d),         's'],
+  /* --- propias de SCI: no existen en la planilla del equipo. Van en
      el lugar donde antes iba TURNO (se sacó, a pedido). --- */
   ['Código caminata',           d => d.codigo_caminata || '',        's'],
   ['Días de atraso',            d => (d.dias_atraso != null ? d.dias_atraso : ''), 'n'],
 ];
+
+/* KPI por caminata = observaciones (DT) aun abiertas de esa caminata /
+   metros caminados de esa caminata, con 2 decimales — a pedido
+   (31-08-2026). "Abierta" acá es "no cerrada" (incluye ATRASADA: sigue
+   siendo una observación pendiente, solo que demorada). metros_caminados
+   viene YA repetido igual en cada fila de una misma caminata (viene de
+   la caminata, no del DT), así que NO hay que sumarlo — cada fila ya
+   trae el valor correcto para su propia caminata.
+   KPI_ABIERTAS_POR_CAMINATA se recalcula al empezar cada construirLibro(),
+   antes de armar las filas, porque el KPI de una fila depende del total
+   de TODA la caminata, no solo de esa fila. */
+let KPI_ABIERTAS_POR_CAMINATA = new Map();
+
+function calcularKPICaminata(d){
+  const cod = d.codigo_caminata;
+  if(!cod) return '';
+  const metros = Number(d.metros_caminados);
+  if(!metros) return '';
+  const abiertas = KPI_ABIERTAS_POR_CAMINATA.get(cod) || 0;
+  return (abiertas / metros).toFixed(2);
+}
 
 /* 'YYYY-MM-DD' (lo que manda Postgres) -> Date a medianoche LOCAL.
    Si se usara `new Date('YYYY-MM-DD')` a secas, JS lo interpreta como
@@ -868,6 +902,18 @@ function construirLibro(dts){
      esto solo ordena la exportación. Se clona el arreglo: no se toca
      DT_CACHE. */
   dts = dts.slice().sort((a,b) => (a.numero_punch||'').localeCompare(b.numero_punch||''));
+
+  /* Recalcular el mapa de observaciones abiertas por caminata, para la
+     columna KPI (ver calcularKPICaminata más arriba). */
+  KPI_ABIERTAS_POR_CAMINATA = new Map();
+  dts.forEach(d => {
+    if(!d.codigo_caminata) return;
+    if(d.estado === 'CERRADA') return;
+    KPI_ABIERTAS_POR_CAMINATA.set(
+      d.codigo_caminata,
+      (KPI_ABIERTAS_POR_CAMINATA.get(d.codigo_caminata) || 0) + 1
+    );
+  });
 
   /* ---- Bloque de encabezado. Se sacaron las líneas institucionales
      (Vicepresidencia de Proyectos / Gerencia de Ingeniería y
@@ -919,7 +965,7 @@ function construirLibro(dts){
   }
 
   /* Ancho de columnas — a ojo, para que se lea sin tener que ajustar. */
-  ws['!cols'] = COLS.map(c => ({ wch: c[0] === 'Descripción' ? 45 : (c[0] === 'Observaciones' ? 25 : 14) }));
+  ws['!cols'] = COLS.map(c => ({ wch: c[0] === 'Descripción' ? 45 : 14 }));
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'DT');
