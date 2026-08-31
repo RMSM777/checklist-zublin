@@ -230,6 +230,7 @@
     <div class="fila"><span>DT abiertos</span><b id="popAbiertos">0</b></div>
     <div class="fila"><span>DT atrasados</span><b id="popAtrasados">0</b></div>
     <div class="fila"><span>Caminatas</span><b id="popCaminatas">0</b></div>
+    <div class="fila"><span>Metros caminados</span><b id="popMetros">0 m</b></div>
     <div class="pop-aviso-version" id="popAvisoVersion" style="display:none;">
       Este punto se marcó en una versión anterior del plano de este
       nivel — el plano se actualizó después. Verifica que siga en el
@@ -428,7 +429,7 @@ async function cargarDatos(){
   try {
     const [dts, caminatas, pines] = await Promise.all([
       SB.consultar('detalles_terminacion', 'select=codigo_labor,estado,fecha_compromiso_cierre'),
-      SB.consultar('avances_caminata', 'select=codigo_labor,codigo_caminata,fecha'),
+      SB.consultar('avances_caminata', 'select=codigo_labor,codigo_caminata,fecha,metros_caminados'),
       SB.consultar('plano_pines', 'select=*')
     ]);
     PINES = pines || [];
@@ -436,7 +437,7 @@ async function cargarDatos(){
     (dts||[]).forEach(d => {
       const cod = extraerCodigo(d.codigo_labor);
       if(!cod) return;
-      if(!PUNTOS[cod]) PUNTOS[cod] = { cerrados:0, abiertos:0, atrasados:0, caminatas:0, ultimaCaminata:null, ultimaFecha:'' };
+      if(!PUNTOS[cod]) PUNTOS[cod] = { cerrados:0, abiertos:0, atrasados:0, caminatas:0, metrosCaminados:0, ultimaCaminata:null, ultimaFecha:'' };
       if(d.estado === 'CERRADA'){ PUNTOS[cod].cerrados++; return; }
       const atrasado = d.fecha_compromiso_cierre && d.fecha_compromiso_cierre < hoyISO();
       if(atrasado) PUNTOS[cod].atrasados++; else PUNTOS[cod].abiertos++;
@@ -446,12 +447,18 @@ async function cargarDatos(){
        de detalles_terminacion) se agregan acá (30-08-2026 solo traía
        codigo_labor) para poder mostrar en el popover cuál fue la última
        caminata que generó los DT de ese punto — a pedido de Rodrigo
-       (31-08-2026). */
+       (31-08-2026). metros_caminados se suma también (31-08-2026,
+       segundo pedido del mismo día): con el tema de "solo caminado, sin
+       DT" ya funcionando, una caminata sin hallazgos no queda registrada
+       en ningún otro lado visible más que acá — el HUB solo suma el
+       total general, se pierde de dónde salió cada metro. Sumando por
+       punto se recupera esa trazabilidad directo en el popover. */
     (caminatas||[]).forEach(c => {
       const cod = extraerCodigo(c.codigo_labor);
       if(!cod) return;
-      if(!PUNTOS[cod]) PUNTOS[cod] = { cerrados:0, abiertos:0, atrasados:0, caminatas:0, ultimaCaminata:null, ultimaFecha:'' };
+      if(!PUNTOS[cod]) PUNTOS[cod] = { cerrados:0, abiertos:0, atrasados:0, caminatas:0, metrosCaminados:0, ultimaCaminata:null, ultimaFecha:'' };
       PUNTOS[cod].caminatas++;
+      PUNTOS[cod].metrosCaminados += Number(c.metros_caminados) || 0;
       if(c.codigo_caminata && (c.fecha || '') >= PUNTOS[cod].ultimaFecha){
         PUNTOS[cod].ultimaCaminata = c.codigo_caminata;
         PUNTOS[cod].ultimaFecha = c.fecha || '';
@@ -630,7 +637,7 @@ visorEl.addEventListener('touchmove', (e) => {
 function verPopover(cod){
   popoverCod = cod;
   const l = CODIGO_A_LABOR[cod] || {};
-  const v = PUNTOS[cod] || { cerrados:0, abiertos:0, atrasados:0, caminatas:0, ultimaCaminata:null };
+  const v = PUNTOS[cod] || { cerrados:0, abiertos:0, atrasados:0, caminatas:0, metrosCaminados:0, ultimaCaminata:null };
   const totalDT = v.cerrados + v.abiertos + v.atrasados;
   document.getElementById('popCod').textContent = cod;
   document.getElementById('popNom').textContent = l.nombre || '';
@@ -640,6 +647,7 @@ function verPopover(cod){
   document.getElementById('popAbiertos').textContent = v.abiertos;
   document.getElementById('popAtrasados').textContent = v.atrasados;
   document.getElementById('popCaminatas').textContent = v.caminatas;
+  document.getElementById('popMetros').textContent = (v.metrosCaminados||0) + ' m';
 
   /* Aviso de "verificar ubicación" si el pin que se está mostrando
      quedó marcado en una versión anterior del plano de este nivel
