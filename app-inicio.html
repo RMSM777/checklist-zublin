@@ -227,6 +227,22 @@
   .btn-secundario:disabled{ opacity:.6; cursor:not-allowed; }
   .nota-exp{ font-size:11.5px; color:var(--tenue); text-align:center; line-height:1.45; margin:8px 4px 0; }
 
+  /* ---------- Historial / Excel por reporte ---------- */
+  .lista-log{ display:flex; flex-direction:column; gap:7px; }
+  .fila-log{
+    background:var(--tarjeta); border:1px solid var(--linea); border-radius:11px;
+    padding:10px 12px; display:flex; align-items:center; gap:10px;
+  }
+  .fila-log .fila-log-nom{ flex:1; min-width:0; font-size:13px; font-weight:600; line-height:1.3; }
+  .fila-log .fila-log-estado{
+    font-size:10.5px; color:var(--tenue); flex:none; max-width:96px; text-align:right; line-height:1.3;
+  }
+  .fila-log .fila-log-btn{
+    flex:none; border:1px solid var(--linea); background:var(--fondo); color:var(--texto);
+    font-weight:700; font-size:11.5px; padding:7px 10px; border-radius:8px; cursor:pointer; font-family:inherit;
+  }
+  .fila-log .fila-log-btn:disabled{ opacity:.55; cursor:not-allowed; }
+
   /* ---------- Perfil ---------- */
   .perfil-fila{
     background:var(--tarjeta); border:1px solid var(--linea); border-radius:11px;
@@ -424,6 +440,12 @@
         <a class="herr" href="reporte-liberacion-frente.html"><span class="num">11</span><span class="emo">&#9878;</span><span class="cuerpo"><span class="nom">Liberaci&oacute;n de frente</span><span class="sub">Protocolo de recepci&oacute;n de fortificaci&oacute;n</span></span><span class="flecha">&rsaquo;</span></a>
       </div>
     </section>
+
+    <section style="padding-top:4px;">
+      <p class="titulillo">Historial y Excel por reporte</p>
+      <p class="nota-herr">Un libro de Excel por reporte con lo generado hasta ahora (fecha, correlativo, qui&eacute;n lo hizo, qu&eacute; fue lo &uacute;ltimo) &mdash; mismo criterio que la planilla de Caminatas/DT de m&aacute;s arriba. Por ahora solo tiene datos los reportes ya conectados a la base compartida; los dem&aacute;s van a sumarse.</p>
+      <div class="lista-log" id="listaLogReportes"><div class="vacio">Cargando&hellip;</div></div>
+    </section>
   </div>
 
   <!-- ============ PIWII ============ -->
@@ -572,6 +594,94 @@ const SB = {
     return j;
   }
 };
+
+/* ======================================================================
+   Historial y Excel por reporte — (31-ago) lleva a los 11 reportes la
+   misma idea que ya usaba el botón "Descargar planilla de DT" de más
+   arriba: un libro de Excel por reporte, generado y guardado por
+   supabase-integration.js (función actualizarLogExcel, ver ese archivo)
+   cada vez que alguien cierra un reporte conectado a la base compartida.
+   Esta sección solo LEE ese log.xlsx desde el bucket 'reportes-pdf' y lo
+   descarga — no genera nada nueva aquí.
+
+   tipoReporte de cada fila = el mismo slug que usa/usará
+   guardarReportePDF() en cada reporte (hoy: 'checklist-camioneta', ya
+   conectado; el resto queda listo para cuando se migren de Drive a
+   Supabase — mismo nombre de archivo sin ".html").
+   ====================================================================== */
+const REPORTES_LOG = [
+  { tipo:'checklist-camioneta',            nombre:'Checklist camioneta' },
+  { tipo:'reporte-diario',                 nombre:'Reporte diario' },
+  { tipo:'reporte-dt-index',               nombre:'Reporte DT' },
+  { tipo:'informe-procesos-constructivos', nombre:'Informe procesos constructivos' },
+  { tipo:'listado-firmas-digitales',       nombre:'Listado de firmas digitales' },
+  { tipo:'reporte-programa-semanal',       nombre:'Adherencia programa semanal DT' },
+  { tipo:'caminata-avance-index',          nombre:'Reporte gerencial de avance' },
+  { tipo:'ic-mi-plano-index',              nombre:'Avance caminado IC Minería' },
+  { tipo:'cambio-turno-general',           nombre:'Cambio de turno general' },
+  { tipo:'reporte-pnc-rnc-index',          nombre:'Reporte de PNC y RNC' },
+  { tipo:'reporte-liberacion-frente',      nombre:'Liberación de frente' }
+];
+
+function pintarListaLogReportes(){
+  const cont = document.getElementById('listaLogReportes');
+  if(!cont) return;
+  cont.innerHTML = REPORTES_LOG.map(function(r){
+    const idSeguro = r.tipo.replace(/[^a-z0-9]/g, '_');
+    return '<div class="fila-log">'
+      + '<span class="fila-log-nom">' + r.nombre + '</span>'
+      + '<span class="fila-log-estado" id="logEstado_' + idSeguro + '"></span>'
+      + '<button type="button" class="fila-log-btn" data-tipo="' + r.tipo + '" data-id="' + idSeguro + '" '
+      + 'onclick="descargarLogReporte(this.dataset.tipo, this.dataset.id, this)">&#11015; Excel</button>'
+      + '</div>';
+  }).join('');
+}
+
+/* Descarga (o avisa que todavía no hay) el log.xlsx de un tipo de
+   reporte. De mejor esfuerzo: un reporte que aún no está conectado a
+   Supabase, o que aún no tiene ningún cierre guardado, simplemente
+   muestra "Sin datos aún" (404 real del bucket) en vez de un error. */
+async function descargarLogReporte(tipoReporte, idSeguro, btn){
+  const estado = document.getElementById('logEstado_' + idSeguro);
+  if(estado) estado.textContent = 'Buscando…';
+  if(btn) btn.disabled = true;
+  try{
+    if(!SB.ses) SB.cargar();
+    if(!SB.ses || !SB.ses.refresh){
+      if(estado) estado.textContent = 'Inicia sesión';
+      return;
+    }
+    if(navigator.onLine){
+      try { await SB.refrescar(); } catch(e){ /* seguimos con la sesion local */ }
+    }
+    const resp = await pedirRed(
+      SB_URL + '/storage/v1/object/reportes-pdf/' + encodeURIComponent(tipoReporte) + '/log.xlsx',
+      { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (SB.ses ? SB.ses.access : '') } }
+    );
+    if(resp.status === 404){
+      if(estado) estado.textContent = 'Sin datos aún';
+      return;
+    }
+    if(!resp.ok){
+      if(estado) estado.textContent = resp.status === 401 ? 'Sesión vencida' : 'Error (' + resp.status + ')';
+      return;
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Log_' + tipoReporte + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    if(estado) estado.textContent = 'Descargado ✓';
+  }catch(e){
+    if(estado) estado.textContent = (e && e.red) ? 'Sin señal' : 'Error';
+  }finally{
+    if(btn) btn.disabled = false;
+  }
+}
 
 function cuantosPendientes(){
   try { return (JSON.parse(almacen.get(CLAVE_COLA) || '[]')).length; } catch(e){ return 0; }
@@ -1319,6 +1429,7 @@ if ('serviceWorker' in navigator) {
   }
   pintarEstado();
   await aplicarMarca();
+  pintarListaLogReportes();
   await cargarTodo();
 })();
 </script>
