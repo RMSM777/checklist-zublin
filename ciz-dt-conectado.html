@@ -315,7 +315,7 @@
         <button class="btn-secundario" onclick="agregarHallazgo()">+ Agregar hallazgo a la lista</button>
       </div>
 
-      <div class="contador-hallazgos" id="h_contador">Sin hallazgos agregados todav&iacute;a.</div>
+      <div class="contador-hallazgos" id="h_contador">Sin hallazgos agregados todav&iacute;a &mdash; se puede guardar igual como caminata "solo caminado, sin DT".</div>
       <div id="h_lista"></div>
     </section>
 
@@ -324,9 +324,9 @@
       <div class="aviso-linea" id="c_aviso"></div>
         <div class="acciones">
         <button class="btn-limpiar" onclick="limpiarCaminata()">Limpiar todo</button>
-        <button class="btn-generar" id="btnGuardarCaminata" onclick="guardarCaminata()" disabled>Guardar caminata</button>
+        <button class="btn-generar" id="btnGuardarCaminata" onclick="guardarCaminata()">Guardar caminata</button>
       </div>
-      <div class="nota">Esto crea una fila de caminata y un DT por cada hallazgo, todos enlazados &mdash; as&iacute; el 30% mensual se calcula sobre los metros de la caminata una sola vez, no una vez por cada hallazgo que sali&oacute; de ah&iacute;.</div>
+      <div class="nota">Esto crea una fila de caminata y un DT por cada hallazgo, todos enlazados &mdash; as&iacute; el 30% mensual se calcula sobre los metros de la caminata una sola vez, no una vez por cada hallazgo que sali&oacute; de ah&iacute;. Si no se agrega ning&uacute;n hallazgo, la caminata igual se guarda (queda como "solo caminado, sin DT").</div>
     </section>
 
     <section>
@@ -735,6 +735,11 @@ async function subirCaminata(op){
     throw new Error('La base no registró la caminata. Puede que tu cuenta no esté asignada al contrato: avisa para revisarlo.');
   }
   const camId = cam[0].id;
+
+  /* Caminata sin hallazgos ("solo caminado, sin DT", 31-08-2026): no
+     hay nada que insertar en detalles_terminacion. Ojo con mandarle a
+     PostgREST un POST con arreglo vacío — mejor cortar acá directo. */
+  if(!op.hallazgos.length) return [];
 
   const filas = op.hallazgos.map(h => ({
     caminata_id: camId,
@@ -1310,17 +1315,20 @@ function quitarHallazgoPendiente(i){ hallazgosPendientes.splice(i,1); renderHall
 function renderHallazgosPendientes(){
   const cont = document.getElementById('h_lista');
   const contador = document.getElementById('h_contador');
-  const btn = document.getElementById('btnGuardarCaminata');
+  /* Ojo (31-08-2026): el botón "Guardar caminata" YA NO se deshabilita
+     cuando no hay hallazgos — una caminata sin hallazgos es un caso
+     válido ("solo caminado, sin DT"), no un error. La validación de
+     los campos obligatorios de la caminata en sí (labor, iniciales,
+     PK) sigue haciéndose dentro de guardarCaminata(). */
   contador.textContent = hallazgosPendientes.length
     ? hallazgosPendientes.length + ' hallazgo(s) listos para guardar en esta caminata:'
-    : 'Sin hallazgos agregados todavía.';
+    : 'Sin hallazgos agregados todavía — se puede guardar igual como caminata "solo caminado, sin DT".';
   cont.innerHTML = hallazgosPendientes.map((h,i)=>(
     '<div class="hallazgo-mini"><div class="htxt">'+
     (h.moduloFalla ? '<b>'+h.moduloFalla+(h.clasificacionFalla==='DETENCION_FRENTE'?' ⚠':'')+'</b> &middot; ' : '<b>'+h.prioridad+'</b> &middot; ')+
     h.desc.slice(0,50)+(h.fotosApertura.length?' &middot; '+h.fotosApertura.length+' foto(s)':'')+'</div>'+
     '<button onclick="quitarHallazgoPendiente('+i+')">&times;</button></div>'
   )).join('');
-  btn.disabled = hallazgosPendientes.length === 0;
 }
 
 function limpiarCaminata(){
@@ -1345,7 +1353,14 @@ function limpiarCaminata(){
 }
 
 async function guardarCaminata(){
-  if(!hallazgosPendientes.length) return;
+  /* Ojo (31-08-2026): antes esta función cortaba acá si no había
+     hallazgos, y el botón quedaba deshabilitado en ese caso — no
+     existía forma de guardar una caminata "solo caminada, sin DT".
+     El Plano ya tenía pensado ese caso (punto azul "Solo caminado
+     (sin DT)" en la leyenda), pero nunca se podía llegar a generar.
+     Ahora se guarda igual, sin hallazgos: subirCaminata() más abajo ya
+     sabe no insertar nada en detalles_terminacion cuando la lista de
+     hallazgos viene vacía. */
   const frenteElegido = obtenerFrenteElegido();
   const ini = document.getElementById('a_iniciales').value.trim();
   const pkini = parseFloat(document.getElementById('a_pkini').value);
@@ -1401,12 +1416,14 @@ async function guardarCaminata(){
   try {
     if(!navigator.onLine) throw new Error('__SIN_SENAL__');
     const dts = await subirCaminata(op);
-    const punches = dts.map(d => d.numero_punch).join(', ');
+    const mensajeOk = dts.length
+      ? 'Guardado en la base. N° Punch asignado(s): ' + dts.map(d => d.numero_punch).join(', ') + '.'
+      : 'Guardado en la base como caminata "solo caminado, sin DT" (sin hallazgos).';
     limpiarCaminata();
     document.getElementById('a_fecha').value = hoyISO();
     document.getElementById('h_fcompromiso').value = sumarDias(hoyISO(), 15);
     await cargarDesdeBase();
-    avisar('a_aviso', 'Guardado en la base. N° Punch asignado(s): ' + punches + '.', 'ok');
+    avisar('a_aviso', mensajeOk, 'ok');
   } catch(e){
     const r = COLA.agregar(op);
     if(r.ok){

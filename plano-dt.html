@@ -104,6 +104,16 @@
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
     color:var(--tenue); font-size:13px; text-align:center; padding:20px;
   }
+  /* Confirmación breve al guardar/mover un pin (31-08-2026) — Rodrigo
+     pidió una forma de saber si el pin quedó bien guardado, ya que
+     antes el plano se repintaba sin ningún aviso. */
+  .pin-toast{
+    display:none; position:absolute; left:50%; bottom:14px; transform:translateX(-50%);
+    background:rgba(20,30,50,.92); color:#fff; font-size:12px; font-weight:600;
+    padding:9px 14px; border-radius:20px; text-align:center; max-width:88%; z-index:6;
+    box-shadow:0 4px 14px rgba(0,0,0,.25);
+  }
+  .pin-toast.act{ display:block; }
 
   .aviso-armado{
     display:none; background:var(--acento); color:#fff; font-size:12.5px; font-weight:600;
@@ -128,6 +138,14 @@
   .pop-aviso-version button{
     display:block; margin-top:7px; width:100%; padding:7px; border:none; border-radius:7px;
     background:#f5851f; color:#fff; font-weight:700; font-size:12.5px; cursor:pointer;
+  }
+  /* Botón "Mover este pin", disponible SIEMPRE en el popover (no solo
+     cuando el pin quedó desactualizado por versión) — a pedido de
+     Rodrigo (31-08-2026): si un pin no quedó donde correspondía de
+     verdad, tiene que poder corregirse. */
+  .pop-btn-mover{
+    display:block; margin-top:10px; width:100%; padding:8px; border:none; border-radius:7px;
+    background:var(--acento); color:#fff; font-weight:700; font-size:12.5px; cursor:pointer; font-family:inherit;
   }
 
   /* ---------- Ubicar frentes ---------- */
@@ -199,6 +217,7 @@
       <button type="button" onclick="zoomBoton(0.77)">&minus;</button>
     </div>
     <div class="visor-vacio" id="visorVacio" style="display:none;">Cargando plano&hellip;</div>
+    <div class="pin-toast" id="pinToast"></div>
   </div>
 
   <div class="popover" id="popover">
@@ -215,8 +234,8 @@
       Este punto se marcó en una versión anterior del plano de este
       nivel — el plano se actualizó después. Verifica que siga en el
       lugar correcto.
-      <button type="button" onclick="reubicarDesdePopover()">Reubicar en el plano actual</button>
     </div>
+    <button type="button" class="pop-btn-mover" onclick="reubicarDesdePopover()">Mover este pin</button>
   </div>
 
   <div class="ubicar-caja">
@@ -502,7 +521,11 @@ function pintarNivel(){
     else if(v.abiertos > 0) clase = 'abierto';
     else if(v.cerrados > 0) clase = 'cerrado';
     if(Number(pin.version_plano) !== nivel.version) clase += ' desactualizado';
-    html += '<div class="pin '+clase+'" style="left:'+pin.x_pct+'%; top:'+pin.y_pct+'%;" onclick="verPopover(\''+cod+'\')"></div>';
+    /* El onclick de acá abajo queda como respaldo, pero NO es lo que
+       realmente abre el popover — ver el pointerup de visorEl más
+       abajo, y el porqué (31-08-2026, bug reportado por Rodrigo: el
+       popover no se abría ni con mouse ni con el dedo). */
+    html += '<div class="pin '+clase+'" data-cod="'+cod+'" style="left:'+pin.x_pct+'%; top:'+pin.y_pct+'%;" onclick="verPopover(\''+cod+'\')"></div>';
   });
   capa.innerHTML = html;
 
@@ -563,7 +586,19 @@ visorEl.addEventListener('pointermove', (e) => {
 visorEl.addEventListener('pointerup', (e) => {
   const fueClick = arrastrando && Math.abs(e.clientX - (arrX+panX)) < 4 && Math.abs(e.clientY - (arrY+panY)) < 4;
   arrastrando = false;
-  if(fueClick && armado) manejarClickUbicar(e);
+  if(!fueClick) return;
+  if(armado){ manejarClickUbicar(e); return; }
+  /* Bug encontrado 31-08-2026 (Rodrigo probó con el mouse y no pasaba
+     nada al tocar un pin): visorEl toma "pointer capture" arriba en
+     pointerdown para poder arrastrar el plano — eso también retarget
+     los eventos de mouse derivados (incluido "click") al propio
+     visorEl, así que el onclick="verPopover(...)" puesto en cada pin
+     nunca llegaba a dispararse, ni con mouse ni con el dedo. Se
+     detecta acá directamente, con elementFromPoint, en vez de confiar
+     en el click nativo del pin. */
+  const elem = document.elementFromPoint(e.clientX, e.clientY);
+  const pinEl = elem && elem.closest && elem.closest('.pin');
+  if(pinEl && pinEl.dataset.cod) verPopover(pinEl.dataset.cod);
 });
 
 /* Pellizco de dos dedos (tablets/celulares que no traducen touch a
@@ -617,6 +652,20 @@ function verPopover(cod){
   document.getElementById('popover').classList.add('act');
 }
 function cerrarPopover(){ document.getElementById('popover').classList.remove('act'); popoverCod = null; }
+
+/* Confirmación visual breve al guardar/mover un pin — antes el plano
+   se repintaba en silencio y no había forma de saber si el pin quedó
+   guardado ni dónde (31-08-2026, pedido de Rodrigo). Se aprovecha
+   junto con "Mover este pin" del popover para poder corregir un pin
+   que no cayó donde correspondía. */
+let pinToastTimer = null;
+function mostrarPinToast(msg){
+  const el = document.getElementById('pinToast');
+  el.textContent = msg;
+  el.classList.add('act');
+  clearTimeout(pinToastTimer);
+  pinToastTimer = setTimeout(() => el.classList.remove('act'), 3000);
+}
 function reubicarDesdePopover(){
   const cod = popoverCod;
   cerrarPopover();
@@ -695,6 +744,7 @@ async function manejarClickUbicar(e){
     PINES = PINES.filter(p => !(p.codigo_labor === cod && Number(p.version_plano) === nivel.version));
     if(guardado && guardado[0]) PINES.push(guardado[0]);
     pintarNivel();
+    mostrarPinToast('Pin guardado ✓ — toca el punto para revisar los datos o para volver a moverlo si no quedó bien.');
   } catch(err){
     alert(err.message === '__SIN_SENAL__'
       ? 'Sin señal: no se pudo guardar la ubicación. Intenta de nuevo con conexión.'
