@@ -943,6 +943,13 @@ const COLS = [
   ['Prio.',                    d => d.prioridad || '',              's'],
   ['Disc.',                    d => d.disciplina || '',             's'],
   ['Ubic.',                    d => d.ubicacion || '',              's'],
+  /* Detalle de la labor (31-08-2026): varias labores del WBS agrupan
+     más de un frentón físico bajo un mismo código (ej. "FR-INS-N52-04
+     @09" son 6 frentones distintos) — este campo deja el frentón
+     exacto que se caminó, sin tocar Ubic./Sistema/SubSistema, que
+     siguen siendo los del catálogo. Puede venir vacío (labor sin
+     ambigüedad, o DT históricos/anteriores a este cambio). */
+  ['Detalle Labor',             d => d.detalle_labor || '',          's'],
   ['Contrato',                 d => d.contrato || '',               's'],
   ['Originador',                d => d.originador || '',             's'],
   ['Resp.',                    d => d.resp_construccion || '',      's'],
