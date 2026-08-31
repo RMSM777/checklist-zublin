@@ -409,7 +409,7 @@ async function cargarDatos(){
   try {
     const [dts, caminatas, pines] = await Promise.all([
       SB.consultar('detalles_terminacion', 'select=codigo_labor,estado,fecha_compromiso_cierre'),
-      SB.consultar('avances_caminata', 'select=codigo_labor,codigo_caminata,fecha_emision'),
+      SB.consultar('avances_caminata', 'select=codigo_labor,codigo_caminata,fecha'),
       SB.consultar('plano_pines', 'select=*')
     ]);
     PINES = pines || [];
@@ -423,17 +423,19 @@ async function cargarDatos(){
       if(atrasado) PUNTOS[cod].atrasados++; else PUNTOS[cod].abiertos++;
     });
     /* codigo_caminata (el "N° de informe" de la caminata, ej. RMSM-SCI-0002)
-       y fecha_emision se agregan acá (30-08-2026 solo traía codigo_labor)
-       para poder mostrar en el popover cuál fue la última caminata que
-       generó los DT de ese punto — a pedido de Rodrigo (31-08-2026). */
+       y fecha (columna real de avances_caminata; NO fecha_emision, esa es
+       de detalles_terminacion) se agregan acá (30-08-2026 solo traía
+       codigo_labor) para poder mostrar en el popover cuál fue la última
+       caminata que generó los DT de ese punto — a pedido de Rodrigo
+       (31-08-2026). */
     (caminatas||[]).forEach(c => {
       const cod = extraerCodigo(c.codigo_labor);
       if(!cod) return;
       if(!PUNTOS[cod]) PUNTOS[cod] = { cerrados:0, abiertos:0, atrasados:0, caminatas:0, ultimaCaminata:null, ultimaFecha:'' };
       PUNTOS[cod].caminatas++;
-      if(c.codigo_caminata && (c.fecha_emision || '') >= PUNTOS[cod].ultimaFecha){
+      if(c.codigo_caminata && (c.fecha || '') >= PUNTOS[cod].ultimaFecha){
         PUNTOS[cod].ultimaCaminata = c.codigo_caminata;
-        PUNTOS[cod].ultimaFecha = c.fecha_emision || '';
+        PUNTOS[cod].ultimaFecha = c.fecha || '';
       }
     });
   } catch(e){
