@@ -86,6 +86,12 @@
   .pin.abierto{ background:var(--alerta); }
   .pin.atrasado{ background:var(--critico); }
   .pin.caminado{ background:var(--camin); }
+  /* Pin marcado en una versión ANTERIOR del plano de este nivel (el
+     plano se reemplazó por una revisión con otro encuadre después de
+     marcarlo) — se sigue dibujando en su última posición conocida, en
+     vez de desaparecer, pero con un anillo punteado para avisar que
+     conviene revisarlo (31-08-2026, tema 28). */
+  .pin.desactualizado{ box-shadow:0 0 0 3px #f5851f, 0 1px 4px rgba(0,0,0,.35); }
 
   .visor-controles{
     position:absolute; right:8px; bottom:8px; display:flex; flex-direction:column; gap:6px; z-index:5;
@@ -115,6 +121,14 @@
   .popover .nom{ color:var(--tenue); font-size:12px; margin-top:2px; }
   .popover .fila{ display:flex; justify-content:space-between; margin-top:8px; font-size:12.5px; }
   .popover .cerrar{ float:right; color:var(--tenue); cursor:pointer; font-size:18px; line-height:1; }
+  .pop-aviso-version{
+    margin-top:10px; padding:8px 10px; border-radius:8px; background:rgba(245,133,31,.12);
+    border:1px solid #f5851f; font-size:12px; line-height:1.4;
+  }
+  .pop-aviso-version button{
+    display:block; margin-top:7px; width:100%; padding:7px; border:none; border-radius:7px;
+    background:#f5851f; color:#fff; font-weight:700; font-size:12.5px; cursor:pointer;
+  }
 
   /* ---------- Ubicar frentes ---------- */
   .ubicar-caja{
@@ -197,6 +211,12 @@
     <div class="fila"><span>DT abiertos</span><b id="popAbiertos">0</b></div>
     <div class="fila"><span>DT atrasados</span><b id="popAtrasados">0</b></div>
     <div class="fila"><span>Caminatas</span><b id="popCaminatas">0</b></div>
+    <div class="pop-aviso-version" id="popAvisoVersion" style="display:none;">
+      Este punto se marcó en una versión anterior del plano de este
+      nivel — el plano se actualizó después. Verifica que siga en el
+      lugar correcto.
+      <button type="button" onclick="reubicarDesdePopover()">Reubicar en el plano actual</button>
+    </div>
   </div>
 
   <div class="ubicar-caja">
@@ -317,12 +337,26 @@ async function aplicarMarca(){
    se calcula solo por el prefijo de su AREA en el catalogo — no hace
    falta que nadie lo elija a mano al ubicar un frente.
    ====================================================================== */
+/* "version" = versión del ENCUADRE del plano de ese nivel, no de la
+   resolución. Subir la resolución (como el 30/31-08-2026, de 150 a
+   300 a 600 DPI) NUNCA necesita tocar este número: es el mismo PDF,
+   mismo recuadre, los pines (guardados como % del ancho/alto) quedan
+   perfectos igual. Este número solo sube el día que Topografía entregue
+   una revisión de VERDAD distinta del plano de avance de ese nivel
+   (más túnel dibujado, otro recuadre/zoom) — ahí sí los mismos % ya no
+   apuntan al mismo lugar físico. Al subirlo, los pines marcados en la
+   versión anterior NO se pierden ni se pisan (quedan guardados en
+   Supabase con su version_plano de origen — historial completo, como
+   en Dalux): se siguen dibujando en su última posición conocida pero
+   con un anillo naranja de aviso, y el botón "Reubicar" del popover
+   guarda la posición nueva como una fila aparte, sin tocar la vieja
+   (tema 28, 31-08-2026, script 17-versionar-plano-pines.sql). */
 const NIVELES = [
-  { id:'PRODUCCION',  nombre:'Producción',  prefijos:['224200'],                     imagen:'plano-produccion.png'  },
-  { id:'HUNDIMIENTO', nombre:'Hundimiento', prefijos:['224100','222600','222700','222800'], imagen:'plano-hundimiento.png' },
-  { id:'INYECCION',   nombre:'Inyección',   prefijos:['224300'],                     imagen:'plano-inyeccion.png'   },
-  { id:'EXTRACCION',  nombre:'Extracción',  prefijos:['224400'],                     imagen:'plano-extraccion.png'  },
-  { id:'ACARREO',     nombre:'Acarreo',     prefijos:['224500'],                     imagen:'plano-acarreo.png'     },
+  { id:'PRODUCCION',  nombre:'Producción',  prefijos:['224200'],                     imagen:'plano-produccion.png',  version:1 },
+  { id:'HUNDIMIENTO', nombre:'Hundimiento', prefijos:['224100','222600','222700','222800'], imagen:'plano-hundimiento.png', version:1 },
+  { id:'INYECCION',   nombre:'Inyección',   prefijos:['224300'],                     imagen:'plano-inyeccion.png',   version:1 },
+  { id:'EXTRACCION',  nombre:'Extracción',  prefijos:['224400'],                     imagen:'plano-extraccion.png',  version:1 },
+  { id:'ACARREO',     nombre:'Acarreo',     prefijos:['224500'],                     imagen:'plano-acarreo.png',     version:1 },
 ];
 /* OJO (30-08-2026): "Hundimiento" tiene DOS familias de códigos WBS para
    la misma idea física de nivel -- 224100 (calles "C-XX-NH-N51/N52
@@ -344,11 +378,13 @@ const CODIGO_A_LABOR = {};
 CATALOGO_LABORES.forEach(l => { CODIGO_A_LABOR[l.codigo] = l; });
 
 let nivelActual = NIVELES[0].id;
-let PINES = [];         // filas de plano_pines, todas (todos los niveles)
+let PINES = [];         // filas de plano_pines, todas (todos los niveles, todas las versiones)
 let PUNTOS = {};        // codigo_labor -> { cerrados,abiertos,atrasados,caminatas }
 let frentesPendientes = []; // codigos del nivel actual sin pin, con datos
 let armado = null;      // codigo_labor en modo "toca el plano para ubicar" | null
 let ubicarAbierto = false;
+let pinesPorCodigo = {};  // codigo_labor -> mejor pin del NIVEL ACTUAL (ver pintarNivel)
+let popoverCod = null;    // codigo_labor que está mostrando el popover ahora mismo
 
 /* ---------------------------------------------------------------------
    Valida el codigo de labor (columna codigo_labor, propia y separada
@@ -440,7 +476,15 @@ function pintarNivel(){
 
   const capa = document.getElementById('capaPines');
   const pinesNivel = PINES.filter(p => p.nivel === nivelActual);
-  const pinesPorCodigo = {}; pinesNivel.forEach(p => pinesPorCodigo[p.codigo_labor] = p);
+  /* Por labor, preferir el pin de la VERSIÓN ACTUAL del plano de este
+     nivel; si no hay (se marcó en una versión anterior y todavía no se
+     reubicó), usar el más reciente de las versiones viejas — así nunca
+     desaparece, solo se marca como "verificar" (tema 28, 31-08-2026). */
+  pinesPorCodigo = {};
+  pinesNivel.forEach(p => {
+    const actual = pinesPorCodigo[p.codigo_labor];
+    if(!actual || p.version_plano > actual.version_plano) pinesPorCodigo[p.codigo_labor] = p;
+  });
 
   let html = '';
   let hayDatos = false;
@@ -455,6 +499,7 @@ function pintarNivel(){
     if(v.atrasados > 0) clase = 'atrasado';
     else if(v.abiertos > 0) clase = 'abierto';
     else if(v.cerrados > 0) clase = 'cerrado';
+    if(Number(pin.version_plano) !== nivel.version) clase += ' desactualizado';
     html += '<div class="pin '+clase+'" style="left:'+pin.x_pct+'%; top:'+pin.y_pct+'%;" onclick="verPopover(\''+cod+'\')"></div>';
   });
   capa.innerHTML = html;
@@ -546,6 +591,7 @@ visorEl.addEventListener('touchmove', (e) => {
    Popover con el detalle de un pin
    ====================================================================== */
 function verPopover(cod){
+  popoverCod = cod;
   const l = CODIGO_A_LABOR[cod] || {};
   const v = PUNTOS[cod] || { cerrados:0, abiertos:0, atrasados:0, caminatas:0, ultimaCaminata:null };
   const totalDT = v.cerrados + v.abiertos + v.atrasados;
@@ -557,9 +603,23 @@ function verPopover(cod){
   document.getElementById('popAbiertos').textContent = v.abiertos;
   document.getElementById('popAtrasados').textContent = v.atrasados;
   document.getElementById('popCaminatas').textContent = v.caminatas;
+
+  /* Aviso de "verificar ubicación" si el pin que se está mostrando
+     quedó marcado en una versión anterior del plano de este nivel
+     (tema 28, 31-08-2026). */
+  const nivel = NIVELES.find(n => n.id === nivelActual);
+  const pin = pinesPorCodigo[cod];
+  const desactualizado = pin && nivel && Number(pin.version_plano) !== nivel.version;
+  document.getElementById('popAvisoVersion').style.display = desactualizado ? '' : 'none';
+
   document.getElementById('popover').classList.add('act');
 }
-function cerrarPopover(){ document.getElementById('popover').classList.remove('act'); }
+function cerrarPopover(){ document.getElementById('popover').classList.remove('act'); popoverCod = null; }
+function reubicarDesdePopover(){
+  const cod = popoverCod;
+  cerrarPopover();
+  if(cod) armarUbicar(cod);
+}
 
 /* ======================================================================
    Ubicar frentes — calibración "sobre la marcha". Lista los códigos con
@@ -618,11 +678,19 @@ async function manejarClickUbicar(e){
   const xPct = Math.min(100, Math.max(0, (e.clientX - rect.left) / rect.width * 100));
   const yPct = Math.min(100, Math.max(0, (e.clientY - rect.top) / rect.height * 100));
   const cod = armado;
+  const nivel = NIVELES.find(n => n.id === nivelActual);
   cancelarArmado();
   try {
-    const fila = { codigo_labor: cod, nivel: nivelActual, x_pct: xPct.toFixed(2), y_pct: yPct.toFixed(2) };
-    const guardado = await SB.insertar('plano_pines?on_conflict=codigo_labor', [fila]);
-    PINES = PINES.filter(p => p.codigo_labor !== cod);
+    /* Se guarda con la VERSIÓN ACTUAL del plano de este nivel. La llave
+       de conflicto es (codigo_labor, version_plano) — no codigo_labor
+       solo — así "Reubicar" desde el popover de un pin viejo crea una
+       fila NUEVA para la versión de hoy sin tocar ni pisar la fila de
+       la versión anterior (queda como historial, tema 28, 31-08-2026).
+       Volver a tocar un pin YA ubicado en la versión de hoy sí lo
+       actualiza (misma fila) — eso es corregir, no versionar. */
+    const fila = { codigo_labor: cod, nivel: nivelActual, version_plano: nivel.version, x_pct: xPct.toFixed(2), y_pct: yPct.toFixed(2) };
+    const guardado = await SB.insertar('plano_pines?on_conflict=codigo_labor,version_plano', [fila]);
+    PINES = PINES.filter(p => !(p.codigo_labor === cod && Number(p.version_plano) === nivel.version));
     if(guardado && guardado[0]) PINES.push(guardado[0]);
     pintarNivel();
   } catch(err){
