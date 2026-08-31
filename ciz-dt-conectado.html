@@ -152,6 +152,7 @@
 
   .pill-sync{ font-size:9.5px; font-weight:800; padding:2px 7px; border-radius:20px; background:var(--naranja); color:#5c3d00; margin-left:6px; }
   .aviso-linea{ font-size:11.5px; padding:8px 10px; border-radius:6px; margin-bottom:8px; line-height:1.45; display:none; }
+  .aviso-detalle-labor{ font-size:11.5px; padding:8px 10px; border-radius:6px; margin-top:6px; line-height:1.45; background:#fff6e0; color:#8a5a00; border:1px solid #f0dca0; }
   .aviso-linea.ok{ display:block; background:#f2f9f2; color:#2b5c2e; border:1px solid #cfe6d0; }
   .aviso-linea.err{ display:block; background:#fdecea; color:#a3201c; border:1px solid #f5c6c3; }
 
@@ -255,10 +256,15 @@
         </div>
       </div>
       <div class="campo labor-wrap">
-        <label>Labor (busca por c&oacute;digo o nombre &mdash; ej: RAC-A-01, N52, C-51)</label>
+        <label>Sistema / Subsistema WBS (busca por c&oacute;digo o nombre &mdash; ej: RAC-A-01, N52, C-51)</label>
         <input id="a_laborBuscar" type="text" placeholder="Escribe para buscar en las 146 labores del WBS..." autocomplete="off">
         <div class="labor-resultados" id="a_laborResultados"></div>
         <div class="labor-info" id="a_laborInfo"></div>
+        <div class="campo" id="a_detalleLaborWrap" style="margin-top:8px;">
+          <label>Detalle de la labor / N&deg; de fren&oacute;n espec&iacute;fico (opcional)</label>
+          <input id="a_detalleLabor" type="text" placeholder="Ej: FR-INS-N52-04">
+          <div class="aviso-detalle-labor" id="a_detalleLaborAviso" style="display:none;">Ojo: esta labor del WBS agrupa varios frentones bajo un mismo c&oacute;digo (mira el rango en el nombre de arriba) &mdash; anota aqu&iacute; exactamente cu&aacute;l se camin&oacute;, para que el DT quede bien clasificado en los reportes y se pueda anclar al plano.</div>
+        </div>
         <span class="labor-manual-link" id="a_laborManualLink" onclick="activarLaborManual()">&iquest;No aparece la labor? Escribirla a mano</span>
         <input id="a_laborManualInput" type="text" placeholder="Ej: RAC-A-01 / N52 (labor nueva, a&uacute;n no est&aacute; en el WBS)" style="display:none; margin-top:6px;">
       </div>
@@ -756,6 +762,7 @@ async function subirCaminata(op){
     sistema: op.caminata.sistema || null,
     subsistema: op.caminata.subsistema || null,
     plano: op.caminata.plano || null,
+    detalle_labor: op.caminata.detalle_labor || null,
     originador: op.caminata.inspectores || op.caminata.iniciales_inspector || null,
     numero_informe: op.caminata.numero_informe || null,
     resp_construccion: op.caminata.resp_construccion || null,
@@ -993,6 +1000,16 @@ function seleccionarLabor(i){
   const info = document.getElementById('a_laborInfo');
   info.innerHTML = '<b>Wbs:</b> '+l.wbs+'<br><b>Área:</b> '+l.area+'<br><b>SubÁrea:</b> '+l.subarea+'<br><b>Sistema:</b> '+l.sistema + (l.plano ? '<br><b>Plano:</b> '+l.plano : '');
   info.classList.add('act');
+  /* Ojo (31-08-2026): varias labores del cat&aacute;logo WBS agrupan
+     m&aacute;s de un frent&oacute;n f&iacute;sico bajo un mismo c&oacute;digo
+     (ej. "FRONTONES FR-INS-N52-04@09" son 6 frentones, del 04 al 09).
+     No hay forma confiable de "adivinar" autom&aacute;ticamente cu&aacute;l
+     de esos frentones se camin&oacute; -- por eso el campo de abajo
+     (a_detalleLabor) siempre existe y queda a mano del inspector, pero
+     acá s&oacute;lo se prende el aviso cuando el nombre trae "@" (la
+     forma en que el WBS marca un rango), para que no se le pase. */
+  const avisoDet = document.getElementById('a_detalleLaborAviso');
+  if(avisoDet) avisoDet.style.display = /@/.test(l.nombre || '') ? 'block' : 'none';
 }
 
 function activarLaborManual(){
@@ -1002,6 +1019,8 @@ function activarLaborManual(){
   document.getElementById('a_laborResultados').classList.remove('act');
   document.getElementById('a_laborInfo').classList.remove('act');
   document.getElementById('a_laborManualLink').style.display = 'none';
+  const avisoDet = document.getElementById('a_detalleLaborAviso');
+  if(avisoDet) avisoDet.style.display = 'none';
   const mi = document.getElementById('a_laborManualInput');
   mi.style.display = '';
   mi.focus();
@@ -1019,6 +1038,10 @@ function resetLaborPicker(){
   document.getElementById('a_laborManualLink').style.display = '';
   const mi = document.getElementById('a_laborManualInput');
   mi.style.display = 'none'; mi.value = '';
+  const detalle = document.getElementById('a_detalleLabor');
+  if(detalle) detalle.value = '';
+  const avisoDet = document.getElementById('a_detalleLaborAviso');
+  if(avisoDet) avisoDet.style.display = 'none';
 }
 
 /* ======================================================================
@@ -1373,6 +1396,14 @@ async function guardarCaminata(){
   const turno = document.getElementById('a_turno').value;
   const numeroInforme = document.getElementById('a_numeroInforme').value.trim();
   const respConstruccion = document.getElementById('a_respConstruccion').value.trim();
+  /* Ojo (31-08-2026): varias labores del WBS agrupan más de un frentón
+     físico bajo un mismo código (ej. "FR-INS-N52-04@09" son 6 frentones
+     distintos). Este campo aparte deja anotar cuál exactamente se
+     caminó SIN perder la clasificación WBS del catálogo (a diferencia
+     de escribir la labor entera a mano, que sí la pierde). Es opcional
+     y aplica tanto si se eligió del catálogo como si se escribió a
+     mano — no se cruza con frenteElegido.manual. */
+  const detalleLabor = (document.getElementById('a_detalleLabor').value || '').trim();
 
   let frenteTexto, codigoLabor=null, wbs=null, area=null, subarea=null, sistema=null, subsistema=null, plano=null;
   if(frenteElegido.manual){
@@ -1397,6 +1428,7 @@ async function guardarCaminata(){
     caminata: {
       fecha: fecha, turno: turno || null, frente: frenteTexto, codigo_labor: codigoLabor,
       wbs: wbs, area: area, subarea: subarea, sistema: sistema, subsistema: subsistema, plano: plano,
+      detalle_labor: detalleLabor || null,
       pk_inicio: pkini, pk_termino: pkfin,
       iniciales_inspector: ini, inspectores: ini,
       numero_informe: numeroInforme || null, resp_construccion: respConstruccion || null
@@ -1761,6 +1793,7 @@ window.guardarBorrador = function(){
     numeroInforme: (document.getElementById('a_numeroInforme')||{}).value || '',
     respConstruccion: (document.getElementById('a_respConstruccion')||{}).value || '',
     laborManual: (document.getElementById('a_laborManualInput')||{}).value || '',
+    detalleLabor: (document.getElementById('a_detalleLabor')||{}).value || '',
     labor: (typeof laborSeleccionada !== 'undefined') ? laborSeleccionada : null,
     hallazgos: (typeof hallazgosPendientes !== 'undefined') ? hallazgosPendientes : []
   };
@@ -1784,6 +1817,7 @@ window.recuperarBorrador = function(){
   set('a_fecha', b.fecha); set('a_turno', b.turno); set('a_iniciales', b.iniciales);
   set('a_pkini', b.pkini); set('a_pkfin', b.pkfin);
   set('a_numeroInforme', b.numeroInforme); set('a_respConstruccion', b.respConstruccion);
+  set('a_detalleLabor', b.detalleLabor);
   if(b.labor && typeof laborSeleccionada !== 'undefined'){
     laborSeleccionada = b.labor;
     const inp = document.getElementById('a_laborBuscar');
@@ -1794,6 +1828,8 @@ window.recuperarBorrador = function(){
       info.innerHTML = '<b>Wbs:</b> '+l.wbs+'<br><b>Área:</b> '+l.area+'<br><b>SubÁrea:</b> '+l.subarea+'<br><b>Sistema:</b> '+l.sistema + (l.plano ? '<br><b>Plano:</b> '+l.plano : '');
       info.classList.add('act');
     }
+    const avisoDet = document.getElementById('a_detalleLaborAviso');
+    if(avisoDet) avisoDet.style.display = /@/.test(b.labor.nombre || '') ? 'block' : 'none';
   } else if(b.laborManual && typeof activarLaborManual === 'function'){
     try { activarLaborManual(); } catch(e){}
     set('a_laborManualInput', b.laborManual);
