@@ -375,6 +375,172 @@ async function actualizarLogExcel(tipoReporte){
   await SB.subirArchivo(BUCKET_REPORTES, tipoReporte + '/log.xlsx', blob, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
+/* ---------- cola de reportes sin señal (01-sep-2026) ----------
+   Reemplaza el reintento simple que tenía Drive (un solo intento extra a
+   los 1.5s) por una cola persistente: si guardarReportePDF() falla por
+   falta de señal (__SIN_SENAL__, ver pedirRed), el reporte completo
+   (PDF incluido) queda guardado en IndexedDB del dispositivo y se reintenta
+   solo, sin perder nada, apenas vuelve la conexión — clave para trabajo
+   bajo tierra. Se usa IndexedDB (no localStorage) porque acá sí viaja el
+   Blob del PDF completo, no solo texto.
+   Los 10 reportes NO deben llamar a guardarReportePDF() directo desde su
+   flujo de guardado — deben llamar a guardarReportePDFConCola() en su
+   lugar (misma firma de parámetros). */
+const COLA_DB_NOMBRE = 'qcd_cola_reportes';
+const COLA_DB_VERSION = 1;
+const COLA_STORE = 'pendientes';
+
+function _colaAbrirDB(){
+  return new Promise(function(resolve, reject){
+    if(typeof indexedDB === 'undefined'){ reject(new Error('IndexedDB no disponible en este navegador.')); return; }
+    const req = indexedDB.open(COLA_DB_NOMBRE, COLA_DB_VERSION);
+    req.onupgradeneeded = function(){
+      const db = req.result;
+      if(!db.objectStoreNames.contains(COLA_STORE)) db.createObjectStore(COLA_STORE, { keyPath:'id', autoIncrement:true });
+    };
+    req.onsuccess = function(){ resolve(req.result); };
+    req.onerror = function(){ reject(req.error); };
+  });
+}
+
+async function colaReportesAgregar(datos){
+  const db = await _colaAbrirDB();
+  return new Promise(function(resolve, reject){
+    const tx = db.transaction(COLA_STORE, 'readwrite');
+    tx.objectStore(COLA_STORE).add({ datos: datos, creadoEn: Date.now(), intentos: 0 });
+    tx.oncomplete = function(){ resolve(); };
+    tx.onerror = function(){ reject(tx.error); };
+  });
+}
+
+async function colaReportesListar(){
+  try{
+    const db = await _colaAbrirDB();
+    return await new Promise(function(resolve, reject){
+      const tx = db.transaction(COLA_STORE, 'readonly');
+      const req = tx.objectStore(COLA_STORE).getAll();
+      req.onsuccess = function(){ resolve(req.result || []); };
+      req.onerror = function(){ reject(req.error); };
+    });
+  }catch(e){ return []; }
+}
+
+async function colaReportesContar(){
+  const items = await colaReportesListar();
+  return items.length;
+}
+
+async function colaReportesEliminar(id){
+  try{
+    const db = await _colaAbrirDB();
+    await new Promise(function(resolve, reject){
+      const tx = db.transaction(COLA_STORE, 'readwrite');
+      tx.objectStore(COLA_STORE).delete(id);
+      tx.oncomplete = function(){ resolve(); };
+      tx.onerror = function(){ reject(tx.error); };
+    });
+  }catch(e){}
+}
+
+async function colaReportesActualizar(id, cambios){
+  try{
+    const db = await _colaAbrirDB();
+    await new Promise(function(resolve, reject){
+      const tx = db.transaction(COLA_STORE, 'readwrite');
+      const store = tx.objectStore(COLA_STORE);
+      const getReq = store.get(id);
+      getReq.onsuccess = function(){
+        const item = getReq.result;
+        if(item){ Object.assign(item, cambios); store.put(item); }
+      };
+      tx.oncomplete = function(){ resolve(); };
+      tx.onerror = function(){ reject(tx.error); };
+    });
+  }catch(e){}
+}
+
+/* guardarReportePDFConCola: lo que deben llamar los 10 reportes en vez de
+   guardarReportePDF() directo. Misma firma de parámetros. Si falla por
+   señal, encola y NO lanza error (para no interrumpir el flujo del
+   reporte — el PDF ya se descargó localmente igual); si falla por otra
+   razón (ej. sesión inválida, RLS), sí lanza el error tal cual, porque
+   reintentarlo solo no lo va a arreglar. */
+async function guardarReportePDFConCola(datos){
+  try{
+    const fila = await guardarReportePDF(datos);
+    colaReportesIntentarVaciar().catch(function(){});
+    return { ok:true, encolado:false, fila:fila };
+  }catch(err){
+    if(err && err.red){
+      try{ await colaReportesAgregar(datos); }
+      catch(e2){ console.warn('No se pudo encolar el reporte para reintento offline:', e2); throw err; }
+      return { ok:false, encolado:true, error:err };
+    }
+    throw err;
+  }
+}
+
+/* colaReportesIntentarVaciar: reintenta todos los reportes pendientes, en
+   orden. Si alguno falla por falta de señal, corta el intento ahí (no
+   tiene sentido seguir esa pasada); si falla por otra razón, cuenta el
+   intento y sigue con el resto (para no bloquear reportes buenos detrás
+   de uno que nunca va a poder subir). */
+async function colaReportesIntentarVaciar(){
+  const pendientes = await colaReportesListar();
+  for(const item of pendientes){
+    try{
+      await guardarReportePDF(item.datos);
+      await colaReportesEliminar(item.id);
+    }catch(err){
+      if(err && err.red) break;
+      console.warn('cola de reportes: fallo al reintentar', item.id, err);
+      await colaReportesActualizar(item.id, { intentos: (item.intentos || 0) + 1 });
+    }
+  }
+}
+
+if(typeof window !== 'undefined'){
+  window.addEventListener('online', function(){ colaReportesIntentarVaciar().catch(function(){}); });
+}
+
+/* ---------- descargarLogReporte: botón de "Excel (log)" al final de cada reporte ----------
+   Generaliza el mismo botón que ya existe en el hub (app-inicio.html)
+   para que cada uno de los 10 reportes pueda ofrecerlo apenas termina de
+   generar su PDF, sin duplicar la lógica de descarga. elEstado (opcional)
+   es un elemento de texto donde se va mostrando el progreso/errores. */
+async function descargarLogReporte(tipoReporte, elEstado){
+  if(elEstado) elEstado.textContent = 'Buscando…';
+  try{
+    if(!SB.ses) SB.cargar();
+    if(!SB.ses || !SB.ses.refresh){
+      if(elEstado) elEstado.textContent = 'Inicia sesión para descargar el log.';
+      return false;
+    }
+    if(navigator.onLine){ try{ await SB.refrescar(); }catch(e){} }
+    const resp = await pedirRed(
+      SB_URL + '/storage/v1/object/' + BUCKET_REPORTES + '/' + encodeURIComponent(tipoReporte) + '/log.xlsx',
+      { headers: SB.cabeceras() }
+    );
+    if(resp.status === 404){ if(elEstado) elEstado.textContent = 'Aún no hay log para este reporte.'; return false; }
+    if(!resp.ok){
+      if(elEstado) elEstado.textContent = resp.status === 401 ? 'Sesión vencida.' : ('Error (' + resp.status + ').');
+      return false;
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Log_' + tipoReporte + '_' + new Date().toISOString().slice(0,10) + '.xlsx';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    if(elEstado) elEstado.textContent = '';
+    return true;
+  }catch(e){
+    if(elEstado) elEstado.textContent = (e && e.red) ? 'Sin señal.' : 'Error al descargar.';
+    return false;
+  }
+}
+
 /* ---------- incrustarLogoEnExcel: incrusta una imagen (logo de la empresa activa) ----------
    en un .xlsx ya generado por SheetJS, escribiendo a mano las piezas
    OOXML que la edición comunidad de SheetJS no sabe crear: la imagen,

@@ -18,7 +18,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <script src="marca.js?v=2"></script>
 <script src="jszip.min.js"></script>
 <script src="xlsx.full.min.js"></script>
-<script src="supabase-integration.js?v=3"></script>
+<script src="supabase-integration.js?v=4"></script>
 <script>
 (async function(){ await requerirSesion('checklist-camioneta.html'); })();
 </script>
@@ -360,7 +360,7 @@ async function generarPDF(previo){
   const nombre = v('nombre') || 'Sin_nombre';
   const fecha = v('fecha') || new Date().toISOString().slice(0,10);
   const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({unit:'mm', format:'a4'});
+    const doc = new jsPDF({unit:'mm', format:'a4', compress:true});
   const izq = 12, ancho = 186;
   let y = 10;
 
@@ -527,7 +527,7 @@ async function generarPDF(previo){
     notaEl.innerHTML = '<span style="color:#888;">Guardando en Supabase...</span>';
     notaEl.style.color = '';
     try{
-      const _filaGuardada = await guardarReportePDF({
+      const resGuardado = await guardarReportePDFConCola({
         tipoReporte: 'checklist-camioneta',
         correlativo: corr,
         claveVerificacion: claveQR,
@@ -536,12 +536,12 @@ async function generarPDF(previo){
         blobPDF: doc.output('blob'),
         nombreArchivo: nombreArch
       });
-      guardadoHtml = '<br><span style="color:#2e7d32;">Guardado en Supabase &#10003;</span>';
-      alert('DEBUG: guardado OK en Supabase. id=' + (_filaGuardada && _filaGuardada.id));
+      guardadoHtml = resGuardado.encolado
+        ? '<br><span style="color:#b06d00;">Sin señal: quedó guardado en este dispositivo y se sube solo apenas vuelva la conexión.</span>'
+        : '<br><span style="color:#2e7d32;">Guardado en Supabase &#10003;</span> <button type="button" onclick="descargarLogReporte(\'checklist-camioneta\', this.nextElementSibling)" style="margin-left:6px;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer;">&#11015; Excel (log)</button><span style="font-size:11px;color:#888;margin-left:4px;"></span>';
     }catch(err){
       console.warn('Supabase: no se pudo guardar el reporte.', err);
       guardadoHtml = '<br><span style="color:#c0392b;">No se pudo guardar en la base: ' + (err && err.message ? err.message : err) + '</span>';
-      alert('DEBUG: ERROR al guardar en Supabase: ' + (err && err.message ? err.message : err));
     }
   }
   doc.save(nombreArch);

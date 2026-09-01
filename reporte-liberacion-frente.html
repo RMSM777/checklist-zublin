@@ -17,8 +17,12 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <script src="jspdf.plugin.autotable.min.js"></script>
 <script src="qrious.min.js"></script>
 <script src="marca.js?v=2"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="drive-integration.js?v=3"></script>
+<script src="jszip.min.js"></script>
+<script src="xlsx.full.min.js"></script>
+<script src="supabase-integration.js?v=4"></script>
+<script>
+(async function(){ await requerirSesion('reporte-liberacion-frente.html'); })();
+</script>
 <link rel="stylesheet" href="dark-mode.css">
 <script src="dark-mode.js" defer></script>
 <script src="piwii-unificado.js" defer></script>
@@ -543,8 +547,7 @@ async function generarVistaPrevia(){
   if(!v('nombreCalidad') || !firmasFijas.firma3.hayFirma){ alert('Falta el nombre o la firma de Calidad.'); return; }
 
   const { jsPDF } = window.jspdf;
-  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
-  const doc = new jsPDF({unit:'mm', format:'a4'});
+  const doc = new jsPDF({unit:'mm', format:'a4', compress:true});
   const izq = 14, der = 196;
   let y = 10;
 
@@ -703,23 +706,25 @@ async function descargarPDF(){
     notaEl.className = 'qcd-nota-flotante';
     document.body.appendChild(notaEl);
   }
-  if(window.QCD_DRIVE){
+  if(typeof SB !== 'undefined'){
     const docRef = window._pdfDocGenerado;
-    notaEl.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
+    notaEl.innerHTML = '<span style="color:#888;">Guardando en Supabase...</span>';
     try{
-      const res = await QCD_DRIVE.subirConReintento({
-        blob: docRef.output('blob'),
-        nombreArchivo: nombreArch,
-        tipoReporte: 'Liberación de Frente',
+      const resGuardado = await guardarReportePDFConCola({
+        tipoReporte: 'reporte-liberacion-frente',
         correlativo: docRef._qcdCorrelativo,
         claveVerificacion: docRef._qcdClaveVerificacion,
         empresa: MARCA.empresa.nombreCorto,
-        generadoPor: docRef._qcdGeneradoPor
+        generadoPor: docRef._qcdGeneradoPor,
+        blobPDF: docRef.output('blob'),
+        nombreArchivo: nombreArch
       });
-      notaEl.innerHTML = '<a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>';
+      notaEl.innerHTML = resGuardado.encolado
+        ? '<span style="color:#b06d00;">Sin señal: quedó guardado en este dispositivo y se sube solo apenas vuelva la conexión.</span>'
+        : '<span style="color:#2e7d32;">Guardado en Supabase &#10003;</span> <button type="button" onclick="descargarLogReporte(\'reporte-liberacion-frente\', this.nextElementSibling)" style="margin-left:6px;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer;">&#11015; Excel (log)</button><span style="font-size:11px;color:#888;margin-left:4px;"></span>';
     }catch(err){
-      console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
-      notaEl.innerHTML = '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>';
+      console.warn('Supabase: no se pudo guardar el reporte.', err);
+      notaEl.innerHTML = '<span style="color:#c0392b;">No se pudo guardar en la base: ' + (err && err.message ? err.message : err) + '</span>';
     }
   }
   window._pdfDocGenerado.save(nombreArch);

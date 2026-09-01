@@ -453,7 +453,7 @@ function v(id){ return (document.getElementById(id).value||'').trim(); }
 function generarPDF(){
   if(!(DATA.rnc && DATA.pnc)){ alert('Carga ambos listados.'); return; }
   if(!firma.hayFirma){ alert('Debe firmar para cerrar el reporte (secci\u00f3n 6).'); return; }
-  const { jsPDF } = window.jspdf; const doc = new jsPDF({unit:'mm', format:'a4'});
+  const { jsPDF } = window.jspdf; const doc = new jsPDF({unit:'mm', format:'a4', compress:true});
   const izq=8, ancho=doc.internal.pageSize.getWidth()-16;
   const fechaISO = v('fecha')||new Date().toISOString().slice(0,10);
   const fecha = fechaISO.split('-').reverse().join('-');

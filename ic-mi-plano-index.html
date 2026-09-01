@@ -13,8 +13,11 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <script src="chart.umd.min.js"></script>
 <script src="xlsx.full.min.js"></script>
 <script src="marca.js?v=2"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="drive-integration.js?v=3"></script>
+<script src="jszip.min.js"></script>
+<script src="supabase-integration.js?v=4"></script>
+<script>
+(async function(){ await requerirSesion('ic-mi-plano-index.html'); })();
+</script>
 <link rel="stylesheet" href="dark-mode.css">
 <script src="dark-mode.js" defer></script>
 <script src="piwii-unificado.js" defer></script>
@@ -586,8 +589,7 @@ async function generarPDF(){
   const fecha = v('fecha') || new Date().toISOString().slice(0,10);
 
   const { jsPDF } = window.jspdf;
-  if(window.QCD_DRIVE && QCD_DRIVE.asegurarToken){ try{ await QCD_DRIVE.asegurarToken(); }catch(e){} }
-    const doc = new jsPDF({unit:'mm', format:'a4', orientation:'landscape'});
+    const doc = new jsPDF({unit:'mm', format:'a4', orientation:'landscape', compress:true});
   const izq=12, ancho=273;
 
   const corr = MARCA.correlativo(nombre, 'ICPLANO');
@@ -706,23 +708,25 @@ async function generarPDF(){
   const nombreArch = 'PlanoAvanceCaminadoICMI_GCC003_'+fecha+'_'+turno.replace(/\s+/g,'')+'.pdf';
   const nota = document.getElementById('nota');
   let driveHtml = '';
-  if(window.QCD_DRIVE){
-    nota.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>';
+  if(typeof SB !== 'undefined'){
+    nota.innerHTML = '<span style="color:#888;">Guardando en Supabase...</span>';
     nota.style.color = '';
     try{
-      const res = await QCD_DRIVE.subirConReintento({
-        blob: doc.output('blob'),
-        nombreArchivo: nombreArch,
-        tipoReporte: 'Avance caminado IC Mineria',
+      const resGuardado = await guardarReportePDFConCola({
+        tipoReporte: 'ic-mi-plano-index',
         correlativo: corr,
         claveVerificacion: claveQR,
         empresa: MARCA.empresa.nombreCorto,
-        generadoPor: nombre
+        generadoPor: nombre,
+        blobPDF: doc.output('blob'),
+        nombreArchivo: nombreArch
       });
-      driveHtml = '<br><a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>';
+      driveHtml = '<br>' + (resGuardado.encolado
+        ? '<span style="color:#b06d00;">Sin señal: quedó guardado en este dispositivo y se sube solo apenas vuelva la conexión.</span>'
+        : '<span style="color:#2e7d32;">Guardado en Supabase &#10003;</span> <button type="button" onclick="descargarLogReporte(\'ic-mi-plano-index\', this.nextElementSibling)" style="margin-left:6px;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer;">&#11015; Excel (log)</button><span style="font-size:11px;color:#888;margin-left:4px;"></span>');
     }catch(err){
-      console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
-      driveHtml = '<br><span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>';
+      console.warn('Supabase: no se pudo guardar el reporte.', err);
+      driveHtml = '<br><span style="color:#c0392b;">No se pudo guardar en la base: ' + (err && err.message ? err.message : err) + '</span>';
     }
   }
   doc.save(nombreArch);

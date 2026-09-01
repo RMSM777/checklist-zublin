@@ -255,11 +255,18 @@
     },
 
     _leerEmpresaGuardada(){
-      try{ return localStorage.getItem(LS_KEY_EMPRESA); }catch(e){ return null; }
+      /* 01-09-2026: sessionStorage (no localStorage) a propósito — así
+         QC Digital aparece SIEMPRE primero cuando se abre la app desde
+         cero (nueva pestaña, o la PWA anclada al inicio), y el usuario
+         elige la empresa cada vez que entra. Dentro de esa misma sesión
+         de trabajo (mientras navega entre reportes sin cerrar la
+         pestaña/app) la elección se mantiene, para no hacerle elegir
+         Züblin en cada pantalla. */
+      try{ return sessionStorage.getItem(LS_KEY_EMPRESA); }catch(e){ return null; }
     },
 
     _guardarEmpresa(id){
-      try{ localStorage.setItem(LS_KEY_EMPRESA, id); }catch(e){}
+      try{ sessionStorage.setItem(LS_KEY_EMPRESA, id); }catch(e){}
     },
 
     /* Acento (títulos de sección, líneas divisorias, fillColor de tablas) */

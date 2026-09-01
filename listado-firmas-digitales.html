@@ -485,8 +485,12 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <script src="jspdf.umd.min.js"></script>
 <script src="qrious.min.js"></script>
 <script src="marca.js?v=2"></script>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="drive-integration.js?v=3"></script>
+<script src="jszip.min.js"></script>
+<script src="xlsx.full.min.js"></script>
+<script src="supabase-integration.js?v=4"></script>
+<script>
+(async function(){ await requerirSesion('listado-firmas-digitales.html'); })();
+</script>
 <script>
 /* ===================== ESTADO Y CONSTANTES ===================== */
 /* MARCA: logo/colores/contrato de la empresa activa (Fase 2). */
@@ -607,7 +611,7 @@ function comprimirImagen(archivo, callback){
   lector.onload = function(e){
     var img = new Image();
     img.onload = function(){
-      var maxLado = 1200;
+      var maxLado = 1000;
       var ancho = img.width;
       var alto = img.height;
       if(ancho > maxLado || alto > maxLado){
@@ -624,7 +628,7 @@ function comprimirImagen(archivo, callback){
       canvasTmp.height = alto;
       var ctxTmp = canvasTmp.getContext("2d");
       ctxTmp.drawImage(img, 0, 0, ancho, alto);
-      var dataUrlComprimido = canvasTmp.toDataURL("image/jpeg", 0.82);
+      var dataUrlComprimido = canvasTmp.toDataURL("image/jpeg", 0.65);
       callback(dataUrlComprimido);
     };
     img.src = e.target.result;
@@ -881,7 +885,7 @@ function textoParrafo(doc, texto, y, anchoPagina){
 
 function construirPDF(datos, callback){
   var jsPDFConstructor = window.jspdf.jsPDF;
-  var doc = new jsPDFConstructor({ unit: "mm", format: "a4" });
+  var doc = new jsPDFConstructor({ unit: "mm", format: "a4", compress: true });
   var anchoPagina = doc.internal.pageSize.getWidth();
   var altoPagina = doc.internal.pageSize.getHeight();
   var margenInferior = altoPagina - 18;
@@ -1058,22 +1062,24 @@ document.getElementById("btnDescargarPDF").addEventListener("click", async funct
 
   var notaEl = document.getElementById("notaDrive");
   var driveHtml = '';
-  if(window.QCD_DRIVE){
-    if(notaEl){ notaEl.innerHTML = '<span style="color:#888;">Subiendo a Google Drive...</span>'; }
+  if(typeof SB !== 'undefined'){
+    if(notaEl){ notaEl.innerHTML = '<span style="color:#888;">Guardando en Supabase...</span>'; }
     try{
-      var res = await QCD_DRIVE.subirConReintento({
-        blob: docPDFActual.output('blob'),
-        nombreArchivo: nombreArch,
-        tipoReporte: 'Listado de firmas digitales',
+      var resGuardado = await guardarReportePDFConCola({
+        tipoReporte: 'listado-firmas-digitales',
         correlativo: docPDFActual._qcdCorrelativo || '-',
         claveVerificacion: docPDFActual._qcdClaveVerificacion || '',
         empresa: MARCA.empresa.nombreCorto,
-        generadoPor: ultimoGeneradoPor
+        generadoPor: ultimoGeneradoPor,
+        blobPDF: docPDFActual.output('blob'),
+        nombreArchivo: nombreArch
       });
-      driveHtml = '<a href="'+res.driveLink+'" target="_blank" style="color:#2e7d32;">Guardado en Google Drive &#10003;</a>';
+      driveHtml = resGuardado.encolado
+        ? '<span style="color:#b06d00;">Sin señal: quedó guardado en este dispositivo y se sube solo apenas vuelva la conexión.</span>'
+        : '<span style="color:#2e7d32;">Guardado en Supabase &#10003;</span> <button type="button" onclick="descargarLogReporte(\'listado-firmas-digitales\', this.nextElementSibling)" style="margin-left:6px;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer;">&#11015; Excel (log)</button><span style="font-size:11px;color:#888;margin-left:4px;"></span>';
     }catch(err){
-      console.warn('QCD_DRIVE: no se pudo subir a Drive.', err);
-      driveHtml = '<span style="color:#c0392b;">No se pudo subir a Drive: ' + (err && err.message ? err.message : err) + '</span>';
+      console.warn('Supabase: no se pudo guardar el reporte.', err);
+      driveHtml = '<span style="color:#c0392b;">No se pudo guardar en la base: ' + (err && err.message ? err.message : err) + '</span>';
     }
   }
   docPDFActual.save(nombreArch);

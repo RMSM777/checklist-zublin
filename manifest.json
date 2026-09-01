@@ -2,7 +2,7 @@
   "name": "QC Digital - Industry Quality Suite",
   "short_name": "QC Digital",
   "description": "Suite de inspecciones y reportes de terreno para faenas mineras y de construcción.",
-  "start_url": "./home.html",
+  "start_url": "./app-inicio.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
