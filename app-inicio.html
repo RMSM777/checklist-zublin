@@ -347,6 +347,13 @@
     </section>
 
     <section style="padding-top:4px;">
+      <p class="titulillo">Hist&oacute;rico de metros caminados</p>
+      <div class="avance-card">
+        <div id="listaHistoricoMetros"><div class="avance-nota">Cargando&hellip;</div></div>
+      </div>
+    </section>
+
+    <section style="padding-top:4px;">
       <p class="titulillo">Desarrollo v/s Caminata</p>
       <div class="avance-card">
         <div class="avance-fila">
@@ -1319,12 +1326,43 @@ function fmtCortaISO(iso){ if(!iso) return '—'; const [y,m,d]=iso.split('-'); 
 
 let AVANCE_ACTUAL = null; /* { fecha, metros_acum } de la última carga leída */
 
+/* Histórico de metros caminados por mes (01-sep-2026) — pedido de Rodrigo,
+   adicional al "Caminado este mes" del hero. A propósito NO reusa los
+   `dts` (v_detalles_terminacion, limitados a 500 filas) porque una
+   caminata "sin hallazgos" (sin DT asociado, ver ciz-dt-conectado.html)
+   nunca aparece ahí — se leen los metros directo de avances_caminata,
+   que tiene una fila por caminata siempre, con o sin DT. */
+const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function pintarHistoricoMetros(caminadas){
+  const cont = document.getElementById('listaHistoricoMetros');
+  if(!cont) return;
+  const porMes = new Map(); // 'YYYY-MM' -> metros
+  (caminadas || []).forEach(c => {
+    if(!c.fecha) return;
+    const clave = String(c.fecha).slice(0,7);
+    porMes.set(clave, (porMes.get(clave) || 0) + (Number(c.metros_caminados) || 0));
+  });
+  const claves = [...porMes.keys()].sort().reverse(); // más reciente primero
+  if(!claves.length){
+    cont.innerHTML = '<div class="avance-nota">Todavía no hay caminatas registradas.</div>';
+    return;
+  }
+  cont.innerHTML = claves.slice(0, 6).map(function(clave){
+    const partes = clave.split('-');
+    const nombreMes = MESES_ES[parseInt(partes[1], 10) - 1] || clave;
+    const etiqueta = nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1) + ' ' + partes[0];
+    const metros = Math.round(porMes.get(clave));
+    return '<div class="avance-fila"><span class="et">' + etiqueta + '</span><span class="va">'
+      + metros.toLocaleString('es-CL') + '<small>m</small></span></div>';
+  }).join('');
+}
+
 async function cargarAvanceDesarrollo(){
   const nota = document.getElementById('avNota');
   try {
     const [ultimo, caminadas] = await Promise.all([
       SB.consultar('avance_desarrollo_diario', 'select=fecha,metros_acum&order=fecha.desc&limit=1'),
-      SB.consultar('avances_caminata', 'select=metros_caminados')
+      SB.consultar('avances_caminata', 'select=fecha,metros_caminados')
     ]);
 
     const desarrollado = (ultimo && ultimo[0]) ? Number(ultimo[0].metros_acum) : null;
@@ -1334,6 +1372,7 @@ async function cargarAvanceDesarrollo(){
     (caminadas || []).forEach(c => caminado += Number(c.metros_caminados) || 0);
 
     document.getElementById('avCaminado').innerHTML = Math.round(caminado) + '<small>m</small>';
+    pintarHistoricoMetros(caminadas);
 
     if(desarrollado == null){
       document.getElementById('avDesarrollado').innerHTML = '&mdash;<small>m</small>';
@@ -1355,6 +1394,10 @@ async function cargarAvanceDesarrollo(){
     document.getElementById('avDesarrollado').innerHTML = '&mdash;<small>m</small>';
     document.getElementById('avCaminado').innerHTML = '&mdash;<small>m</small>';
     document.getElementById('avPct').innerHTML = '&mdash;<small>%</small>';
+    const histCont = document.getElementById('listaHistoricoMetros');
+    if(histCont) histCont.innerHTML = '<div class="avance-nota">' + (e.message === '__SIN_SENAL__'
+      ? 'Sin señal. Al recuperar conexión se actualiza solo.'
+      : 'No se pudo cargar el histórico.') + '</div>';
     nota.textContent = e.message === '__SIN_SENAL__'
       ? 'Sin señal. Al recuperar conexión se actualiza solo.'
       : 'Todavía no está disponible esta tarjeta (falta correr el script 9 en Supabase).';
