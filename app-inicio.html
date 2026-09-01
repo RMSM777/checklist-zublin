@@ -691,7 +691,47 @@ async function descargarLogReporte(tipoReporte, idSeguro, btn){
 }
 
 function cuantosPendientes(){
-  try { return (JSON.parse(almacen.get(CLAVE_COLA) || '[]')).length; } catch(e){ return 0; }
+  let cizdt = 0;
+  try { cizdt = (JSON.parse(almacen.get(CLAVE_COLA) || '[]')).length; } catch(e){}
+  return cizdt + _colaReportesPendientesCache;
+}
+
+/* ---------- Cola offline de los 11 reportes clasicos (IndexedDB) ----------
+   guardarReportePDFConCola() en supabase-integration.js encola ahi (base
+   'qcd_cola_reportes', store 'pendientes') cuando un reporte se genera sin
+   señal. Es una base DISTINTA de CLAVE_COLA de arriba (esa es solo de
+   ciz-dt-conectado.html). El hub no reintenta subirlos (eso lo hace cada
+   reporte solo, al volver la señal) — solo cuenta cuántos quedan, para que
+   el chip de "N por subir" que ya existe en la barra de estado (pintarEstado)
+   refleje TODA la suite y no solo caminatas/DT. Lectura de solo conteo,
+   nunca escribe ni borra nada de esa cola. */
+let _colaReportesPendientesCache = 0;
+function _contarColaReportesPendientes(){
+  return new Promise(function(resolve){
+    if(typeof indexedDB === 'undefined'){ resolve(0); return; }
+    try{
+      const req = indexedDB.open('qcd_cola_reportes', 1);
+      req.onupgradeneeded = function(){
+        const db = req.result;
+        if(!db.objectStoreNames.contains('pendientes')) db.createObjectStore('pendientes', { keyPath:'id', autoIncrement:true });
+      };
+      req.onsuccess = function(){
+        const db = req.result;
+        if(!db.objectStoreNames.contains('pendientes')){ db.close(); resolve(0); return; }
+        try{
+          const tx = db.transaction('pendientes', 'readonly');
+          const countReq = tx.objectStore('pendientes').count();
+          countReq.onsuccess = function(){ db.close(); resolve(countReq.result || 0); };
+          countReq.onerror = function(){ db.close(); resolve(0); };
+        }catch(e){ db.close(); resolve(0); }
+      };
+      req.onerror = function(){ resolve(0); };
+    }catch(e){ resolve(0); }
+  });
+}
+async function refrescarColaReportesPendientes(){
+  _colaReportesPendientesCache = await _contarColaReportesPendientes();
+  pintarEstado();
 }
 
 /* ====================================================================== */
@@ -716,6 +756,7 @@ function pintarEstado(){
 }
 window.addEventListener('online', pintarEstado);
 window.addEventListener('offline', pintarEstado);
+window.addEventListener('online', refrescarColaReportesPendientes);
 
 async function aplicarMarca(){
   if(typeof MARCA === 'undefined') return;
@@ -1478,6 +1519,7 @@ if ('serviceWorker' in navigator) {
     }
   }
   pintarEstado();
+  refrescarColaReportesPendientes();
   await aplicarMarca();
   pintarListaLogReportes();
   await cargarTodo();
