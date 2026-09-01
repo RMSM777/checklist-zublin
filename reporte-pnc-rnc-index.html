@@ -10,6 +10,11 @@
 <script src="chart.umd.min.js"></script>
 <script src="xlsx.full.min.js"></script>
 <script src="marca.js?v=2"></script>
+<script src="jszip.min.js"></script>
+<script src="supabase-integration.js?v=4"></script>
+<script>
+(async function(){ await requerirSesion('reporte-pnc-rnc-index.html'); })();
+</script>
 <script src="piwii-unificado.js" defer></script>
 <style>
   :root{ --marca:#0d1526; --marca2:#f5851f; --gris:#f4f4f4; --borde:#ccc; --texto:#222; --verde:#2e7d32; --naranja:#F2A93B; --rojo:#D72622; --azul:#3b7ddd; }
@@ -450,7 +455,7 @@ function pieToPDF(doc, mapa, cx, cy, r){
 }
 function v(id){ return (document.getElementById(id).value||'').trim(); }
 
-function generarPDF(){
+async function generarPDF(){
   if(!(DATA.rnc && DATA.pnc)){ alert('Carga ambos listados.'); return; }
   if(!firma.hayFirma){ alert('Debe firmar para cerrar el reporte (secci\u00f3n 6).'); return; }
   const { jsPDF } = window.jspdf; const doc = new jsPDF({unit:'mm', format:'a4', compress:true});
@@ -564,28 +569,33 @@ function generarPDF(){
   corrCommit();
   const arch = 'ReportePNCRNC_'+fecha.replace(/-/g,'')+'_'+turno.replace(/\s+/g,'')+'.pdf';
 
-  // ===== Respaldo en Drive + registro en Google Sheet (hook, se activa con OAuth) =====
-  // Cuando marca.js/app exponga window.QCDrive (item 4 del roadmap: OAuth drive.file),
-  // este bloque sube el PDF y agrega una fila al Sheet-indice. Mientras no exista, descarga normal.
-  try{
-    if(typeof window.QCDrive!=='undefined' && window.QCDrive.subir){
-      const blob = doc.output('blob');
-      window.QCDrive.subir({
-        archivo: arch, blob: blob, tipo: 'PNC_RNC', correlativo: correl,
-        fila: {                         // fila para la hoja indice
-          Correlativo: correl, Tipo: 'Reporte PNC y RNC', Fecha: fecha, Turno: turno,
-          Empresa: (M.nombre||''), Realizado: nombre, RUT: v('rut')||'',
-          RNC: R.length, PNC: P.length, Total: R.length+P.length,
-          Abiertas: tAbi, Atrasadas: tAtr, Pendientes: tPen, Cerradas: tCer,
-          Generado: ahora.toISOString(), Archivo: arch
-        }
-      }).then(()=>{ const n=document.getElementById('nota'); n.innerHTML='PDF generado, respaldado en Drive y registrado en el listado. '+correl; n.style.color='#2e7d32'; })
-        .catch(()=>{ document.getElementById('nota').innerHTML='PDF generado ('+arch+'). Respaldo Drive pendiente (sin conexi\u00f3n).'; });
+  const nota=document.getElementById('nota');
+  let guardadoHtml = '';
+  if(typeof SB !== 'undefined'){
+    nota.innerHTML = '<span style="color:#888;">Guardando en Supabase...</span>';
+    nota.style.color = '';
+    try{
+      const resGuardado = await guardarReportePDFConCola({
+        tipoReporte: 'reporte-pnc-rnc-index',
+        correlativo: correl,
+        claveVerificacion: MARCA.claveVerificacion(correl),
+        empresa: MARCA.empresa.nombreCorto,
+        generadoPor: nombre,
+        blobPDF: doc.output('blob'),
+        nombreArchivo: arch
+      });
+      guardadoHtml = resGuardado.encolado
+        ? '<br><span style="color:#b06d00;">Sin se\u00f1al: qued\u00f3 guardado en este dispositivo y se sube solo apenas vuelva la conexi\u00f3n.</span>'
+        : '<br><span style="color:#2e7d32;">Guardado en Supabase &#10003;</span> <button type="button" onclick="descargarLogReporte(\'reporte-pnc-rnc-index\', this.nextElementSibling)" style="margin-left:6px;font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer;">&#11015; Excel (log)</button><span style="font-size:11px;color:#888;margin-left:4px;"></span>';
+    }catch(err){
+      console.warn('Supabase: no se pudo guardar el reporte.', err);
+      guardadoHtml = '<br><span style="color:#c0392b;">No se pudo guardar en la base: ' + (err && err.message ? err.message : err) + '</span>';
     }
-  }catch(e){}
+  }
 
   doc.save(arch);
-  const nota=document.getElementById('nota'); nota.innerHTML='PDF generado y descargado ('+arch+').  Correlativo '+correl+'.'; nota.style.color='#2e7d32';
+  nota.innerHTML = 'PDF generado y descargado ('+arch+').  Correlativo '+correl+'.' + guardadoHtml;
+  nota.style.color = '#2e7d32';
 }
 </script>
 <script>
