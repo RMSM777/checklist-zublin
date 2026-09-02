@@ -1307,7 +1307,10 @@ document.getElementById('h_fotoInput').addEventListener('change', async (e)=>{
 function quitarFotoHallazgo(i){ h_fotos.splice(i,1); renderGaleria('h_galeria', h_fotos, 'quitarFotoHallazgo'); }
 
 function agregarHallazgo(){
-  const desc = document.getElementById('h_desc').value.trim();
+  /* Normalizado a mayúscula (02-09-2026, mismo pedido de Rodrigo que
+     arriba en guardarCaminata) para que las descripciones de hallazgos
+     no queden mezcladas entre mayúscula y minúscula en el Excel. */
+  const desc = document.getElementById('h_desc').value.trim().toUpperCase();
   if(!desc){ alert('Falta la descripcion del hallazgo.'); return; }
   const moduloSel = MODULOS_FALLA_MAP[document.getElementById('h_moduloFalla').value] || null;
   hallazgosPendientes.push({
@@ -1385,7 +1388,14 @@ async function guardarCaminata(){
      sabe no insertar nada en detalles_terminacion cuando la lista de
      hallazgos viene vacía. */
   const frenteElegido = obtenerFrenteElegido();
-  const ini = document.getElementById('a_iniciales').value.trim();
+  /* Ojo (02-09-2026, pedido de Rodrigo): algunos inspectores tipean sus
+     iniciales y otros campos de texto libre en minúscula, mezclado con
+     mayúscula, etc. — eso rompía agrupaciones (ej. "JCV/MPC" vs
+     "JCV/mPC" contados como dos originadores distintos en el resumen
+     del Excel). Se normaliza a mayúscula acá, al guardar, para que todo
+     quede parejo de ahora en adelante sin depender de que cada uno
+     escriba igual. */
+  const ini = document.getElementById('a_iniciales').value.trim().toUpperCase();
   const pkini = parseFloat(document.getElementById('a_pkini').value);
   const pkfin = parseFloat(document.getElementById('a_pkfin').value);
   if(!frenteElegido){ alert('Falta elegir la labor de la lista (o escribirla a mano si no está en el WBS todavía).'); return; }
@@ -1395,7 +1405,7 @@ async function guardarCaminata(){
   const fecha = document.getElementById('a_fecha').value || hoyISO();
   const turno = document.getElementById('a_turno').value;
   const numeroInforme = document.getElementById('a_numeroInforme').value.trim();
-  const respConstruccion = document.getElementById('a_respConstruccion').value.trim();
+  const respConstruccion = document.getElementById('a_respConstruccion').value.trim().toUpperCase();
   /* Ojo (31-08-2026): varias labores del WBS agrupan más de un frentón
      físico bajo un mismo código (ej. "FR-INS-N52-04@09" son 6 frentones
      distintos). Este campo aparte deja anotar cuál exactamente se
@@ -1403,11 +1413,11 @@ async function guardarCaminata(){
      de escribir la labor entera a mano, que sí la pierde). Es opcional
      y aplica tanto si se eligió del catálogo como si se escribió a
      mano — no se cruza con frenteElegido.manual. */
-  const detalleLabor = (document.getElementById('a_detalleLabor').value || '').trim();
+  const detalleLabor = (document.getElementById('a_detalleLabor').value || '').trim().toUpperCase();
 
   let frenteTexto, codigoLabor=null, wbs=null, area=null, subarea=null, sistema=null, subsistema=null, plano=null;
   if(frenteElegido.manual){
-    frenteTexto = frenteElegido.texto;
+    frenteTexto = frenteElegido.texto.toUpperCase();
   } else {
     const l = frenteElegido.labor;
     /* Ojo: antes se guardaba "codigo — nombre" en ubicacion/frente. Se

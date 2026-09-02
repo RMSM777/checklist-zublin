@@ -399,12 +399,12 @@ CATALOGO_LABORES.forEach(l => { CODIGO_A_LABOR[l.codigo] = l; });
 
 let nivelActual = NIVELES[0].id;
 let PINES = [];         // filas de plano_pines, todas (todos los niveles, todas las versiones)
-let PUNTOS = {};        // codigo_labor -> { cerrados,abiertos,atrasados,caminatas }
-let frentesPendientes = []; // codigos del nivel actual sin pin, con datos
-let armado = null;      // codigo_labor en modo "toca el plano para ubicar" | null
+let PUNTOS = {};        // clave compuesta -> { codigoLabor, detalleLabor, cerrados,abiertos,atrasados,caminatas,... }
+let frentesPendientes = []; // claves del nivel actual sin pin, con datos
+let armado = null;      // clave compuesta en modo "toca el plano para ubicar" | null
 let ubicarAbierto = false;
-let pinesPorCodigo = {};  // codigo_labor -> mejor pin del NIVEL ACTUAL (ver pintarNivel)
-let popoverCod = null;    // codigo_labor que está mostrando el popover ahora mismo
+let pinesPorCodigo = {};  // clave compuesta -> mejor pin del NIVEL ACTUAL (ver pintarNivel)
+let popoverCod = null;    // clave compuesta que está mostrando el popover ahora mismo
 
 /* ---------------------------------------------------------------------
    Valida el codigo de labor (columna codigo_labor, propia y separada
@@ -419,6 +419,40 @@ function extraerCodigo(codigoLabor){
   return CODIGO_A_NIVEL[cod] ? cod : null;
 }
 
+/* ---------------------------------------------------------------------
+   Fix (02-09-2026, pedido de Rodrigo): varias labores del catálogo
+   agrupan más de un frentón físico bajo el mismo codigo_labor (por eso
+   existe la columna detalle_labor — ver ciz-dt-conectado.html y el COLS
+   del Excel en app-inicio.html). Hasta acá el Plano agrupaba todo por
+   codigo_labor nomás, así que dos o más caminatas con detalle_labor
+   distinto pero el mismo codigo_labor se pisaban entre sí: se veían
+   como una sola caminata / un solo pin en vez de uno por frentón (caso
+   real: FR-INS-N51-08 y FR-INS-N51-10 comparten codigo_labor
+   224312F-01-03, y FR-INS-N51-14/FR-INS-N51-15 comparten 224312F-01-04
+   — 4 caminatas quedaban ancladas en solo 2 pines).
+   La solución es una "clave" compuesta (codigo_labor + detalle_labor,
+   siempre en mayúsculas/trim para que no importe cómo lo haya tipeado
+   el inspector) que reemplaza a codigo_labor como llave de PUNTOS y de
+   los pines en todo este archivo. Una labor sin ambigüedad (sin
+   detalle_labor) sigue funcionando igual que antes — su clave queda
+   "codigo·" (detalle vacío), que de todos modos es única.
+   Requiere que la tabla plano_pines tenga la columna detalle_labor y
+   que la llave de conflicto del upsert (más abajo, en
+   manejarClickUbicar) sea (codigo_labor, detalle_labor, version_plano)
+   — ver el script de migración SQL entregado aparte. Los 2 pines viejos
+   (guardados solo con codigo_labor, sin detalle_labor) no calzan con
+   ninguna clave nueva y por lo tanto dejan de dibujarse solos, sin
+   necesidad de borrar nada a mano — las 4 labores individuales
+   reaparecen como "pendientes de ubicar" listas para anclarse de
+   nuevo, una por una.
+   --------------------------------------------------------------------- */
+function normalizarDetalle(t){ return (t || '').trim().toUpperCase(); }
+function claveDe(codigoLabor, detalleLabor){
+  const cod = extraerCodigo(codigoLabor);
+  if(!cod) return null;
+  return cod + '·' + normalizarDetalle(detalleLabor);
+}
+
 /* ======================================================================
    Carga de datos: DT + caminatas, agrupados por codigo de labor.
    ====================================================================== */
@@ -428,19 +462,19 @@ async function cargarDatos(){
   PUNTOS = {};
   try {
     const [dts, caminatas, pines] = await Promise.all([
-      SB.consultar('detalles_terminacion', 'select=codigo_labor,estado,fecha_compromiso_cierre'),
-      SB.consultar('avances_caminata', 'select=codigo_labor,codigo_caminata,fecha,metros_caminados'),
+      SB.consultar('detalles_terminacion', 'select=codigo_labor,detalle_labor,estado,fecha_compromiso_cierre'),
+      SB.consultar('avances_caminata', 'select=codigo_labor,detalle_labor,codigo_caminata,fecha,metros_caminados'),
       SB.consultar('plano_pines', 'select=*')
     ]);
     PINES = pines || [];
 
     (dts||[]).forEach(d => {
-      const cod = extraerCodigo(d.codigo_labor);
-      if(!cod) return;
-      if(!PUNTOS[cod]) PUNTOS[cod] = { cerrados:0, abiertos:0, atrasados:0, caminatas:0, metrosCaminados:0, ultimaCaminata:null, ultimaFecha:'' };
-      if(d.estado === 'CERRADA'){ PUNTOS[cod].cerrados++; return; }
+      const clave = claveDe(d.codigo_labor, d.detalle_labor);
+      if(!clave) return;
+      if(!PUNTOS[clave]) PUNTOS[clave] = { codigoLabor: extraerCodigo(d.codigo_labor), detalleLabor: normalizarDetalle(d.detalle_labor), cerrados:0, abiertos:0, atrasados:0, caminatas:0, metrosCaminados:0, ultimaCaminata:null, ultimaFecha:'' };
+      if(d.estado === 'CERRADA'){ PUNTOS[clave].cerrados++; return; }
       const atrasado = d.fecha_compromiso_cierre && d.fecha_compromiso_cierre < hoyISO();
-      if(atrasado) PUNTOS[cod].atrasados++; else PUNTOS[cod].abiertos++;
+      if(atrasado) PUNTOS[clave].atrasados++; else PUNTOS[clave].abiertos++;
     });
     /* codigo_caminata (el "N° de informe" de la caminata, ej. RMSM-SCI-0002)
        y fecha (columna real de avances_caminata; NO fecha_emision, esa es
@@ -454,14 +488,14 @@ async function cargarDatos(){
        total general, se pierde de dónde salió cada metro. Sumando por
        punto se recupera esa trazabilidad directo en el popover. */
     (caminatas||[]).forEach(c => {
-      const cod = extraerCodigo(c.codigo_labor);
-      if(!cod) return;
-      if(!PUNTOS[cod]) PUNTOS[cod] = { cerrados:0, abiertos:0, atrasados:0, caminatas:0, metrosCaminados:0, ultimaCaminata:null, ultimaFecha:'' };
-      PUNTOS[cod].caminatas++;
-      PUNTOS[cod].metrosCaminados += Number(c.metros_caminados) || 0;
-      if(c.codigo_caminata && (c.fecha || '') >= PUNTOS[cod].ultimaFecha){
-        PUNTOS[cod].ultimaCaminata = c.codigo_caminata;
-        PUNTOS[cod].ultimaFecha = c.fecha || '';
+      const clave = claveDe(c.codigo_labor, c.detalle_labor);
+      if(!clave) return;
+      if(!PUNTOS[clave]) PUNTOS[clave] = { codigoLabor: extraerCodigo(c.codigo_labor), detalleLabor: normalizarDetalle(c.detalle_labor), cerrados:0, abiertos:0, atrasados:0, caminatas:0, metrosCaminados:0, ultimaCaminata:null, ultimaFecha:'' };
+      PUNTOS[clave].caminatas++;
+      PUNTOS[clave].metrosCaminados += Number(c.metros_caminados) || 0;
+      if(c.codigo_caminata && (c.fecha || '') >= PUNTOS[clave].ultimaFecha){
+        PUNTOS[clave].ultimaCaminata = c.codigo_caminata;
+        PUNTOS[clave].ultimaFecha = c.fecha || '';
       }
     });
   } catch(e){
@@ -507,22 +541,29 @@ function pintarNivel(){
   /* Por labor, preferir el pin de la VERSIÓN ACTUAL del plano de este
      nivel; si no hay (se marcó en una versión anterior y todavía no se
      reubicó), usar el más reciente de las versiones viejas — así nunca
-     desaparece, solo se marca como "verificar" (tema 28, 31-08-2026). */
+     desaparece, solo se marca como "verificar" (tema 28, 31-08-2026).
+     Desde el 02-09-2026 la llave es la clave compuesta (codigo_labor +
+     detalle_labor) — ver claveDe() más arriba — para que dos frentones
+     con el mismo codigo_labor no se pisen entre sí. */
   pinesPorCodigo = {};
   pinesNivel.forEach(p => {
-    const actual = pinesPorCodigo[p.codigo_labor];
-    if(!actual || p.version_plano > actual.version_plano) pinesPorCodigo[p.codigo_labor] = p;
+    const clave = claveDe(p.codigo_labor, p.detalle_labor);
+    if(!clave) return;
+    const actual = pinesPorCodigo[clave];
+    if(!actual || p.version_plano > actual.version_plano) pinesPorCodigo[clave] = p;
   });
 
   let html = '';
   let hayDatos = false;
-  Object.keys(PUNTOS).forEach(cod => {
+  Object.keys(PUNTOS).forEach(clave => {
+    const punto = PUNTOS[clave];
+    const cod = punto.codigoLabor;
     if(CODIGO_A_NIVEL[cod] && CODIGO_A_NIVEL[cod].id !== nivelActual) return;
     if(!CODIGO_A_NIVEL[cod]) return;
     hayDatos = true;
-    const pin = pinesPorCodigo[cod];
+    const pin = pinesPorCodigo[clave];
     if(!pin) return; // sin ubicar todavia: no se puede dibujar
-    const v = PUNTOS[cod];
+    const v = punto;
     let clase = 'caminado';
     if(v.atrasados > 0) clase = 'atrasado';
     else if(v.abiertos > 0) clase = 'abierto';
@@ -532,7 +573,8 @@ function pintarNivel(){
        realmente abre el popover — ver el pointerup de visorEl más
        abajo, y el porqué (31-08-2026, bug reportado por Rodrigo: el
        popover no se abría ni con mouse ni con el dedo). */
-    html += '<div class="pin '+clase+'" data-cod="'+cod+'" style="left:'+pin.x_pct+'%; top:'+pin.y_pct+'%;" onclick="verPopover(\''+cod+'\')"></div>';
+    const claveJs = clave.replace(/'/g, "\\'");
+    html += '<div class="pin '+clase+'" data-cod="'+clave+'" style="left:'+pin.x_pct+'%; top:'+pin.y_pct+'%;" onclick="verPopover(\''+claveJs+'\')"></div>';
   });
   capa.innerHTML = html;
 
@@ -634,12 +676,15 @@ visorEl.addEventListener('touchmove', (e) => {
 /* ======================================================================
    Popover con el detalle de un pin
    ====================================================================== */
-function verPopover(cod){
-  popoverCod = cod;
+function verPopover(clave){
+  popoverCod = clave;
+  const punto = PUNTOS[clave] || {};
+  const cod = punto.codigoLabor || clave;
+  const detalle = punto.detalleLabor || '';
   const l = CODIGO_A_LABOR[cod] || {};
-  const v = PUNTOS[cod] || { cerrados:0, abiertos:0, atrasados:0, caminatas:0, metrosCaminados:0, ultimaCaminata:null };
+  const v = PUNTOS[clave] || { cerrados:0, abiertos:0, atrasados:0, caminatas:0, metrosCaminados:0, ultimaCaminata:null };
   const totalDT = v.cerrados + v.abiertos + v.atrasados;
-  document.getElementById('popCod').textContent = cod;
+  document.getElementById('popCod').textContent = cod + (detalle ? ' — ' + detalle : '');
   document.getElementById('popNom').textContent = l.nombre || '';
   document.getElementById('popInforme').textContent = v.ultimaCaminata || '—';
   document.getElementById('popTotalDT').textContent = totalDT;
@@ -653,7 +698,7 @@ function verPopover(cod){
      quedó marcado en una versión anterior del plano de este nivel
      (tema 28, 31-08-2026). */
   const nivel = NIVELES.find(n => n.id === nivelActual);
-  const pin = pinesPorCodigo[cod];
+  const pin = pinesPorCodigo[clave];
   const desactualizado = pin && nivel && Number(pin.version_plano) !== nivel.version;
   document.getElementById('popAvisoVersion').style.display = desactualizado ? '' : 'none';
 
@@ -696,30 +741,38 @@ function toggleUbicar(){
 
 function pintarListaPendientes(){
   const pinesNivel = PINES.filter(p => p.nivel === nivelActual);
-  const yaUbicados = new Set(pinesNivel.map(p => p.codigo_labor));
-  frentesPendientes = Object.keys(PUNTOS).filter(cod =>
-    CODIGO_A_NIVEL[cod] && CODIGO_A_NIVEL[cod].id === nivelActual && !yaUbicados.has(cod)
-  );
+  const yaUbicados = new Set(pinesNivel.map(p => claveDe(p.codigo_labor, p.detalle_labor)).filter(Boolean));
+  frentesPendientes = Object.keys(PUNTOS).filter(clave => {
+    const cod = PUNTOS[clave].codigoLabor;
+    return CODIGO_A_NIVEL[cod] && CODIGO_A_NIVEL[cod].id === nivelActual && !yaUbicados.has(clave);
+  });
   const cont = document.getElementById('ubicarLista');
   if(!frentesPendientes.length){
     cont.innerHTML = '<div style="font-size:12px;color:var(--tenue);padding:4px 2px;">No quedan frentes pendientes de ubicar en este nivel &mdash; se dibujaron todos los que tienen pin.</div>';
     return;
   }
-  cont.innerHTML = frentesPendientes.map(cod => {
+  cont.innerHTML = frentesPendientes.map(clave => {
+    const punto = PUNTOS[clave];
+    const cod = punto.codigoLabor;
+    const detalle = punto.detalleLabor || '';
     const l = CODIGO_A_LABOR[cod] || {};
-    const esteArmado = armado === cod;
+    const esteArmado = armado === clave;
+    const claveJs = clave.replace(/'/g, "\\'");
     return '<div class="ubicar-item'+(esteArmado?' armado-item':'')+'">'
-      + '<span><b>'+cod+'</b><span>'+(l.nombre||'').slice(0,46)+'</span></span>'
-      + '<button onclick="armarUbicar(\''+cod+'\')">'+(esteArmado?'Cancelar':'Ubicar')+'</button>'
+      + '<span><b>'+cod+(detalle?' — '+detalle:'')+'</b><span>'+(l.nombre||'').slice(0,46)+'</span></span>'
+      + '<button onclick="armarUbicar(\''+claveJs+'\')">'+(esteArmado?'Cancelar':'Ubicar')+'</button>'
       + '</div>';
   }).join('');
 }
 
-function armarUbicar(cod){
-  if(armado === cod){ cancelarArmado(); return; }
-  armado = cod;
+function armarUbicar(clave){
+  if(armado === clave){ cancelarArmado(); return; }
+  armado = clave;
+  const punto = PUNTOS[clave] || {};
+  const cod = punto.codigoLabor || clave;
+  const detalle = punto.detalleLabor || '';
   const l = CODIGO_A_LABOR[cod] || {};
-  document.getElementById('avisoArmadoNombre').textContent = cod + ' — ' + (l.nombre||'');
+  document.getElementById('avisoArmadoNombre').textContent = cod + (detalle?' — '+detalle:'') + (l.nombre?' — '+l.nombre:'');
   document.getElementById('avisoArmado').classList.add('act');
   document.getElementById('visor').classList.add('armado');
   pintarListaPendientes();
@@ -736,20 +789,26 @@ async function manejarClickUbicar(e){
   const rect = img.getBoundingClientRect();
   const xPct = Math.min(100, Math.max(0, (e.clientX - rect.left) / rect.width * 100));
   const yPct = Math.min(100, Math.max(0, (e.clientY - rect.top) / rect.height * 100));
-  const cod = armado;
+  const clave = armado;
+  const punto = PUNTOS[clave] || {};
+  const cod = punto.codigoLabor;
+  const detalle = punto.detalleLabor || '';
   const nivel = NIVELES.find(n => n.id === nivelActual);
   cancelarArmado();
   try {
     /* Se guarda con la VERSIÓN ACTUAL del plano de este nivel. La llave
-       de conflicto es (codigo_labor, version_plano) — no codigo_labor
-       solo — así "Reubicar" desde el popover de un pin viejo crea una
-       fila NUEVA para la versión de hoy sin tocar ni pisar la fila de
-       la versión anterior (queda como historial, tema 28, 31-08-2026).
-       Volver a tocar un pin YA ubicado en la versión de hoy sí lo
-       actualiza (misma fila) — eso es corregir, no versionar. */
-    const fila = { codigo_labor: cod, nivel: nivelActual, version_plano: nivel.version, x_pct: xPct.toFixed(2), y_pct: yPct.toFixed(2) };
-    const guardado = await SB.insertar('plano_pines?on_conflict=codigo_labor,version_plano', [fila]);
-    PINES = PINES.filter(p => !(p.codigo_labor === cod && Number(p.version_plano) === nivel.version));
+       de conflicto es (codigo_labor, detalle_labor, version_plano) —
+       desde el 02-09-2026 incluye detalle_labor, no solo codigo_labor —
+       así dos frentones que comparten codigo_labor no se pisan entre sí
+       (ver claveDe() más arriba), y "Reubicar" desde el popover de un
+       pin viejo crea una fila NUEVA para la versión de hoy sin tocar ni
+       pisar la fila de la versión anterior (queda como historial, tema
+       28, 31-08-2026). Volver a tocar un pin YA ubicado en la versión
+       de hoy sí lo actualiza (misma fila) — eso es corregir, no
+       versionar. */
+    const fila = { codigo_labor: cod, detalle_labor: detalle, nivel: nivelActual, version_plano: nivel.version, x_pct: xPct.toFixed(2), y_pct: yPct.toFixed(2) };
+    const guardado = await SB.insertar('plano_pines?on_conflict=codigo_labor,detalle_labor,version_plano', [fila]);
+    PINES = PINES.filter(p => claveDe(p.codigo_labor, p.detalle_labor) !== clave || Number(p.version_plano) !== nivel.version);
     if(guardado && guardado[0]) PINES.push(guardado[0]);
     pintarNivel();
     mostrarPinToast('Pin guardado ✓ — toca el punto para revisar los datos o para volver a moverlo si no quedó bien.');
