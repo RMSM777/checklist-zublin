@@ -261,9 +261,9 @@
         <div class="labor-resultados" id="a_laborResultados"></div>
         <div class="labor-info" id="a_laborInfo"></div>
         <div class="campo" id="a_detalleLaborWrap" style="margin-top:8px;">
-          <label>Detalle de la labor / N&deg; de fren&oacute;n espec&iacute;fico (opcional)</label>
+          <label>Detalle de la labor / N&deg; de fren&oacute;n, zanja o calle espec&iacute;fica</label>
           <input id="a_detalleLabor" type="text" placeholder="Ej: FR-INS-N52-04">
-          <div class="aviso-detalle-labor" id="a_detalleLaborAviso" style="display:none;">Ojo: esta labor del WBS agrupa varios frentones bajo un mismo c&oacute;digo (mira el rango en el nombre de arriba) &mdash; anota aqu&iacute; exactamente cu&aacute;l se camin&oacute;, para que el DT quede bien clasificado en los reportes y se pueda anclar al plano.</div>
+          <div class="aviso-detalle-labor" id="a_detalleLaborAviso" style="display:none;">Ojo: el sistema/subsistema elegido arriba puede agrupar varias labores f&iacute;sicas bajo un mismo c&oacute;digo (frentones, zanjas, calles, galer&iacute;as...). Anota aqu&iacute; exactamente cu&aacute;l se camin&oacute;, escrito igual que aparece dentro del nombre de arriba (ej. "FR-INS-N51-08") &mdash; para que el DT quede bien identificado en los reportes y se pueda anclar al plano.</div>
         </div>
         <span class="labor-manual-link" id="a_laborManualLink" onclick="activarLaborManual()">&iquest;No aparece la labor? Escribirla a mano</span>
         <input id="a_laborManualInput" type="text" placeholder="Ej: RAC-A-01 / N52 (labor nueva, a&uacute;n no est&aacute; en el WBS)" style="display:none; margin-top:6px;">
@@ -966,22 +966,26 @@ function normLabor(s){
   return (s==null?'':String(s)).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 }
 
-/* Fix (02-09-2026, pedido de Rodrigo): el WBS marca un rango de
-   frentones agrupados bajo un mismo código casi siempre con "@" (ej.
-   "FR-INS-N52-04@09"), pero se encontró AL MENOS una labor real que usa
-   guion bajo en vez de "@" -- "FRONTONES FR-INS-N51-05_07_08_10_11" --
-   y el chequeo viejo (solo "/@/.test(...)") no la detectaba: el aviso
-   nunca se mostraba, el inspector nunca llenaba el detalle de la labor,
-   y las 4 caminatas de esa labor quedaban indistinguibles entre sí (el
-   bug que Rodrigo reportó). Se agrega el patrón "número_número" como
-   señal adicional de lista de frentones -- se probó contra las 146
-   labores del catálogo y con esto se detecta exactamente la misma labor
-   de más (la de guion bajo), sin marcar como ambigua ninguna otra que
-   antes no lo estaba. */
-function esLaborAmbigua(nombre){
-  const n = nombre || '';
-  return /@/.test(n) || /\d+(?:_\d+)+/.test(n);
-}
+/* Fix (02-09-2026, ronda 3, pedido de Rodrigo -- reemplaza el intento
+   de la ronda 2): se probó detectar "labor ambigua" por patrón en el
+   nombre (variantes con "@" o con guion bajo) para exigir "Detalle de
+   la labor" SOLO en esos casos. Rodrigo mandó ejemplos (ver
+   EXPLICACION_NOMBRES_DE_LABOR.docx) que muestran que el WBS agrupa
+   varias labores físicas bajo un mismo código de MUCHAS formas
+   distintas -- rangos numéricos ("@", guion bajo), pero también listas
+   en texto plano sin ningún patrón detectable ("GALERIAS DE CARGA Y
+   DESCARGA, ESTACIONAMIENTO, TALLERES...", "C-57-NP-N6 TRAMO 2 ZANJAS
+   17 @ 31 AL SUR, FRE-PD-N6-11 Y 18, FRI-PD-N6-11" = 1 calle + 14
+   zanjas + 3 frentones). No hay forma confiable de adivinar esto con
+   una expresión regular sin dejar casos afuera -- cualquier intento
+   nuevo tendría el mismo problema que el de la ronda 2. La solución
+   robusta es dejar de intentar adivinar: "Detalle de la labor" pasa a
+   ser SIEMPRE obligatorio para toda labor elegida del catálogo (no
+   para las escritas a mano -- ahí ya se tipea el nombre completo).
+   Debe quedar escrito igual a como aparece dentro del nombre del
+   subsistema (el frentón, zanja, calle o elemento puntual que
+   realmente se caminó), para poder desglosar cada labor física por
+   separado en los reportes y en el Plano. */
 function buscarLabor(term){
   const t = normLabor(term).trim();
   if(t.length < 2) return [];
@@ -1017,19 +1021,15 @@ function seleccionarLabor(i){
   const info = document.getElementById('a_laborInfo');
   info.innerHTML = '<b>Wbs:</b> '+l.wbs+'<br><b>Área:</b> '+l.area+'<br><b>SubÁrea:</b> '+l.subarea+'<br><b>Sistema:</b> '+l.sistema + (l.plano ? '<br><b>Plano:</b> '+l.plano : '');
   info.classList.add('act');
-  /* Ojo (31-08-2026, ampliado 02-09-2026): varias labores del
-     cat&aacute;logo WBS agrupan m&aacute;s de un frent&oacute;n
-     f&iacute;sico bajo un mismo c&oacute;digo (ej. "FRONTONES
-     FR-INS-N52-04@09" son 6 frentones, del 04 al 09). No hay forma
-     confiable de "adivinar" autom&aacute;ticamente cu&aacute;l de esos
-     frentones se camin&oacute; -- por eso el campo de abajo
-     (a_detalleLabor) siempre existe y queda a mano del inspector. Ver
-     esLaborAmbigua() m&aacute;s arriba para qu&eacute; formas de lista
-     detecta. Desde el 02-09-2026 guardarCaminata() adem&aacute;s EXIGE
-     este campo cuando la labor es ambigua -- antes era solo un aviso,
-     y quedaba en blanco muy seguido. */
+  /* Ojo (31-08-2026, ronda 3 -- 02-09-2026): el aviso de abajo ahora se
+     muestra SIEMPRE que se elige una labor del cat&aacute;logo, no solo
+     para las que "parecen" agrupar varias -- ver el comentario grande
+     junto a normLabor() m&aacute;s arriba sobre por qu&eacute; se
+     abandon&oacute; el intento de adivinar cu&aacute;les son ambiguas.
+     guardarCaminata() exige este campo siempre para labores del
+     cat&aacute;logo (no para las escritas a mano). */
   const avisoDet = document.getElementById('a_detalleLaborAviso');
-  if(avisoDet) avisoDet.style.display = esLaborAmbigua(l.nombre) ? 'block' : 'none';
+  if(avisoDet) avisoDet.style.display = 'block';
 }
 
 function activarLaborManual(){
@@ -1435,17 +1435,18 @@ async function guardarCaminata(){
      mano — no se cruza con frenteElegido.manual. */
   const detalleLabor = (document.getElementById('a_detalleLabor').value || '').trim().toUpperCase();
 
-  /* Fix (02-09-2026, pedido de Rodrigo): hasta acá "Detalle de la
-     labor" era opcional siempre -- solo se avisaba con un texto que
-     era fácil pasar por alto, así que en la práctica casi nunca se
-     llenaba para las labores que agrupan varios frentones, y esas
-     caminatas quedaban indistinguibles entre sí (mismo bug que el
-     Plano DT, pero en el origen: si acá no se guarda el detalle, no
-     hay nada que el Plano pueda separar más adelante). Ahora, si la
-     labor elegida del catálogo es ambigua (ver esLaborAmbigua más
-     arriba), el campo pasa a ser obligatorio antes de guardar. */
-  if(!frenteElegido.manual && esLaborAmbigua(frenteElegido.labor.nombre) && !detalleLabor){
-    alert('Esta labor agrupa varios frentones bajo el mismo código ("' + frenteElegido.labor.nombre + '"). Falta indicar en "Detalle de la labor / N° de frentón específico" cuál exactamente se caminó, para que quede bien identificado en los reportes y en el Plano.');
+  /* Fix (02-09-2026, ronda 3, pedido de Rodrigo -- reemplaza la ronda
+     2): "Detalle de la labor" pasa a ser SIEMPRE obligatorio para toda
+     labor elegida del catálogo, ya no solo para las que un regex
+     detecta como "ambiguas" (ver el comentario grande junto a
+     normLabor() sobre por qué -- el WBS agrupa labores de demasiadas
+     formas distintas como para adivinarlo de forma confiable). Sin
+     esto no hay nada que el Plano DT pueda separar más adelante entre
+     las distintas labores físicas de un mismo código. Las labores
+     escritas a mano quedan afuera de esta exigencia porque ahí el
+     inspector ya tipea el nombre completo y específico. */
+  if(!frenteElegido.manual && !detalleLabor){
+    alert('Falta "Detalle de la labor / N° de frentón específico". Escribe ahí exactamente qué se caminó dentro de este subsistema (el frentón, zanja, calle u otro elemento puntual, tal como aparece en el nombre de la labor de arriba), para que quede bien identificado en los reportes y en el Plano.');
     return;
   }
 
@@ -1873,7 +1874,7 @@ window.recuperarBorrador = function(){
       info.classList.add('act');
     }
     const avisoDet = document.getElementById('a_detalleLaborAviso');
-    if(avisoDet) avisoDet.style.display = esLaborAmbigua(b.labor.nombre) ? 'block' : 'none';
+    if(avisoDet) avisoDet.style.display = 'block';
   } else if(b.laborManual && typeof activarLaborManual === 'function'){
     try { activarLaborManual(); } catch(e){}
     set('a_laborManualInput', b.laborManual);
