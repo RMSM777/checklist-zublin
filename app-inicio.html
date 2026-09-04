@@ -1501,6 +1501,15 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+/* Si esto es un enlace de recuperacion de contraseña de Supabase
+   (#access_token=...&type=recovery) hay que mandarlo a login.html
+   CONSERVANDO el fragmento — el redirect de mas abajo (por no haber
+   sesion) apunta a una URL relativa sin fragmento y lo pierde, dejando
+   el enlace de recuperacion inutil. Va antes que cualquier otra cosa. */
+if(/(^|[#&])type=recovery(&|$)/.test(location.hash) || /(^|[#&])error=/.test(location.hash)){
+  location.replace('login.html' + location.hash);
+}
+
 /* ======================================================================
    Arranque: el login vive en una pagina aparte (login.html), compartida
    por toda la suite. Si no hay sesion guardada (o el servidor la rechazo
