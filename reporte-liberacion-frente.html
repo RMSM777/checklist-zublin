@@ -16,7 +16,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <script src="jspdf.umd.min.js"></script>
 <script src="jspdf.plugin.autotable.min.js"></script>
 <script src="qrious.min.js"></script>
-<script src="marca.js?v=2"></script>
+<script src="marca.js?v=3"></script>
 <script src="jszip.min.js"></script>
 <script src="xlsx.full.min.js"></script>
 <script src="supabase-integration.js?v=4"></script>
@@ -551,7 +551,7 @@ async function generarVistaPrevia(){
   const izq = 14, der = 196;
   let y = 10;
 
-  const corr = MARCA.correlativo(v('nombreInsp'), 'LIBFRENTE');
+  const corr = await MARCA.correlativo(v('nombreInsp'), 'LIBFRENTE');
   const claveQR = MARCA.claveVerificacion(corr);
 
   let qrUrl = null;

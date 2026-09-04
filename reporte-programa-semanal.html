@@ -12,7 +12,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <script src="qrious.min.js"></script>
 <script src="chart.umd.min.js"></script>
 <script src="xlsx.full.min.js"></script>
-<script src="marca.js?v=2"></script>
+<script src="marca.js?v=3"></script>
 <script src="jszip.min.js"></script>
 <script src="supabase-integration.js?v=4"></script>
 <script>
@@ -836,7 +836,7 @@ async function generarPDF(){
 
   // Correlativo: se calcula UNA sola vez, antes del QR (el QR necesita el
   // codigo para armar el link de verificacion).
-  const corr = MARCA.correlativo(nombre, 'PROGSEM');
+  const corr = await MARCA.correlativo(nombre, 'PROGSEM');
   const claveQR = MARCA.claveVerificacion(corr);
 
   let qrUrl = null;

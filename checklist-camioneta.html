@@ -15,7 +15,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <title>Check List Inicio Turno Camioneta - Zublin</title>
 <script src="jspdf.umd.min.js"></script>
 <script src="qrious.min.js"></script>
-<script src="marca.js?v=2"></script>
+<script src="marca.js?v=3"></script>
 <script src="jszip.min.js"></script>
 <script src="xlsx.full.min.js"></script>
 <script src="supabase-integration.js?v=4"></script>
@@ -368,7 +368,7 @@ async function generarPDF(previo){
   // antes del QR porque el QR de verificacion necesita el codigo.
   let corr = '';
   let claveQR = '';
-  if(!previo){ corr = MARCA.correlativo(nombre, 'CHECKLIST'); claveQR = MARCA.claveVerificacion(corr); }
+  if(!previo){ corr = await MARCA.correlativo(nombre, 'CHECKLIST'); claveQR = MARCA.claveVerificacion(corr); }
 
   // QR: en cierre real apunta a la cartilla de verificacion; en borrador
   // (sin correlativo estable todavia) usa el resumen de texto de siempre.

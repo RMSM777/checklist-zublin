@@ -12,7 +12,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <script src="qrious.min.js"></script>
 <script src="chart.umd.min.js"></script>
 <script src="xlsx.full.min.js"></script>
-<script src="marca.js?v=2"></script>
+<script src="marca.js?v=3"></script>
 <script src="jszip.min.js"></script>
 <script src="supabase-integration.js?v=4"></script>
 <script>
@@ -807,7 +807,7 @@ async function generarPDF(){
 
   // Correlativo: se calcula UNA sola vez, antes del QR (el QR necesita el
   // codigo para armar el link de verificacion).
-  const corr = MARCA.correlativo(nombre, 'DT');
+  const corr = await MARCA.correlativo(nombre, 'DT');
   const claveQR = MARCA.claveVerificacion(corr);
 
   // Encabezado con logo y QR de verificacion (apunta a verificar.html)
@@ -1021,12 +1021,12 @@ initToggle('vistaListadoT', v=>vistaListado=v);
 
 let docListadoActual = null, urlPrevListado = null;
 
-function generarVistaPreviaListado(){
+async function generarVistaPreviaListado(){
   if(!R){ alert('Primero cargue el archivo Excel de SIC3PRO (secci\u00f3n 2).'); return; }
   const cargadoPor = v('cargadoPor');
   if(!cargadoPor){ alert('Ingrese el nombre de qui\u00e9n carga el archivo (secci\u00f3n 6).'); return; }
 
-  docListadoActual = construirPDFListado(vistaListado, cargadoPor);
+  docListadoActual = await construirPDFListado(vistaListado, cargadoPor);
   if(urlPrevListado) URL.revokeObjectURL(urlPrevListado);
   urlPrevListado = URL.createObjectURL(docListadoActual.output('blob'));
   document.getElementById('framePrevListado').src = urlPrevListado;
@@ -1099,7 +1099,7 @@ function tablaListadoPDF(doc, y, regs){
   return doc.lastAutoTable.finalY + 6;
 }
 
-function construirPDFListado(modo, cargadoPor){
+async function construirPDFListado(modo, cargadoPor){
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({unit:'mm', format:'a4', compress:true});
   const izq=15, ancho=180;
@@ -1111,7 +1111,7 @@ function construirPDFListado(modo, cargadoPor){
 
   // Correlativo: se calcula UNA sola vez, antes del QR (el QR necesita el
   // codigo para armar el link de verificacion).
-  const corr2 = MARCA.correlativo(cargadoPor, 'DT-LISTADO');
+  const corr2 = await MARCA.correlativo(cargadoPor, 'DT-LISTADO');
   const claveQR2 = MARCA.claveVerificacion(corr2);
   doc._qcdCorrelativo = corr2;
   doc._qcdClaveVerificacion = claveQR2;

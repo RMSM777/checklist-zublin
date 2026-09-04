@@ -15,7 +15,7 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
 <title>Informe de Procesos Constructivos - Zublin GCC-003</title>
 <script src="jspdf.umd.min.js"></script>
 <script src="qrious.min.js"></script>
-<script src="marca.js?v=2"></script>
+<script src="marca.js?v=3"></script>
 <script src="jszip.min.js"></script>
 <script src="xlsx.full.min.js"></script>
 <script src="supabase-integration.js?v=4"></script>
@@ -425,7 +425,7 @@ async function generarVistaPrevia(){
   const sinTipo = regsValidos.filter(r=>!r.tipo);
   if(sinTipo.length){ alert('Hay registros sin clasificar (DESVIACI\u00d3N / POSITIVA / ACCI\u00d3N CORRECTIVA).'); return; }
 
-  docActual = construirPDF(p, regsValidos);
+  docActual = await construirPDF(p, regsValidos);
   if(urlPrev) URL.revokeObjectURL(urlPrev);
   urlPrev = URL.createObjectURL(docActual.output('blob'));
   document.getElementById('framePrev').src = urlPrev;
@@ -476,7 +476,7 @@ async function descargarPDF(){
   }
 }
 
-function construirPDF(p, regsValidos){
+async function construirPDF(p, regsValidos){
   const fecha = v('fecha'), hora = v('hora');
   const { jsPDF } = window.jspdf;
     const doc = new jsPDF({unit:'mm', format:'a4', compress:true});
@@ -639,7 +639,7 @@ function construirPDF(p, regsValidos){
   // Cierre del reporte - estandar QC Digital (marca.js)
   // Correlativo y QR se calculan aqui (antes se hacian mas abajo).
   const ahora = new Date();
-  const corr = MARCA.correlativo(p[0].nombre, 'PROCESOS');
+  const corr = await MARCA.correlativo(p[0].nombre, 'PROCESOS');
   const claveQR = MARCA.claveVerificacion(corr);
   let qrImg = null;
   try{

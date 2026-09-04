@@ -332,14 +332,61 @@
       if(el) el.textContent = this.VERSION;
     },
 
-    /* Correlativo interno por usuario + tipo de documento.
-       Cada combinacion (iniciales del generador + tipo de documento) lleva
-       su propio contador, guardado en localStorage del dispositivo.
-       IMPORTANTE: cada pagina que llama a esto SUMA el contador. Los
-       reportes deben llamarlo solo al cerrar turno / descargar el PDF
-       final (nunca en "PDF previo"), para no gastar numeros en pruebas.
-       Devuelve algo como "RM-2026-0007". */
-    correlativo(nombreGenerador, tipoDoc){
+    /* Correlativo interno por inspector + tipo de documento.
+       HISTORIA (hasta 03-sep-2026): el numero se llevaba con un contador en
+       localStorage del dispositivo, y las iniciales se calculaban de lo que
+       el usuario tipeaba a mano en el formulario. Eso fallaba de dos formas
+       reales: (1) dos dispositivos/navegadores del mismo inspector llevaban
+       contadores independientes -- podian repetir numero; (2) si el nombre
+       se tipeaba distinto una sola vez (con/sin segundo apellido, un typo)
+       cambiaba la clave del contador y este volvia a partir de 1 -- exacto
+       lo que le paso a Dario Montenegro con el informe de procesos
+       constructivos el 04-sep (salio DMM-2026-0001 en vez de 0002, porque
+       "Darío Montenwgro M" generó una clave nueva distinta de "Darío
+       Montenegro"). Ver TRASPASO del 04-sep para el diagnostico completo.
+
+       FIX (04-sep-2026): ahora el numero lo asigna una funcion en Supabase
+       (siguiente_correlativo), que toma las iniciales FIJAS del inspector
+       desde su cuenta (usuarios_contrato.iniciales -- no el texto tipeado)
+       y lleva un contador atomico por inspector + tipo de documento + año
+       en la tabla contadores_correlativos. No se puede repetir ni
+       reiniciar, sin importar el dispositivo o como se haya tipeado el
+       nombre ese dia. Requiere sesion activa (la misma que ya exige
+       guardarReportePDFConCola) y señal en ese momento.
+
+       IMPORTANTE: sigue siendo async solo hacia quien la llama porque pide
+       datos a la red -- cada pagina que la llama SUMA el contador, asi que
+       hay que llamarla solo al cerrar turno / descargar el PDF final
+       (nunca en "PDF previo"), para no gastar numeros en pruebas.
+
+       Respaldo: si no hay sesion, no hay señal, o el servidor falla por
+       cualquier motivo, cae de vuelta al contador local de siempre (mismo
+       comportamiento que existia antes de este fix) para no bloquear la
+       generacion del PDF -- queda avisado en consola para poder detectarlo.
+       Devuelve algo como "RMSM-2026-0007". */
+    async correlativo(nombreGenerador, tipoDoc){
+      try{
+        if(typeof SB !== 'undefined' && typeof SB_URL !== 'undefined'){
+          if(!SB.ses) SB.cargar();
+          if(SB.ses){
+            const r = await SB.pedir(SB_URL + '/rest/v1/rpc/siguiente_correlativo', {
+              method: 'POST',
+              headers: SB.cabeceras({ 'Content-Type': 'application/json' }),
+              body: JSON.stringify({ p_tipo_doc: tipoDoc || 'DOC' })
+            });
+            if(r.ok){
+              const texto = (await r.text()).replace(/^"|"$/g, '').trim();
+              if(texto) return texto;
+              console.warn('MARCA.correlativo: siguiente_correlativo() respondio vacio, se usa el contador local de respaldo.');
+            } else {
+              console.warn('MARCA.correlativo: siguiente_correlativo() respondio ' + r.status + ', se usa el contador local de respaldo.');
+            }
+          }
+        }
+      }catch(e){
+        console.warn('MARCA.correlativo: no se pudo pedir el correlativo al servidor (sin señal / sesion), se usa el contador local de respaldo.', e);
+      }
+      // Respaldo local (comportamiento anterior a este fix).
       var iniciales = (nombreGenerador || '').trim().split(/\s+/)
         .map(function(p){ return p.charAt(0).toUpperCase(); })
         .join('').slice(0,3) || 'NN';
