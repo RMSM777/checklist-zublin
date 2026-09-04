@@ -88,6 +88,10 @@
   .nota b{ color:#c3cbdc; }
 
   .cargando{ text-align:center; color:var(--tenue); font-size:13px; }
+
+  .msg.ok{ display:block; background:rgba(46,125,50,.15); color:#8fe39a; border:1px solid rgba(46,125,50,.35); }
+  .oculto{ display:none !important; }
+  .ayuda-clave{ margin:0 0 20px; font-size:12px; color:var(--tenue); line-height:1.5; }
 </style>
 </head>
 <body>
@@ -108,22 +112,44 @@
 
   <div class="panel">
     <div class="caja">
-      <h1>Ingresar</h1>
-      <p class="sub">Ingresa con el correo registrado en el sistema.</p>
 
-      <form id="frmLogin" autocomplete="on">
-        <label for="fCorreo">Correo</label>
-        <input id="fCorreo" name="correo" type="email" autocomplete="username" placeholder="nombre@correo.cl" required>
+      <div id="vistaLogin">
+        <h1>Ingresar</h1>
+        <p class="sub">Ingresa con el correo registrado en el sistema.</p>
 
-        <label for="fClave">Contraseña</label>
-        <input id="fClave" name="clave" type="password" autocomplete="current-password" placeholder="••••••••" required>
+        <form id="frmLogin" autocomplete="on">
+          <label for="fCorreo">Correo</label>
+          <input id="fCorreo" name="correo" type="email" autocomplete="username" placeholder="nombre@correo.cl" required>
 
-        <button type="submit" id="btnEntrar">Ingresar</button>
-        <div class="msg" id="msg"></div>
-      </form>
+          <label for="fClave">Contraseña</label>
+          <input id="fClave" name="clave" type="password" autocomplete="current-password" placeholder="••••••••" required>
 
-      <p class="nota"><b>Las cuentas las habilita el administrador del contrato.</b><br>
-      ¿No puedes entrar? Contacta a tu inspector a cargo para que revise tu correo y clave.</p>
+          <button type="submit" id="btnEntrar">Ingresar</button>
+          <div class="msg" id="msg"></div>
+        </form>
+
+        <p class="nota"><b>Las cuentas las habilita el administrador del contrato.</b><br>
+        ¿No puedes entrar? Contacta a tu inspector a cargo para que revise tu correo y clave.</p>
+      </div>
+
+      <div id="vistaRecuperar" class="oculto">
+        <h1>Definir nueva contraseña</h1>
+        <p class="sub">Este enlace de recuperación te identificó correctamente. Elige una contraseña nueva para tu cuenta.</p>
+
+        <form id="frmRecuperar" autocomplete="off">
+          <label for="fClaveNueva">Contraseña nueva</label>
+          <input id="fClaveNueva" name="claveNueva" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres" required minlength="6">
+
+          <label for="fClaveConfirmar">Confirmar contraseña</label>
+          <input id="fClaveConfirmar" name="claveConfirmar" type="password" autocomplete="new-password" placeholder="Repite la contraseña" required minlength="6">
+
+          <button type="submit" id="btnGuardarClave">Guardar y entrar</button>
+          <div class="msg" id="msgRecuperar"></div>
+        </form>
+
+        <p class="ayuda-clave">Si el enlace ya venció (dura 60 minutos) o ya fue usado, pídele a tu inspector a cargo que te envíe uno nuevo.</p>
+      </div>
+
     </div>
   </div>
 </div>
@@ -179,6 +205,100 @@ async function iniciarSesion(email, password){
   almacen.set(CLAVE_SESION, JSON.stringify(ses));
   return ses;
 }
+
+/* ======================================================================
+   Recuperacion de contraseña. Cuando Supabase manda el correo de
+   "password recovery" (boton del dashboard, o mas adelante un flujo de
+   "olvide mi contraseña"), el enlace vuelve aca con un fragmento tipo
+   #access_token=...&refresh_token=...&type=recovery — nunca antes se
+   leia ese fragmento en ninguna pagina de la suite, asi que el enlace
+   no hacia nada util y la persona terminaba probando su contraseña
+   vieja de nuevo. Este bloque:
+     1) detecta el fragmento de recuperacion (o de error, ej. enlace
+        vencido) apenas carga la pagina,
+     2) muestra un formulario para definir la contraseña nueva,
+     3) la guarda vía PUT /auth/v1/user usando el access_token del
+        propio enlace (nadie mas ve ni escribe esa contraseña en
+        ningun otro lugar),
+     4) y con el access_token/refresh_token que ya trae el enlace,
+        entra directo a la app sin pedir login de nuevo.
+   ====================================================================== */
+function decodificarJWT(token){
+  try {
+    const payload = token.split('.')[1];
+    const json = atob(payload.replace(/-/g,'+').replace(/_/g,'/'));
+    return JSON.parse(decodeURIComponent(escape(json)));
+  } catch(e){ return null; }
+}
+
+function leerFragmentoRecuperacion(){
+  if(!location.hash || location.hash.length < 2) return null;
+  const params = new URLSearchParams(location.hash.slice(1));
+  if(params.get('type') !== 'recovery' && !params.get('error')) return null;
+  return params;
+}
+
+async function guardarClaveNueva(accessToken, claveNueva){
+  const r = await pedirRed(SB_URL + '/auth/v1/user', {
+    method:'PUT',
+    headers:{ 'apikey': SB_KEY, 'Authorization':'Bearer ' + accessToken, 'Content-Type':'application/json' },
+    body: JSON.stringify({ password: claveNueva })
+  });
+  const j = await leerJSON(r);
+  if(!r.ok) throw new Error((j && (j.error_description || j.msg || j.message)) || 'No se pudo guardar la contraseña.');
+  return j;
+}
+
+(function(){
+  const frag = leerFragmentoRecuperacion();
+  if(!frag) return;
+
+  document.getElementById('vistaLogin').classList.add('oculto');
+  document.getElementById('vistaRecuperar').classList.remove('oculto');
+  /* saca los datos sensibles de la barra de direcciones / historial apenas los leemos */
+  history.replaceState(null, '', location.pathname + location.search);
+
+  const msg = document.getElementById('msgRecuperar');
+  const accessToken = frag.get('access_token');
+  const refreshToken = frag.get('refresh_token');
+  const expiresIn = frag.get('expires_in');
+
+  if(frag.get('error') || !accessToken){
+    msg.textContent = frag.get('error_description')
+      ? decodeURIComponent(frag.get('error_description').replace(/\+/g,' '))
+      : 'Este enlace de recuperación no es válido.';
+    msg.className = 'msg err';
+    document.getElementById('frmRecuperar').querySelectorAll('input,button').forEach(el => el.disabled = true);
+    return;
+  }
+
+  document.getElementById('frmRecuperar').addEventListener('submit', async function(ev){
+    ev.preventDefault();
+    const claveNueva = document.getElementById('fClaveNueva').value;
+    const claveConfirmar = document.getElementById('fClaveConfirmar').value;
+    const btn = document.getElementById('btnGuardarClave');
+    msg.className = 'msg';
+    if(claveNueva.length < 6){ msg.textContent = 'La contraseña debe tener al menos 6 caracteres.'; msg.className = 'msg err'; return; }
+    if(claveNueva !== claveConfirmar){ msg.textContent = 'Las contraseñas no coinciden.'; msg.className = 'msg err'; return; }
+    btn.disabled = true; btn.textContent = 'Guardando…';
+    try {
+      await guardarClaveNueva(accessToken, claveNueva);
+      const datos = decodificarJWT(accessToken) || {};
+      const ses = { access:accessToken, refresh:refreshToken, email:datos.email||null, uid:datos.sub||null,
+                    vence: Date.now() + ((Number(expiresIn)||3600)*1000) };
+      almacen.set(CLAVE_SESION, JSON.stringify(ses));
+      msg.textContent = 'Contraseña guardada. Entrando…';
+      msg.className = 'msg ok';
+      setTimeout(() => location.replace(destinoVolver()), 700);
+    } catch(e){
+      msg.textContent = e.message === '__SIN_SENAL__'
+        ? 'Sin conexión: necesitas señal para guardar la contraseña nueva.'
+        : (e.message || 'No se pudo guardar la contraseña.');
+      msg.className = 'msg err';
+      btn.disabled = false; btn.textContent = 'Guardar y entrar';
+    }
+  });
+})();
 
 document.getElementById('frmLogin').addEventListener('submit', async function(ev){
   ev.preventDefault();
