@@ -170,7 +170,11 @@ const SB = {
       try { await this.refrescar(); } catch(e){}
     }
     const r = await pedirRed(url, opts);
-    if(r.status === 401 && !yaReintento){
+    // Supabase Storage devuelve 403 (no 401) cuando el JWT ya expiró
+    // (code:"AccessDenied", message:"'exp' claim timestamp check failed").
+    // Sin este caso, la subida de PDFs fallaba de forma visible en vez de
+    // refrescar el token y reintentar como ya hace para 401.
+    if((r.status === 401 || r.status === 403) && !yaReintento){
       await this.refrescar();
       const o2 = Object.assign({}, opts);
       o2.headers = Object.assign({}, opts.headers, { 'Authorization': 'Bearer ' + this.ses.access });
