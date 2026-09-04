@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>QC Digital - Menu</title>
 <script>
+/* Enlace de recuperacion de contraseña de Supabase que cayo aca en vez
+   de en login.html (segun como este configurado el Site URL del
+   proyecto) — se manda para alla conservando el fragmento, si no el
+   enlace queda inutil y la persona nunca llega a definir su clave nueva. */
+if(/(^|[#&])type=recovery(&|$)/.test(location.hash) || /(^|[#&])error=/.test(location.hash)){
+  location.replace('login.html' + location.hash);
+}
 try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classList.add('dark'); }catch(e){}
 </script>
 <link rel="manifest" href="manifest.json">
