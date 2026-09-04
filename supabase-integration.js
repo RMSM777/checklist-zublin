@@ -35,10 +35,10 @@
        JSZip (ya vendorizado, usado por el mismo truco en app-inicio.html
        para el Excel de Caminatas/DT) y que marca.js se cargue ANTES que
        este archivo:
-         <script src="marca.js?v=2"></script>
+         <script src="marca.js?v=3"></script>
          <script src="jszip.min.js"></script>
          <script src="xlsx.full.min.js"></script>
-         <script src="supabase-integration.js?v=3"></script>
+         <script src="supabase-integration.js?v=5"></script>
        Si falta JSZip o marca.js/MARCA aún no cargó el logo, el log.xlsx
        se genera igual, solo que sin el logo — nunca bloquea nada.
 
@@ -169,7 +169,18 @@ const SB = {
     if(this.ses && this.ses.vence && Date.now() > this.ses.vence - 60000 && !yaReintento){
       try { await this.refrescar(); } catch(e){}
     }
-    const r = await pedirRed(url, opts);
+    // El refresco de arriba (si corrió) actualiza this.ses.access, pero
+    // 'opts' lo arma SIEMPRE el llamador ANTES de invocar pedir() (vía
+    // cabeceras()), así que traía el token viejo pegado en el objeto —
+    // el refresco proactivo quedaba en los hechos sin efecto sobre ESTA
+    // solicitud, y todo dependía de que el reintento reactivo de abajo
+    // alcanzara a salvarla. Se vuelve a armar el header acá con el token
+    // que haya quedado vigente justo antes de salir a la red.
+    const o1 = Object.assign({}, opts);
+    if(this.ses && o1.headers && ('Authorization' in o1.headers)){
+      o1.headers = Object.assign({}, o1.headers, { 'Authorization': 'Bearer ' + this.ses.access });
+    }
+    const r = await pedirRed(url, o1);
     // Supabase Storage devuelve 403 (no 401) cuando el JWT ya expiró
     // (code:"AccessDenied", message:"'exp' claim timestamp check failed").
     // Sin este caso, la subida de PDFs fallaba de forma visible en vez de
@@ -190,7 +201,11 @@ const SB = {
       body: JSON.stringify(filas)
     });
     const j = await leerJSON(r);
-    if(!r.ok) throw new Error((j && (j.message || j.hint)) || ('Error al guardar en ' + tabla));
+    if(!r.ok){
+      const err = new Error((j && (j.message || j.hint)) || ('Error al guardar en ' + tabla));
+      if(r.status === 401 || r.status === 403) err.sesionVencida = true;
+      throw err;
+    }
     return j;
   },
 
@@ -201,7 +216,11 @@ const SB = {
       body: JSON.stringify(cambios)
     });
     const j = await leerJSON(r);
-    if(!r.ok) throw new Error((j && j.message) || ('Error al actualizar ' + tabla));
+    if(!r.ok){
+      const err = new Error((j && j.message) || ('Error al actualizar ' + tabla));
+      if(r.status === 401 || r.status === 403) err.sesionVencida = true;
+      throw err;
+    }
     return j;
   },
 
@@ -225,7 +244,14 @@ const SB = {
     });
     if(!r.ok){
       let t = ''; try { t = JSON.stringify(await r.json()); } catch(e){ t = r.status; }
-      throw new Error('No se pudo subir el archivo: ' + t);
+      const err = new Error('No se pudo subir el archivo: ' + t);
+      // Si después del reintento de pedir() la subida SIGUE en 401/403,
+      // lo más probable es que sea el mismo caso de JWT vencido (Storage
+      // devuelve 403/AccessDenied/"'exp' claim..."), no un problema de
+      // permisos real — se marca para que guardarReportePDFConCola() la
+      // encole en vez de mostrarle este JSON crudo al inspector.
+      if(r.status === 401 || r.status === 403) err.sesionVencida = true;
+      throw err;
     }
     return ruta;
   }
@@ -243,7 +269,17 @@ async function requerirSesion(nombreArchivoActual){
     return false;
   }
   if(navigator.onLine){
-    try { await SB.refrescar(); }
+    try {
+      await SB.refrescar();
+      // Apenas se confirma sesión + señal al abrir el reporte, es buen
+      // momento para vaciar la cola de reportes que hayan quedado
+      // pendientes de una sesión anterior (ej. cerraron la pestaña bajo
+      // tierra antes de que volviera la señal) — antes esto solo pasaba
+      // en el evento 'online' (que no dispara si el dispositivo ya
+      // estaba conectado al abrir la página) o tras el próximo guardado
+      // exitoso.
+      colaReportesIntentarVaciar().catch(function(){});
+    }
     catch(e){
       if(e && e.message === 'Sesion expirada'){
         SB.limpiar();
@@ -465,17 +501,20 @@ async function colaReportesActualizar(id, cambios){
 
 /* guardarReportePDFConCola: lo que deben llamar los 10 reportes en vez de
    guardarReportePDF() directo. Misma firma de parámetros. Si falla por
-   señal, encola y NO lanza error (para no interrumpir el flujo del
-   reporte — el PDF ya se descargó localmente igual); si falla por otra
-   razón (ej. sesión inválida, RLS), sí lanza el error tal cual, porque
-   reintentarlo solo no lo va a arreglar. */
+   señal (err.red) o porque el token quedó vencido incluso después del
+   reintento automático de SB.pedir() (err.sesionVencida — el caso
+   '"exp" claim timestamp check failed' de Storage, 04-sep), encola y NO
+   lanza error: el PDF ya se descargó localmente igual, y se reintenta
+   solo apenas vuelva la señal o se refresque la sesión (ver
+   requerirSesion). Si falla por otra razón (ej. RLS real), sí lanza el
+   error tal cual, porque reintentarlo solo no lo va a arreglar. */
 async function guardarReportePDFConCola(datos){
   try{
     const fila = await guardarReportePDF(datos);
     colaReportesIntentarVaciar().catch(function(){});
     return { ok:true, encolado:false, fila:fila };
   }catch(err){
-    if(err && err.red){
+    if(err && (err.red || err.sesionVencida)){
       try{ await colaReportesAgregar(datos); }
       catch(e2){ console.warn('No se pudo encolar el reporte para reintento offline:', e2); throw err; }
       return { ok:false, encolado:true, error:err };
