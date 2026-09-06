@@ -699,6 +699,18 @@ const COLA = {
     return { ok:true, fotosPerdidas:0 };
   },
   quitarPrimero(){ const a = this.leer(); a.shift(); this.escribir(a); },
+  /* Fix (06-09-2026, duplicacion de caminatas por reintento en sub-senal):
+     reescribe el primer elemento de la cola con el progreso parcial que
+     ya se logro subir (op.camId, op.dts, fotosSubidas por hallazgo). Se
+     llama despues de CADA paso que se confirma en la base, para que si
+     el intento se corta mas adelante (tipicamente al subir fotos, que es
+     lo que mas pesa con mala senal), el proximo reintento retome desde
+     ahi en vez de volver a crear la caminata y los hallazgos desde cero.
+     Antes de este fix, un DT que fallaba en el paso de fotos volvia a
+     ejecutar TODO subirCaminata() de nuevo en cada reintento -- eso fue
+     lo que generó 27 copias de una misma caminata (162 DT duplicados)
+     mientras un inspector luchaba con la señal en interior mina. */
+  actualizarPrimero(op){ const a = this.leer(); if(a.length){ a[0] = op; this.escribir(a); } },
   cuantos(){ return this.leer().length; }
 };
 
@@ -733,68 +745,112 @@ async function sincronizarAhora(){
    dos celulares en terreno producirian el mismo numero.
    ====================================================================== */
 async function subirCaminata(op){
-  const cam = await SB.insertar('avances_caminata', [op.caminata]);
-  /* PostgREST devuelve un arreglo vacio cuando RLS bloquea el insert sin
-     dar error. Sin esta comprobacion, el inspector veria un mensaje
-     incomprensible de JavaScript en vez de saber que es un permiso. */
-  if(!cam || !cam.length || !cam[0].id){
-    throw new Error('La base no registró la caminata. Puede que tu cuenta no esté asignada al contrato: avisa para revisarlo.');
+  /* Fix (06-09-2026): esta funcion ahora es REANUDABLE, no solo
+     reintentable. Antes, si se caia en el paso de fotos (el que mas
+     sufre con mala senal en interior mina), el catch de sincronizarAhora()
+     dejaba el MISMO op entero en la cola y el proximo reintento volvia a
+     ejecutar la funcion completa desde el principio: nueva caminata en
+     avances_caminata, nuevos hallazgos en detalles_terminacion, todo de
+     nuevo -- eso fue lo que produjo 27 copias de una misma caminata
+     (162 DT duplicados, numeros de Punch reales quemados) mientras un
+     inspector reintentaba con señal intermitente. Ahora cada paso que la
+     base confirma se guarda en el propio `op` (camId, dts, fotosSubidas
+     por hallazgo) y se persiste de inmediato en la cola con
+     COLA.actualizarPrimero(op) -- si el intento se corta despues, el
+     siguiente reintento salta los pasos ya hechos y sigue justo donde
+     quedo, en vez de repetir la caminata entera. */
+  let camId = op.camId;
+  if(!camId){
+    const cam = await SB.insertar('avances_caminata', [op.caminata]);
+    /* PostgREST devuelve un arreglo vacio cuando RLS bloquea el insert sin
+       dar error. Sin esta comprobacion, el inspector veria un mensaje
+       incomprensible de JavaScript en vez de saber que es un permiso. */
+    if(!cam || !cam.length || !cam[0].id){
+      throw new Error('La base no registró la caminata. Puede que tu cuenta no esté asignada al contrato: avisa para revisarlo.');
+    }
+    camId = cam[0].id;
+    op.camId = camId;
+    COLA.actualizarPrimero(op);
   }
-  const camId = cam[0].id;
 
   /* Caminata sin hallazgos ("solo caminado, sin DT", 31-08-2026): no
      hay nada que insertar en detalles_terminacion. Ojo con mandarle a
      PostgREST un POST con arreglo vacío — mejor cortar acá directo. */
   if(!op.hallazgos.length) return [];
 
-  const filas = op.hallazgos.map(h => ({
-    caminata_id: camId,
-    descripcion: h.desc,
-    prioridad: h.prioridad,
-    fecha_emision: op.caminata.fecha,
-    fecha_compromiso_cierre: h.fcompromiso || null,
-    turno: op.caminata.turno || null,
-    ubicacion: op.caminata.frente,
-    codigo_labor: op.caminata.codigo_labor || null,
-    wbs: op.caminata.wbs || null,
-    area: op.caminata.area || null,
-    subarea: op.caminata.subarea || null,
-    sistema: op.caminata.sistema || null,
-    subsistema: op.caminata.subsistema || null,
-    plano: op.caminata.plano || null,
-    detalle_labor: op.caminata.detalle_labor || null,
-    originador: op.caminata.inspectores || op.caminata.iniciales_inspector || null,
-    numero_informe: op.caminata.numero_informe || null,
-    resp_construccion: op.caminata.resp_construccion || null,
-    modulo_falla: h.moduloFalla || null,
-    clasificacion_falla: h.clasificacionFalla || null,
-    parada: h.parada || null,
-    numero_perno: h.numeroPerno || null,
-    pk_aprox: (h.pkAprox !== null && h.pkAprox !== undefined && h.pkAprox !== '') ? h.pkAprox : null
-  }));
-  const dts = await SB.insertar('detalles_terminacion', filas);
-  if(!dts || dts.length !== filas.length){
-    throw new Error('La base registró la caminata pero no todos los hallazgos. Revisa antes de volver a guardar para no duplicar.');
+  let dts = op.dts;
+  if(!dts){
+    const filas = op.hallazgos.map(h => ({
+      caminata_id: camId,
+      descripcion: h.desc,
+      prioridad: h.prioridad,
+      fecha_emision: op.caminata.fecha,
+      fecha_compromiso_cierre: h.fcompromiso || null,
+      turno: op.caminata.turno || null,
+      ubicacion: op.caminata.frente,
+      codigo_labor: op.caminata.codigo_labor || null,
+      wbs: op.caminata.wbs || null,
+      area: op.caminata.area || null,
+      subarea: op.caminata.subarea || null,
+      sistema: op.caminata.sistema || null,
+      subsistema: op.caminata.subsistema || null,
+      plano: op.caminata.plano || null,
+      detalle_labor: op.caminata.detalle_labor || null,
+      originador: op.caminata.inspectores || op.caminata.iniciales_inspector || null,
+      numero_informe: op.caminata.numero_informe || null,
+      resp_construccion: op.caminata.resp_construccion || null,
+      modulo_falla: h.moduloFalla || null,
+      clasificacion_falla: h.clasificacionFalla || null,
+      parada: h.parada || null,
+      numero_perno: h.numeroPerno || null,
+      pk_aprox: (h.pkAprox !== null && h.pkAprox !== undefined && h.pkAprox !== '') ? h.pkAprox : null
+    }));
+    const insertados = await SB.insertar('detalles_terminacion', filas);
+    if(!insertados || insertados.length !== filas.length){
+      throw new Error('La base registró la caminata pero no todos los hallazgos. Revisa antes de volver a guardar para no duplicar.');
+    }
+    /* Solo se guarda id y numero_punch -- lo minimo para poder subir las
+       fotos despues sin tener que volver a mandar el hallazgo entero. */
+    dts = insertados.map(d => ({ id: d.id, numero_punch: d.numero_punch }));
+    op.dts = dts;
+    COLA.actualizarPrimero(op);
   }
 
   for(let i=0; i<dts.length; i++){
     const fotos = (op.hallazgos[i] && op.hallazgos[i].fotosApertura) || [];
-    for(let k=0; k<fotos.length; k++){
+    const yaSubidas = (op.hallazgos[i] && op.hallazgos[i].fotosSubidas) || 0;
+    for(let k=yaSubidas; k<fotos.length; k++){
       const ruta = nombreFoto(dts[i].numero_punch, 'APERTURA', k);
       await SB.subirFoto(ruta, dataURLaBlob(fotos[k].dataURL));
       await SB.insertar('fotos_dt', [{ dt_id: dts[i].id, etapa:'APERTURA', storage_path: ruta }]);
+      op.hallazgos[i].fotosSubidas = k + 1;
+      COLA.actualizarPrimero(op);
     }
   }
   return dts;
 }
 
 async function subirCierre(op){
-  const dts = await SB.actualizar('detalles_terminacion', 'id=eq.' + op.dtId, op.cambios);
-  const punch = (dts[0] && dts[0].numero_punch) || op.dtId;
-  for(let k=0; k<(op.fotos||[]).length; k++){
+  /* Fix (06-09-2026): mismo criterio que subirCaminata() — reanudable en
+     vez de repetir todo. El UPDATE en si es inofensivo repetirlo (deja
+     los mismos campos), pero antes el bucle de fotos SIEMPRE volvia a
+     empezar en k=0 en cada reintento, así que una foto de cierre que ya
+     se habia subido con exito volvia a subirse (y a insertarse de nuevo
+     en fotos_dt) cada vez que el intento se cortaba mas adelante. */
+  let punch = op.punch;
+  if(!punch){
+    const dts = await SB.actualizar('detalles_terminacion', 'id=eq.' + op.dtId, op.cambios);
+    punch = (dts[0] && dts[0].numero_punch) || op.dtId;
+    op.punch = punch;
+    COLA.actualizarPrimero(op);
+  }
+  const yaSubidas = op.fotosSubidas || 0;
+  for(let k=yaSubidas; k<(op.fotos||[]).length; k++){
     const ruta = nombreFoto(punch, 'CIERRE', k);
     await SB.subirFoto(ruta, dataURLaBlob(op.fotos[k].dataURL));
     await SB.insertar('fotos_dt', [{ dt_id: op.dtId, etapa:'CIERRE', storage_path: ruta }]);
+    op.fotosSubidas = k + 1;
+    COLA.actualizarPrimero(op);
   }
 }
 
