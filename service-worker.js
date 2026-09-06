@@ -1,65 +1,100 @@
--- ============================================================================
--- Limpieza de caminatas duplicadas (Bastián/Celso, 06-09-2026)
--- Diagnóstico: la caminata "FRONTONES FR-INS-N51-05_07_08_10_11" (6 hallazgos,
--- iniciales CF/BH, fecha 04-09-2026) quedó duplicada 27 veces por un bug de
--- la cola offline (ver claude/TRASPASO-06sep-duplicacion-caminatas-offline.md
--- en el Proyecto). Códigos generados: CFBH-SCI-0001 .. CFBH-SCI-0027, con
--- Punch aprox. 000262 a 000423 (162 DT en total, todas en estado ABIERTA).
---
--- Este script deja SOLO la primera (CFBH-SCI-0001) y borra las otras 26.
--- Ejecutar en Supabase → SQL Editor, paso por paso, en este orden.
--- ============================================================================
+// Service Worker - Checklist Züblin GCC-003
+// Cachea las páginas y librerías para que la app abra aunque no haya señal.
 
--- 1) Verificar el problema antes de borrar nada (debe mostrar 27 filas de a 6)
-select codigo_caminata, count(*) as dt_count
-from avances_caminata a
-join detalles_terminacion d on d.caminata_id = a.id
-where a.codigo_caminata like 'CFBH-SCI-%'
-group by codigo_caminata
-order by codigo_caminata;
+const CACHE_NAME = 'qcdigital-v36'; // sube este número cuando publiques cambios importantes
 
--- 2) Revisar si alguna de las duplicadas SÍ alcanzó a subir fotos
---    (si esta consulta devuelve filas, avisar antes de seguir: puede haber
---    fotos reales que valga la pena conservar en vez de borrar a ciegas)
-select f.*, a.codigo_caminata
-from fotos_dt f
-join detalles_terminacion d on d.id = f.dt_id
-join avances_caminata a on a.id = d.caminata_id
-where a.codigo_caminata like 'CFBH-SCI-%'
-  and a.codigo_caminata <> 'CFBH-SCI-0001';
+// OJO: si un archivo de esta lista no existe con ese nombre exacto, el
+// install del service worker falla ENTERO y ninguna pagina queda cacheada.
+// Al renombrar o borrar un archivo, hay que actualizarlo aqui tambien.
+const ARCHIVOS_PROPIOS = [
+  './',
+  './home.html',
+  './index.html',
+  './checklist-camioneta.html',
+  './reporte-diario.html',
+  './reporte-dt-index.html',
+  './informe-procesos-constructivos.html',
+  './listado-firmas-digitales.html',
+  './reporte-programa-semanal.html',
+  './caminata-avance-index.html',
+  './ic-mi-plano-index.html',
+  './plano-dt.html',
+  './plano-produccion.png',
+  './plano-hundimiento.png',
+  './plano-inyeccion.png',
+  './plano-extraccion.png',
+  './plano-acarreo.png',
+  './cambio-turno-general.html',
+  './reporte-pnc-rnc-index.html',
+  './reporte-liberacion-frente.html',
+  './ciz-dt-conectado.html',
+  './app-inicio.html',
+  './login.html',
+  './marca.js?v=3',
+  './drive-integration.js?v=3',
+  './piwii-unificado.js',
+  './piwii.html',
+  './empresas.json',
+  './xlsx.full.min.js',
+  './jszip.min.js',
+  './jspdf.umd.min.js',
+  './jspdf.plugin.autotable.min.js',
+  './qrious.min.js',
+  './chart.umd.min.js',
+  './supabase-integration.js?v=5',
+  './manifest.json',
+  './dark-mode.css',
+  './dark-mode.js',
+  './verificar.html'
+];
 
--- 3) Borrar los duplicados (deja únicamente CFBH-SCI-0001)
-begin;
+// Instala: guarda en caché las páginas principales
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ARCHIVOS_PROPIOS))
+  );
+  self.skipWaiting();
+});
 
-delete from fotos_dt
-where dt_id in (
-  select d.id from detalles_terminacion d
-  join avances_caminata a on a.id = d.caminata_id
-  where a.codigo_caminata like 'CFBH-SCI-%'
-    and a.codigo_caminata <> 'CFBH-SCI-0001'
-);
+// Activa: limpia caches antiguos
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((nombres) =>
+      Promise.all(
+        nombres.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))
+      )
+    )
+  );
+  self.clients.claim();
+});
 
-delete from detalles_terminacion
-where caminata_id in (
-  select id from avances_caminata
-  where codigo_caminata like 'CFBH-SCI-%'
-    and codigo_caminata <> 'CFBH-SCI-0001'
-);
+// Fetch: intenta red primero (para tener datos frescos); si falla, usa caché.
+// Si tampoco está en caché, responde con un error controlado (nunca null).
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
 
-delete from avances_caminata
-where codigo_caminata like 'CFBH-SCI-%'
-  and codigo_caminata <> 'CFBH-SCI-0001';
+  // La API de Supabase NO pasa por aqui. Si el service worker respondiera
+  // estas peticiones, sin senal la app recibiria un 503 en texto plano
+  // justo donde espera JSON, y mostraria un error incomprensible en vez
+  // de "sin senal". Los datos los maneja la app con su propia cola.
+  let url;
+  try { url = new URL(event.request.url); } catch (e) { return; }
+  if (url.hostname.endsWith('.supabase.co')) return;
 
-commit;
-
--- 4) Confirmar: debe quedar solo CFBH-SCI-0001 con 6 filas
-select codigo_caminata, count(*) as dt_count
-from avances_caminata a
-join detalles_terminacion d on d.caminata_id = a.id
-where a.codigo_caminata like 'CFBH-SCI-%'
-group by codigo_caminata;
-
--- Nota: los números de Punch que quedaron "quemados" en los registros
--- borrados (aprox. 000268 a 000423, salvo los 6 de CFBH-SCI-0001) no se
--- reutilizan -- el correlativo es atómico y no vuelve atrás. Es solo un
--- salto en la numeración, no afecta nada funcional.
+  event.respondWith(
+    fetch(event.request)
+      .then((respuesta) => {
+        const copia = respuesta.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copia));
+        return respuesta;
+      })
+      .catch(() =>
+        caches.match(event.request).then((cacheada) =>
+          cacheada || new Response('Sin conexion y pagina no disponible en cache. Intenta de nuevo con senal.', {
+            status: 503,
+            headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+          })
+        )
+      )
+  );
+});
