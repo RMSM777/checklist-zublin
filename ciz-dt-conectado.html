@@ -620,6 +620,38 @@ const SB = {
     return j;
   },
 
+  /* Fix (07-09-2026, idempotencia real): insertar() de arriba, si la
+     RESPUESTA de este POST se pierde en el camino (mala señal, corte a
+     mitad de la subida), deja al celular sin saber que el insert SÍ se
+     confirmó en el servidor. El reintento vuelve a insertar() desde
+     cero y crea una fila duplicada -- eso es lo que le pasó de nuevo a
+     Bastián el 07-09 (CFBH-SCI-0039), incluso con la cola ya reanudable
+     del 06-09 (esa solo evita repetir cuando el celular SABE que ya
+     tuvo éxito; no ayuda cuando nunca se entera).
+     upsertar() manda cada fila con una clave de idempotencia generada
+     en el celular ANTES de intentar la subida (uuid_offline) y le pide
+     a PostgREST "on_conflict" sobre esa columna: si ya existe una fila
+     con ese uuid (porque un intento anterior sí se guardó, aunque su
+     respuesta se haya perdido), la base devuelve ESA fila en vez de
+     crear una nueva. Un reintento -- se pierda la respuesta o no --
+     nunca puede duplicar. Requiere el índice UNIQUE de
+     migracion-idempotencia-caminatas-07sep.sql ya aplicado en Supabase.
+     resolucion: 'merge-duplicates' (por defecto, deja la fila existente
+     al día con los mismos datos y permite recuperarla) o
+     'ignore-duplicates' (no toca la fila existente -- para tablas sin
+     política de UPDATE, como fotos_dt). */
+  async upsertar(tabla, filas, columnaConflicto, opts){
+    const resolucion = (opts && opts.resolucion) || 'merge-duplicates';
+    const r = await this.pedir(SB_URL + '/rest/v1/' + tabla + '?on_conflict=' + columnaConflicto, {
+      method:'POST',
+      headers: this.cabeceras({ 'Content-Type':'application/json', 'Prefer':'return=representation,resolution=' + resolucion }),
+      body: JSON.stringify(filas)
+    });
+    const j = await leerJSON(r);
+    if(!r.ok) throw new Error((j && (j.message || j.hint)) || ('Error al guardar en ' + tabla));
+    return j;
+  },
+
   async actualizar(tabla, filtro, cambios){
     const r = await this.pedir(SB_URL + '/rest/v1/' + tabla + '?' + filtro, {
       method:'PATCH',
@@ -664,11 +696,32 @@ function dataURLaBlob(dataURL){
   return new Blob([arr], { type: mime });
 }
 
-function nombreFoto(punchOTmp, etapa, i){
-  const t = new Date();
-  const stamp = t.getFullYear() + String(t.getMonth()+1).padStart(2,'0') + String(t.getDate()).padStart(2,'0')
-              + '-' + String(t.getHours()).padStart(2,'0') + String(t.getMinutes()).padStart(2,'0') + String(t.getSeconds()).padStart(2,'0');
-  return etapa.toLowerCase() + '/' + punchOTmp + '_' + stamp + '_' + i + '.jpg';
+/* Fix (07-09-2026, idempotencia): antes el nombre de archivo llevaba la
+   HORA ACTUAL de cada llamada. Dos intentos de subir la MISMA foto (ej.
+   tras perder la respuesta de red con mala señal) generaban dos nombres
+   distintos -- además de la fila nueva en fotos_dt, también duplicaba
+   el archivo en el bucket. Ahora el nombre depende solo de datos que NO
+   cambian entre reintentos (N° Punch, etapa, índice de la foto dentro
+   del hallazgo, y la fecha de la caminata o del cierre -- no la hora
+   del intento), así un reintento apunta siempre al mismo archivo (se
+   sobreescribe, nunca se duplica) y el UNIQUE de fotos_dt.storage_path
+   evita la fila repetida. */
+function nombreFoto(punchOTmp, etapa, i, fechaEstable){
+  const fecha = String(fechaEstable || hoyISO()).replace(/-/g, '');
+  return etapa.toLowerCase() + '/' + punchOTmp + '_' + fecha + '_' + i + '.jpg';
+}
+
+/* Genera una clave de idempotencia local (UUID v4). Se asigna UNA vez,
+   antes de intentar subir nada, y viaja pegada al hallazgo/caminata en
+   la cola -- es lo que permite a la base reconocer "esto ya lo recibí"
+   aunque el celular no se haya enterado. crypto.randomUUID() no existe
+   en todos los navegadores/WebViews de gama baja, de ahí el respaldo. */
+function idOffline(){
+  if(typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c){
+    const r = Math.random() * 16 | 0, v = (c === 'x') ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
 /* ======================================================================
@@ -700,17 +753,39 @@ const COLA = {
   },
   quitarPrimero(){ const a = this.leer(); a.shift(); this.escribir(a); },
   /* Fix (06-09-2026, duplicacion de caminatas por reintento en sub-senal):
-     reescribe el primer elemento de la cola con el progreso parcial que
-     ya se logro subir (op.camId, op.dts, fotosSubidas por hallazgo). Se
-     llama despues de CADA paso que se confirma en la base, para que si
-     el intento se corta mas adelante (tipicamente al subir fotos, que es
-     lo que mas pesa con mala senal), el proximo reintento retome desde
-     ahi en vez de volver a crear la caminata y los hallazgos desde cero.
-     Antes de este fix, un DT que fallaba en el paso de fotos volvia a
-     ejecutar TODO subirCaminata() de nuevo en cada reintento -- eso fue
-     lo que generó 27 copias de una misma caminata (162 DT duplicados)
-     mientras un inspector luchaba con la señal en interior mina. */
-  actualizarPrimero(op){ const a = this.leer(); if(a.length){ a[0] = op; this.escribir(a); } },
+     guarda el progreso parcial que ya se logro subir (op.camId, op.dts,
+     fotosSubidas por hallazgo). Se llama despues de CADA paso que se
+     confirma en la base, para que si el intento se corta mas adelante
+     (tipicamente al subir fotos, que es lo que mas pesa con mala senal),
+     el proximo reintento retome desde ahi en vez de volver a crear la
+     caminata y los hallazgos desde cero. Antes de este fix, un DT que
+     fallaba en el paso de fotos volvia a ejecutar TODO subirCaminata()
+     de nuevo en cada reintento -- eso fue lo que generó 27 copias de una
+     misma caminata (162 DT duplicados) mientras un inspector luchaba con
+     la señal en interior mina.
+
+     Fix (07-09-2026): esto se llamaba "actualizarPrimero" y asumia sin
+     comprobar nada que `op` era siempre el elemento en la POSICION 0 de
+     la cola -- cierto mientras sincronizarAhora() vacia la cola en
+     orden, pero FALSO en el primer intento de guardarCaminata()/
+     guardarCierre(): esas funciones llaman a subirCaminata()/
+     subirCierre() DIRECTO, antes de encolar nada. Si en ese momento ya
+     habia algo mas esperando en la cola (ej. las otras 2 caminatas de
+     Bastian, sin subir todavia) y este intento nuevo fallaba a mitad de
+     camino, la version anterior le pisaba encima el progreso de ESE
+     hallazgo/caminata ajeno que estaba en la posicion 0 -- lo hubiera
+     corrompido o perdido. Ahora busca el elemento por su propio
+     identificador (op.uuid) en vez de por posicion, y si `op` todavia
+     no esta encolado (el caso de un intento directo) simplemente no
+     hace nada: el progreso ya vive en la variable `op` en memoria, y si
+     el intento termina fallando, COLA.agregar(op) lo encola completo,
+     con todo el progreso parcial incluido. */
+  actualizar(op){
+    if(!op || !op.uuid) return;
+    const a = this.leer();
+    const idx = a.findIndex(x => x && x.uuid === op.uuid);
+    if(idx !== -1){ a[idx] = op; this.escribir(a); }
+  },
   cuantos(){ return this.leer().length; }
 };
 
@@ -753,15 +828,35 @@ async function subirCaminata(op){
      avances_caminata, nuevos hallazgos en detalles_terminacion, todo de
      nuevo -- eso fue lo que produjo 27 copias de una misma caminata
      (162 DT duplicados, numeros de Punch reales quemados) mientras un
-     inspector reintentaba con señal intermitente. Ahora cada paso que la
+     inspector reintentaba con señal intermitente. Cada paso que la
      base confirma se guarda en el propio `op` (camId, dts, fotosSubidas
      por hallazgo) y se persiste de inmediato en la cola con
-     COLA.actualizarPrimero(op) -- si el intento se corta despues, el
+     COLA.actualizar(op) -- si el intento se corta despues, el
      siguiente reintento salta los pasos ya hechos y sigue justo donde
-     quedo, en vez de repetir la caminata entera. */
+     quedo, en vez de repetir la caminata entera.
+
+     Fix (07-09-2026): lo de arriba SOLO protege cuando el celular llega
+     a enterarse de que un paso tuvo éxito. Si el INSERT se confirma en
+     el servidor pero la RESPUESTA se pierde antes de llegar (muy
+     posible con la señal de interior mina), el celular queda igual de
+     "sin saber" que antes -- y el siguiente intento, aunque ya tenga
+     este mismo código reanudable, vuelve a insertar todo de cero porque
+     op.camId/op.dts nunca se llegaron a guardar. Eso es lo más probable
+     que le volvió a pasar a Bastián el 07-09 (CFBH-SCI-0039). Por eso
+     ahora, en vez de insertar() a secas, se usa upsertar() con una
+     clave de idempotencia (uuid_offline) generada en el celular ANTES
+     de intentar la subida: si la base ya tiene una fila con ese uuid
+     (porque un intento anterior sí se guardó, aunque su respuesta se
+     haya perdido), devuelve esa fila en vez de crear una nueva. Ahora
+     un reintento nunca puede duplicar, sepa o no el celular que el
+     intento anterior tuvo éxito. Requiere el índice UNIQUE de
+     migracion-idempotencia-caminatas-07sep.sql ya aplicado en Supabase. */
+  if(!op.uuid) op.uuid = idOffline(); // op viejo, de antes de este fix, sin uuid todavia
+
   let camId = op.camId;
   if(!camId){
-    const cam = await SB.insertar('avances_caminata', [op.caminata]);
+    const filaCaminata = Object.assign({ uuid_offline: op.uuid }, op.caminata);
+    const cam = await SB.upsertar('avances_caminata', [filaCaminata], 'uuid_offline');
     /* PostgREST devuelve un arreglo vacio cuando RLS bloquea el insert sin
        dar error. Sin esta comprobacion, el inspector veria un mensaje
        incomprensible de JavaScript en vez de saber que es un permiso. */
@@ -770,7 +865,7 @@ async function subirCaminata(op){
     }
     camId = cam[0].id;
     op.camId = camId;
-    COLA.actualizarPrimero(op);
+    COLA.actualizar(op);
   }
 
   /* Caminata sin hallazgos ("solo caminado, sin DT", 31-08-2026): no
@@ -778,9 +873,19 @@ async function subirCaminata(op){
      PostgREST un POST con arreglo vacío — mejor cortar acá directo. */
   if(!op.hallazgos.length) return [];
 
+  /* Cada hallazgo necesita su propia clave de idempotencia (una fila de
+     detalles_terminacion por hallazgo). Se asigna acá si todavía no la
+     tiene (misma razón que op.uuid arriba) y se persiste de inmediato:
+     si el intento se corta justo después de esto, el próximo reintento
+     tiene que usar los MISMOS uuid, no generar otros nuevos. */
+  let faltaGuardarUuids = false;
+  op.hallazgos.forEach(h => { if(!h.uuid){ h.uuid = idOffline(); faltaGuardarUuids = true; } });
+  if(faltaGuardarUuids) COLA.actualizar(op);
+
   let dts = op.dts;
   if(!dts){
     const filas = op.hallazgos.map(h => ({
+      uuid_offline: h.uuid,
       caminata_id: camId,
       descripcion: h.desc,
       prioridad: h.prioridad,
@@ -805,26 +910,36 @@ async function subirCaminata(op){
       numero_perno: h.numeroPerno || null,
       pk_aprox: (h.pkAprox !== null && h.pkAprox !== undefined && h.pkAprox !== '') ? h.pkAprox : null
     }));
-    const insertados = await SB.insertar('detalles_terminacion', filas);
+    const insertados = await SB.upsertar('detalles_terminacion', filas, 'uuid_offline');
     if(!insertados || insertados.length !== filas.length){
       throw new Error('La base registró la caminata pero no todos los hallazgos. Revisa antes de volver a guardar para no duplicar.');
     }
-    /* Solo se guarda id y numero_punch -- lo minimo para poder subir las
-       fotos despues sin tener que volver a mandar el hallazgo entero. */
-    dts = insertados.map(d => ({ id: d.id, numero_punch: d.numero_punch }));
+    /* Ojo: un upsert de varias filas de una vez NO garantiza devolverlas
+       en el mismo orden en que se mandaron -- hay que volver a
+       emparejarlas por uuid_offline, nunca asumir mismo índice. */
+    const porUuid = {};
+    insertados.forEach(d => { porUuid[d.uuid_offline] = d; });
+    dts = op.hallazgos.map(h => {
+      const d = porUuid[h.uuid];
+      if(!d) throw new Error('La base no devolvió uno de los hallazgos esperados. No sigas: avisa antes de reintentar para no duplicar.');
+      return { id: d.id, numero_punch: d.numero_punch };
+    });
     op.dts = dts;
-    COLA.actualizarPrimero(op);
+    COLA.actualizar(op);
   }
 
   for(let i=0; i<dts.length; i++){
     const fotos = (op.hallazgos[i] && op.hallazgos[i].fotosApertura) || [];
     const yaSubidas = (op.hallazgos[i] && op.hallazgos[i].fotosSubidas) || 0;
     for(let k=yaSubidas; k<fotos.length; k++){
-      const ruta = nombreFoto(dts[i].numero_punch, 'APERTURA', k);
+      const ruta = nombreFoto(dts[i].numero_punch, 'APERTURA', k, op.caminata.fecha);
       await SB.subirFoto(ruta, dataURLaBlob(fotos[k].dataURL));
-      await SB.insertar('fotos_dt', [{ dt_id: dts[i].id, etapa:'APERTURA', storage_path: ruta }]);
+      /* ignore-duplicates: fotos_dt no tiene política de UPDATE (no
+         hace falta para este caso) -- si la fila ya existía de un
+         intento anterior, simplemente no hace nada. */
+      await SB.upsertar('fotos_dt', [{ dt_id: dts[i].id, etapa:'APERTURA', storage_path: ruta }], 'storage_path', { resolucion:'ignore-duplicates' });
       op.hallazgos[i].fotosSubidas = k + 1;
-      COLA.actualizarPrimero(op);
+      COLA.actualizar(op);
     }
   }
   return dts;
@@ -836,21 +951,27 @@ async function subirCierre(op){
      los mismos campos), pero antes el bucle de fotos SIEMPRE volvia a
      empezar en k=0 en cada reintento, así que una foto de cierre que ya
      se habia subido con exito volvia a subirse (y a insertarse de nuevo
-     en fotos_dt) cada vez que el intento se cortaba mas adelante. */
+     en fotos_dt) cada vez que el intento se cortaba mas adelante.
+
+     Fix (07-09-2026): op.uuid identifica a este op dentro de la cola
+     (ver COLA.actualizar) para que un intento directo -- antes de
+     encolar nada -- nunca pise el progreso de otro cierre/caminata que
+     ya estuviera esperando en la cola. */
+  if(!op.uuid) op.uuid = idOffline();
   let punch = op.punch;
   if(!punch){
     const dts = await SB.actualizar('detalles_terminacion', 'id=eq.' + op.dtId, op.cambios);
     punch = (dts[0] && dts[0].numero_punch) || op.dtId;
     op.punch = punch;
-    COLA.actualizarPrimero(op);
+    COLA.actualizar(op);
   }
   const yaSubidas = op.fotosSubidas || 0;
   for(let k=yaSubidas; k<(op.fotos||[]).length; k++){
-    const ruta = nombreFoto(punch, 'CIERRE', k);
+    const ruta = nombreFoto(punch, 'CIERRE', k, op.cambios.fecha_real_cierre);
     await SB.subirFoto(ruta, dataURLaBlob(op.fotos[k].dataURL));
-    await SB.insertar('fotos_dt', [{ dt_id: op.dtId, etapa:'CIERRE', storage_path: ruta }]);
+    await SB.upsertar('fotos_dt', [{ dt_id: op.dtId, etapa:'CIERRE', storage_path: ruta }], 'storage_path', { resolucion:'ignore-duplicates' });
     op.fotosSubidas = k + 1;
-    COLA.actualizarPrimero(op);
+    COLA.actualizar(op);
   }
 }
 
