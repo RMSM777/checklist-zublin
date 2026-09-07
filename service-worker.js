@@ -1,11 +1,14 @@
 // Service Worker - Checklist Züblin GCC-003
 // Cachea las páginas y librerías para que la app abra aunque no haya señal.
 
-const CACHE_NAME = 'qcdigital-v36'; // sube este número cuando publiques cambios importantes
+const CACHE_NAME = 'qcdigital-v37'; // sube este número cuando publiques cambios importantes
 
-// OJO: si un archivo de esta lista no existe con ese nombre exacto, el
-// install del service worker falla ENTERO y ninguna pagina queda cacheada.
-// Al renombrar o borrar un archivo, hay que actualizarlo aqui tambien.
+// OJO: si un archivo de esta lista no existe con ese nombre exacto (o no
+// hay señal para descargarlo en el momento de instalar), ESE archivo
+// puntual se queda sin cachear -- pero ya NO tumba la instalación
+// completa del Service Worker (ver el fix de 'install' más abajo). Aun
+// así, al renombrar o borrar un archivo real hay que actualizarlo acá
+// también, para no dejar rutas rotas en la lista.
 const ARCHIVOS_PROPIOS = [
   './',
   './home.html',
@@ -49,9 +52,38 @@ const ARCHIVOS_PROPIOS = [
 ];
 
 // Instala: guarda en caché las páginas principales
+//
+// Fix (07-09-2026): cache.addAll() es TODO O NADA -- si UN SOLO archivo
+// de la lista falla al descargar (muy probable con la señal de interior
+// mina), la promesa entera se rechaza. Eso no significa solo "faltó
+// cachear un archivo": el evento 'install' entero falla, así que ESTE
+// Service Worker nuevo nunca llega a activarse -- el navegador se queda
+// sirviendo la versión VIEJA indefinidamente (incluyendo el
+// ciz-dt-conectado.html viejo, sin el fix de duplicación), y reintenta
+// la instalación completa desde cero la próxima vez, con el mismo
+// resultado si la señal sigue igual de mala. Es decir: justo quien peor
+// señal tiene es quien menos chance tenía de recibir cualquier
+// actualización por esta vía -- esto es lo que más probablemente le
+// pasó a Bastián con el fix del 06-09.
+//
+// Ahora cada archivo se cachea por separado y un fallo individual queda
+// contenido (se avisa por consola, nada más): el Service Worker SIEMPRE
+// termina de instalarse y activarse, aunque algún archivo secundario
+// (ej. un plano pesado) no se haya podido descargar en ese momento --
+// ese archivo puntual se cachea solo un poco más tarde, la primera vez
+// que se pida con señal (ver el 'fetch' de más abajo, que ya cachea
+// cualquier cosa que se descargue con éxito).
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ARCHIVOS_PROPIOS))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.allSettled(
+        ARCHIVOS_PROPIOS.map((ruta) =>
+          cache.add(ruta).catch((err) => {
+            console.warn('Service Worker: no se pudo cachear (se reintentará solo más adelante):', ruta, err);
+          })
+        )
+      )
+    )
   );
   self.skipWaiting();
 });
