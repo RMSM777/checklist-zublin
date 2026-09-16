@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script>
+try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classList.add('dark'); }catch(e){}
+</script>
+<meta name="theme-color" content="#D72622">
+<title>Reporte Cambio de Turno v2 - Calidad Zublin</title>
+<script src="jspdf.umd.min.js"></script>
+<script src="marca.js?v=3"></script>
+<link rel="stylesheet" href="dark-mode.css">
+<script src="dark-mode.js" defer></script>
+<style>
+  :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; margin:0; background:#e9e9e9; color:var(--texto); font-size:14px; }
+  .wrap{ max-width:640px; margin:0 auto; background:#fff; min-height:100vh; }
+  .header-rojo{ background:var(--rojo); color:#fff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; position:sticky; top:0; z-index:10; }
+  .header-rojo .logo{ display:flex; align-items:center; }
+  .header-rojo .logo img{ height:24px; display:block; }
+  .placa-logo{ background:#fff; border-radius:6px; padding:5px 9px; display:flex; align-items:center; }
+  .header-rojo .codigo{ font-size:11px; text-align:right; line-height:1.4; }
+  .header-contrato{ background:#2a2a2a; color:#eee; font-size:11px; padding:8px 16px; line-height:1.5; }
+  .titulo{ text-align:center; font-weight:700; font-size:14px; padding:10px; background:var(--rojo); color:#fff; }
+  .titulo .sub{ font-size:11px; font-weight:600; opacity:.9; margin-top:2px; }
+  section{ padding:12px 14px; }
+  .seccion-tit{ background:var(--rojo); color:#fff; font-weight:700; font-size:13px; padding:6px 10px; border-radius:5px; margin:16px 0 8px; }
+  .campo{ margin-bottom:10px; }
+  .campo label{ display:block; font-size:12px; color:#555; margin-bottom:3px; font-weight:600; }
+  input,select,textarea{ width:100%; padding:9px 10px; border:1px solid var(--borde); border-radius:6px; font-size:14px; background:#fff; font-family:inherit; }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--rojo); }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .fila-dyn{ background:var(--gris); border:1px solid #e2e2e2; border-radius:8px; padding:10px; margin-bottom:10px; position:relative; }
+  .fila-dyn .num{ position:absolute; top:-8px; left:10px; background:var(--rojo); color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; }
+  .fila-dyn .quitar{ position:absolute; top:-8px; right:8px; background:#757575; color:#fff; border:none; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; cursor:pointer; }
+  .fila-dyn .campo{ margin-bottom:8px; }
+  .fila-dyn .campo:last-child{ margin-bottom:0; }
+  .btn-agregar{ width:100%; padding:10px; border:1px dashed var(--rojo); background:#fff5f5; color:var(--rojo); border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+  .leyenda{ font-size:11px; color:#666; background:var(--gris); padding:8px 10px; border-radius:6px; margin-bottom:8px; }
+  .subtit{ font-size:12px; font-weight:700; color:var(--rojo); margin:10px 0 6px; }
+  .acciones{ display:flex; gap:8px; margin-top:10px; }
+  .acciones button{ flex:1; padding:12px; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn-generar{ background:var(--rojo); color:#fff; }
+  .nota{ font-size:12px; color:#888; text-align:center; margin-top:10px; padding:0 10px; }
+  footer{ text-align:center; padding:16px; font-size:11px; color:#999; }
+
+  @media (min-width:860px){
+    body{ padding:28px 16px; }
+    .wrap{
+      max-width:820px; min-height:auto; margin:0 auto;
+      border-radius:16px; overflow:hidden;
+      box-shadow:0 10px 34px rgba(13,21,38,.14);
+      border:1px solid var(--borde);
+    }
+  }
+</style>
+</head>
+<body>
+<div style="background:#2a2a2a;color:#fff;padding:7px 14px;font-size:12px;"><a href="app-inicio.html" style="color:#fff;text-decoration:none;">&#8249; Menu principal</a></div>
+<div class="wrap">
+  <div class="header-rojo">
+    <div class="logo"><span class="placa-logo"><img id="logoimg" src="" alt="QC Digital"></span></div>
+    <div class="codigo">C&Oacute;DIGO: INF-GOMS-CL-001 REV.0</div>
+  </div>
+  <div class="header-contrato" id="headerContrato">
+    Contrato N&deg; 4600031460 / GCC-003 &mdash; "Desarrollo y Construcci&oacute;n Nivel Superior e Inferior Mina Norte" &mdash; Divisi&oacute;n Chuquicamata &mdash; Empresa Contratista: Z&Uuml;BLIN
+  </div>
+  <div class="titulo">RESUMEN DE ACTIVIDADES CAMBIO DE TURNO<div class="sub">DEPARTAMENTO DE CALIDAD</div></div>
+
+  <section>
+    <div class="seccion-tit">Datos del periodo</div>
+    <div class="campo"><label>Periodo</label><input id="periodo" type="text" placeholder="Ej: 01 al 15 de septiembre 2026"></div>
+    <div class="campo"><label>Turnos</label><input id="turnos" type="text" placeholder="Ej: D&iacute;a y Noche"></div>
+    <div class="campo"><label>Cobertura de datos</label><input id="cobertura" type="text" placeholder="Ej: 100% del periodo"></div>
+  </section>
+
+  <section>
+    <div class="seccion-tit">A - Personal en turno</div>
+    <div class="subtit">Turno Noche</div>
+    <div id="cont-personalNoche"></div>
+    <button class="btn-agregar" onclick="agregarFila('personalNoche')">+ Agregar persona (Noche)</button>
+    <div class="subtit">Turno D&iacute;a</div>
+    <div id="cont-personalDia"></div>
+    <button class="btn-agregar" onclick="agregarFila('personalDia')">+ Agregar persona (D&iacute;a)</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">B - Estatus de frentes &uacute;ltimo d&iacute;a</div>
+    <div id="cont-frentes"></div>
+    <button class="btn-agregar" onclick="agregarFila('frentes')">+ Agregar frente</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">C - Laboratorio IDIEM</div>
+    <div id="cont-idiem"></div>
+    <button class="btn-agregar" onclick="agregarFila('idiem')">+ Agregar ensayo</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">D - Detalles de Terminaci&oacute;n</div>
+    <div id="cont-dt"></div>
+    <button class="btn-agregar" onclick="agregarFila('dt')">+ Agregar DT</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">E - Pernos cable</div>
+    <div id="cont-pernos"></div>
+    <button class="btn-agregar" onclick="agregarFila('pernos')">+ Agregar registro</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">F - Otros hitos del per&iacute;odo</div>
+    <div id="cont-hitos"></div>
+    <button class="btn-agregar" onclick="agregarFila('hitos')">+ Agregar hito</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">G - Planilla control de hormig&oacute;n y shotcrete</div>
+    <div id="cont-hormigon"></div>
+    <button class="btn-agregar" onclick="agregarFila('hormigon')">+ Agregar registro</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">H - Felicitaciones</div>
+    <div id="cont-felicitaciones"></div>
+    <button class="btn-agregar" onclick="agregarFila('felicitaciones')">+ Agregar felicitaci&oacute;n</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">I - Desviaciones</div>
+    <div id="cont-desviaciones"></div>
+    <button class="btn-agregar" onclick="agregarFila('desviaciones')">+ Agregar desviaci&oacute;n</button>
+  </section>
+
+  <section>
+    <div class="acciones">
+      <button class="btn-generar" onclick="generarPDF()">Generar y descargar PDF</button>
+    </div>
+    <p class="nota" id="nota">Este reporte no se guarda en ninguna base de datos: se genera el PDF directo en tu dispositivo, con el mismo formato del documento oficial.</p>
+  </section>
+
+  <footer>Z&uuml;blin - Resumen de Actividades Cambio de Turno (v2) - Departamento de Calidad</footer>
+</div>
+
+<script>
+/* ============================================================
+   Reporte Cambio de Turno - v2
+   Standalone: sin base de datos, sin firmas, sin login. Rellena
+   los campos y se descarga un PDF que reproduce el formato del
+   documento oficial "RESUMEN DE ACTIVIDADES CAMBIO DE TURNO"
+   (CODIGO: INF-GOMS-CL-001 REV.0), pero con listas de filas en
+   vez de texto libre en cada seccion (a pedido de Rodrigo,
+   16-09-2026).
+   ============================================================ */
+
+const CODIGO_DOC = 'INF-GOMS-CL-001 REV.0';
+
+let LOGO = null;
+MARCA.iniciar().then(() => {
+  MARCA.aplicarCSS();
+  MARCA.pintarHeaderHTML('logoimg');
+  LOGO = MARCA.logoDataUrl;
+  const contratoEl = document.getElementById('headerContrato');
+  if(contratoEl) contratoEl.textContent = MARCA.textoContrato();
+});
+
+/* ------------------------------------------------------------
+   Configuracion de cada seccion: que campos tiene cada fila y
+   como se imprime esa fila como linea de texto en el PDF. Un
+   solo motor generico (agregarFila/recolectarFilas) sirve para
+   las 10 listas (A Noche, A Dia, B..I) en vez de repetir una
+   funcion por seccion.
+   ------------------------------------------------------------ */
+const SECCIONES = {
+  personalNoche: {
+    etiqueta: 'Persona',
+    campos: [
+      {clave:'nombre', label:'Nombre', tipo:'text'},
+      {clave:'cargo', label:'Cargo', tipo:'text', valor:'Inspector de Calidad'}
+    ],
+    formato: (r,i) => (i+1)+'.- '+r.nombre+' ('+(r.cargo||'Inspector de Calidad')+').'
+  },
+  personalDia: {
+    etiqueta: 'Persona',
+    campos: [
+      {clave:'nombre', label:'Nombre', tipo:'text'},
+      {clave:'cargo', label:'Cargo', tipo:'text', valor:'Inspector de Calidad'}
+    ],
+    formato: (r,i) => (i+1)+'.- '+r.nombre+' ('+(r.cargo||'Inspector de Calidad')+').'
+  },
+  frentes: {
+    etiqueta: 'Frente',
+    campos: [
+      {clave:'frente', label:'Frente / Labor', tipo:'text'},
+      {clave:'estado', label:'Estado / Avance', tipo:'text'},
+      {clave:'obs', label:'Observación', tipo:'text'}
+    ],
+    formato: (r,i) => (i+1)+'. '+r.frente+': '+(r.estado||'-')+(r.obs?' — Obs: '+r.obs:'')+'.'
+  },
+  idiem: {
+    etiqueta: 'Ensayo',
+    campos: [
+      {clave:'tipo', label:'Tipo de ensayo', tipo:'text'},
+      {clave:'cantidad', label:'Cantidad', tipo:'text'},
+      {clave:'frente', label:'Frente / Ubicación', tipo:'text'},
+      {clave:'resultado', label:'Resultado / Observación', tipo:'text'}
+    ],
+    formato: (r,i) => '- '+(r.cantidad||'-')+' ensayo(s) '+r.tipo+' en '+(r.frente||'-')+'.'+(r.resultado?' Resultado: '+r.resultado:'')
+  },
+  dt: {
+    etiqueta: 'DT',
+    campos: [
+      {clave:'codigo', label:'N° Punch / Código DT', tipo:'text'},
+      {clave:'frente', label:'Frente / Ubicación', tipo:'text'},
+      {clave:'descripcion', label:'Descripción', tipo:'text'},
+      {clave:'estado', label:'Estado', tipo:'select', opciones:['Abierta','Cerrada']}
+    ],
+    formato: (r,i) => (i+1)+'. '+(r.codigo||'-')+' — '+r.frente+': '+r.descripcion+' ['+(r.estado||'-')+'].'
+  },
+  pernos: {
+    etiqueta: 'Registro',
+    campos: [
+      {clave:'frente', label:'Frente / Ubicación', tipo:'text'},
+      {clave:'cantidad', label:'Cantidad instalada', tipo:'text'},
+      {clave:'tipo', label:'Tipo / Longitud', tipo:'text'},
+      {clave:'obs', label:'Observación', tipo:'text'}
+    ],
+    formato: (r,i) => (i+1)+'. '+r.frente+': '+(r.cantidad||'-')+' pernos'+(r.tipo?' ('+r.tipo+')':'')+'.'+(r.obs?' Obs: '+r.obs:'')
+  },
+  hitos: {
+    etiqueta: 'Hito',
+    campos: [
+      {clave:'fecha', label:'Fecha', tipo:'date'},
+      {clave:'descripcion', label:'Hito / Descripción', tipo:'text'}
+    ],
+    formato: (r,i) => '- '+(r.fecha?fmtFecha(r.fecha)+': ':'')+r.descripcion
+  },
+  hormigon: {
+    etiqueta: 'Registro',
+    campos: [
+      {clave:'fecha', label:'Fecha', tipo:'date'},
+      {clave:'frente', label:'Frente / Ubicación', tipo:'text'},
+      {clave:'tipo', label:'Tipo', tipo:'select', opciones:['Hormigón','Shotcrete']},
+      {clave:'volumen', label:'Volumen (m³)', tipo:'text'},
+      {clave:'obs', label:'Observación', tipo:'text'}
+    ],
+    formato: (r,i) => '- '+(r.fecha?fmtFecha(r.fecha)+' | ':'')+r.frente+' | '+(r.tipo||'-')+': '+(r.volumen||'-')+' m3.'+(r.obs?' Obs: '+r.obs:'')
+  },
+  felicitaciones: {
+    etiqueta: 'Felicitación',
+    campos: [
+      {clave:'nombre', label:'Nombre', tipo:'text'},
+      {clave:'motivo', label:'Motivo', tipo:'text'}
+    ],
+    formato: (r,i) => '- '+r.nombre+': '+r.motivo
+  },
+  desviaciones: {
+    etiqueta: 'Desviación',
+    campos: [
+      {clave:'descripcion', label:'Descripción', tipo:'text'},
+      {clave:'frente', label:'Frente / Ubicación', tipo:'text'},
+      {clave:'estado', label:'Estado / Acción correctiva', tipo:'text'}
+    ],
+    formato: (r,i) => '- '+r.descripcion+(r.frente?' ('+r.frente+')':'')+'.'+(r.estado?' Estado/Acción: '+r.estado:'')
+  }
+};
+
+const TITULOS_SECCION = {
+  frentes: 'B.- ESTATUS DE FRENTES ÚLTIMO DÍA',
+  idiem: 'C.- LABORATORIO IDIEM',
+  dt: 'D.- DETALLES DE TERMINACIÓN',
+  pernos: 'E.- PERNOS CABLE',
+  hitos: 'F.- OTROS HITOS DEL PERÍODO',
+  hormigon: 'G.- PLANILLA CONTROL DE HORMIGÓN Y SHOTCRETE',
+  felicitaciones: 'H.- FELICITACIONES',
+  desviaciones: 'I.- DESVIACIONES'
+};
+
+function fmtFecha(iso){ if(!iso) return ''; const p=iso.split('-'); return p[2]+'-'+p[1]+'-'+p[0]; }
+
+function campoHtml(seccionId, campo){
+  const idBase = seccionId+'-'+campo.clave;
+  if(campo.tipo === 'select'){
+    const opts = campo.opciones.map(o=>'<option value="'+o+'">'+o+'</option>').join('');
+    return '<div class="campo"><label>'+campo.label+'</label><select data-clave="'+campo.clave+'"><option value="">-- Seleccionar --</option>'+opts+'</select></div>';
+  }
+  const val = campo.valor ? ' value="'+campo.valor+'"' : '';
+  return '<div class="campo"><label>'+campo.label+'</label><input data-clave="'+campo.clave+'" type="'+campo.tipo+'"'+val+'></div>';
+}
+
+function agregarFila(seccionId){
+  const cfg = SECCIONES[seccionId];
+  const div = document.createElement('div');
+  div.className = 'fila-dyn';
+  div.innerHTML = '<span class="num"></span>'
+    + '<button type="button" class="quitar" onclick="quitarFila(this,\''+seccionId+'\')">Quitar</button>'
+    + cfg.campos.map(c => campoHtml(seccionId, c)).join('');
+  document.getElementById('cont-'+seccionId).appendChild(div);
+  renumerar(seccionId);
+}
+
+function quitarFila(btn, seccionId){
+  btn.closest('.fila-dyn').remove();
+  renumerar(seccionId);
+}
+
+function renumerar(seccionId){
+  const cfg = SECCIONES[seccionId];
+  const filas = document.querySelectorAll('#cont-'+seccionId+' .fila-dyn');
+  filas.forEach((f,i) => { f.querySelector('.num').textContent = cfg.etiqueta+' '+(i+1); });
+}
+
+function recolectarFilas(seccionId){
+  const filas = Array.from(document.querySelectorAll('#cont-'+seccionId+' .fila-dyn'));
+  return filas.map(f => {
+    const row = {};
+    f.querySelectorAll('[data-clave]').forEach(el => { row[el.dataset.clave] = el.value.trim(); });
+    return row;
+  }).filter(row => Object.values(row).some(v => v !== ''));
+}
+
+// Filas iniciales, igual que el resto de la suite (arranca con algo ya cargado)
+agregarFila('personalNoche'); agregarFila('personalNoche');
+agregarFila('personalDia'); agregarFila('personalDia');
+agregarFila('frentes');
+agregarFila('idiem');
+agregarFila('dt');
+agregarFila('pernos');
+agregarFila('hitos');
+agregarFila('hormigon');
+agregarFila('felicitaciones');
+agregarFila('desviaciones');
+
+function v(id){ return document.getElementById(id).value; }
+
+/* ------------------------------------------------------------
+   Encabezado del PDF: estilo plano, blanco y negro -- igual al
+   Word oficial exportado a PDF (CAMBIO_DE_TURNO_GENERAL_1.docx) y
+   al mismo criterio visual del "Reporte de Actividades Diarias"
+   que usa el equipo (ratapiae-star.github.io/informes-goms). Sin
+   barras de color: logo arriba a la izquierda, codigo + fecha
+   arriba a la derecha, linea de contrato, regla fina, titulo y
+   subtitulo en negro. Reemplaza el header rojo usado en el primer
+   borrador de esta v2, a pedido de Rodrigo (16-09-2026): "cambia
+   el encabezado, los colores, todo mas simple".
+   ------------------------------------------------------------ */
+function dibujarEncabezado(doc, tituloDoc){
+  const anchoPagina = doc.internal.pageSize.getWidth();
+  const izq = 12, der = anchoPagina-12;
+  doc.setTextColor(20,20,20);
+
+  try{ doc.addImage(LOGO,'PNG', izq, 8, 32, 9); }catch(e){}
+
+  doc.setFontSize(8); doc.setFont(undefined,'normal');
+  doc.text('CÓDIGO: ' + CODIGO_DOC, der, 10, {align:'right'});
+  doc.text(new Date().toLocaleDateString('es-CL'), der, 14, {align:'right'});
+
+  let y = 24;
+  doc.setFontSize(8.5); doc.setFont(undefined,'normal');
+  const lineasContrato = doc.splitTextToSize(MARCA.textoContrato(), anchoPagina-24);
+  doc.text(lineasContrato, izq, y);
+  y += lineasContrato.length*4 + 3;
+
+  doc.setDrawColor(140,140,140); doc.setLineWidth(0.3);
+  doc.line(izq, y, der, y); y += 8;
+
+  doc.setFontSize(15); doc.setFont(undefined,'bold');
+  doc.text(tituloDoc, izq, y); y += 7;
+  doc.setFontSize(10.5); doc.setFont(undefined,'bold');
+  doc.text('DEPARTAMENTO DE CALIDAD', izq, y); y += 7;
+
+  doc.setTextColor(30,30,30);
+  return y;
+}
+
+async function generarPDF(){
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:'mm', format:'a4', compress:true});
+    const izq = 12, ancho = 186;
+    let y = 10;
+    function salto(min){ if(y > 297-min){ doc.addPage(); y = 15; } }
+    function tituloSeccion(t){
+      y+=4; salto(20);
+      doc.setTextColor(20,20,20); doc.setFontSize(10.5); doc.setFont(undefined,'bold');
+      doc.text(t, izq, y);
+      doc.setTextColor(30,30,30);
+      y+=6.5;
+    }
+    function imprimirLista(seccionId){
+      const filas = recolectarFilas(seccionId);
+      doc.setFontSize(9); doc.setFont(undefined,'normal');
+      if(filas.length===0){ salto(10); doc.text('Sin registros.', izq+3, y); y+=5; return; }
+      filas.forEach((r,i) => {
+        const linea = SECCIONES[seccionId].formato(r,i);
+        const ls = doc.splitTextToSize(linea, ancho-6);
+        salto(ls.length*4.5+2);
+        doc.text(ls, izq+3, y); y += ls.length*4.5;
+      });
+    }
+
+    y = dibujarEncabezado(doc, 'RESUMEN DE ACTIVIDADES CAMBIO DE TURNO');
+
+    doc.setFontSize(9); doc.setTextColor(30,30,30);
+    doc.setFont(undefined,'bold'); doc.text('PERIODO:', izq, y); doc.setFont(undefined,'normal');
+    doc.text(doc.splitTextToSize(v('periodo')||'-', ancho-24), izq+24, y); y+=5;
+    doc.setFont(undefined,'bold'); doc.text('TURNOS:', izq, y); doc.setFont(undefined,'normal');
+    doc.text(doc.splitTextToSize(v('turnos')||'-', ancho-24), izq+24, y); y+=5;
+    doc.setFont(undefined,'bold'); doc.text('COBERTURA DE DATOS:', izq, y); doc.setFont(undefined,'normal');
+    doc.text(doc.splitTextToSize(v('cobertura')||'-', ancho-52), izq+52, y); y+=4;
+    doc.setDrawColor(180,180,180); doc.setLineWidth(0.2); doc.line(izq, y, izq+ancho, y); y+=8;
+
+    // A - Personal en turno
+    tituloSeccion('A.- PERSONAL EN TURNO');
+    doc.setFontSize(9.5); doc.setFont(undefined,'bold'); doc.text('Turno Noche:', izq+3, y); y+=5;
+    imprimirLista('personalNoche');
+    y+=2;
+    doc.setFontSize(9.5); doc.setFont(undefined,'bold'); doc.text('Turno Día:', izq+3, y); y+=5;
+    imprimirLista('personalDia');
+    y+=3;
+
+    // B..I
+    Object.keys(TITULOS_SECCION).forEach(seccionId => {
+      tituloSeccion(TITULOS_SECCION[seccionId]);
+      imprimirLista(seccionId);
+      y+=3;
+    });
+
+    // Pie de pagina
+    const totalPag = doc.getNumberOfPages();
+    for(let pg=1; pg<=totalPag; pg++){
+      doc.setPage(pg);
+      doc.setFontSize(7); doc.setFont(undefined,'normal'); doc.setTextColor(130,130,130);
+      doc.setDrawColor(200,200,200); doc.setLineWidth(0.2); doc.line(izq, 287, izq+ancho, 287);
+      doc.text('ZÜBLIN — Departamento de Calidad', izq, 291);
+      doc.text('Página '+pg+' de '+totalPag, izq+ancho, 291, {align:'right'});
+    }
+    doc.setTextColor(30,30,30);
+
+    const hoy = new Date().toISOString().slice(0,10);
+    const nombreArch = 'CambioTurno_'+hoy+'.pdf';
+    doc.save(nombreArch);
+    document.getElementById('nota').innerHTML = 'PDF generado y descargado: '+nombreArch;
+    document.getElementById('nota').style.color = '#2e7d32';
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Cambio de Turno v2): ' + (err && err.message ? err.message : err));
+  }
+}
+</script>
+</body>
+</html>
