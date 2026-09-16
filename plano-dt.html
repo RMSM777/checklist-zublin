@@ -372,12 +372,22 @@ async function aplicarMarca(){
    guarda la posición nueva como una fila aparte, sin tocar la vieja
    (tema 28, 31-08-2026, script 17-versionar-plano-pines.sql). */
 const NIVELES = [
-  { id:'PRODUCCION',  nombre:'Producción',  prefijos:['224200'],                     imagen:'plano-produccion.png',  version:1 },
+  { id:'PRODUCCION',  nombre:'Producción',  prefijos:['224200','221100','221300'],   imagen:'plano-produccion.png',  version:1 },
   { id:'HUNDIMIENTO', nombre:'Hundimiento', prefijos:['224100','222600','222700','222800'], imagen:'plano-hundimiento.png', version:1 },
   { id:'INYECCION',   nombre:'Inyección',   prefijos:['224300'],                     imagen:'plano-inyeccion.png',   version:1 },
   { id:'EXTRACCION',  nombre:'Extracción',  prefijos:['224400'],                     imagen:'plano-extraccion.png',  version:1 },
   { id:'ACARREO',     nombre:'Acarreo',     prefijos:['224500'],                     imagen:'plano-acarreo.png',     version:1 },
 ];
+/* OJO (16-09-2026): el WBS 221000 [INFRAESTRUCTURA DE NIVEL] tiene 6
+   labores en el catálogo (áreas 221100 y 221300 — accesos, rampas,
+   cruzados e intersecciones NP/NH entre N51/N52/N06) que hasta hoy no
+   caían en ningún nivel/pestaña de este Plano: quedaban invisibles,
+   sin pin ni opción de "ubicar", sin ningún aviso (caso real:
+   BHJ-SCI-0002, código 221340F-01-06 "RAMPA ACCESO NP-NH N52_N06").
+   Rodrigo confirmó que, físicamente, estas labores caen dentro del
+   plano de Producción -- por eso 221100/221300 se agregan acá y no
+   como pestaña propia. Si en el futuro aparece una labor 221xxx que
+   NO corresponda a Producción, hay que revisar esto de nuevo. */
 /* OJO (30-08-2026): "Hundimiento" tiene DOS familias de códigos WBS para
    la misma idea física de nivel -- 224100 (calles "C-XX-NH-N51/N52
    CONTINUIDAD" del WBS mas nuevo) y 222600/222700/222800 (las mismas
