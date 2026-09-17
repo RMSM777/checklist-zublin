@@ -45,6 +45,12 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
   .btn-generar{ background:var(--rojo); color:#fff; }
   .nota{ font-size:12px; color:#888; text-align:center; margin-top:10px; padding:0 10px; }
   footer{ text-align:center; padding:16px; font-size:11px; color:#999; }
+  .toggle-si-no{ display:flex; gap:8px; }
+  .toggle-si-no .opt{ flex:1; padding:10px; border:1px solid var(--borde); background:#fff; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; color:#555; }
+  .toggle-si-no .opt.activo{ background:var(--rojo); border-color:var(--rojo); color:#fff; }
+  .foto-item{ background:var(--gris); border:1px solid #e2e2e2; border-radius:8px; padding:10px; margin-bottom:10px; position:relative; }
+  .foto-item img{ max-width:100%; border-radius:6px; display:block; margin-bottom:8px; }
+  .foto-item .quitar-foto{ position:absolute; top:-8px; right:8px; background:#757575; color:#fff; border:none; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; cursor:pointer; }
 
   @media (min-width:860px){
     body{ padding:28px 16px; }
@@ -132,6 +138,22 @@ try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classLi
     <div class="seccion-tit">I - Desviaciones</div>
     <div id="cont-desviaciones"></div>
     <button class="btn-agregar" onclick="agregarFila('desviaciones')">+ Agregar desviaci&oacute;n</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">J - Imágenes relevantes</div>
+    <div class="campo">
+      <label>¿Agregar imágenes a este reporte?</label>
+      <div class="toggle-si-no" id="toggleImagenes">
+        <button type="button" class="opt" data-v="NO" onclick="setIncluirImagenes('NO')">No</button>
+        <button type="button" class="opt" data-v="SI" onclick="setIncluirImagenes('SI')">Sí</button>
+      </div>
+    </div>
+    <div id="bloqueImagenes" style="display:none;">
+      <div class="leyenda">Estas imágenes solo aparecen en el PDF si dejas esta opción en "Sí". Si queda en "No", la sección J no se imprime.</div>
+      <input type="file" id="inputImagenes" accept="image/*" multiple style="margin-bottom:10px;">
+      <div id="cont-imagenesJ"></div>
+    </div>
   </section>
 
   <section>
@@ -336,6 +358,64 @@ agregarFila('desviaciones');
 function v(id){ return document.getElementById(id).value; }
 
 /* ------------------------------------------------------------
+   J - Imagenes relevantes (opcional). A pedido de Rodrigo
+   (17-09-2026): un si/no explicito en la app, no un campo fijo
+   del formato. Si queda en "No", la seccion J no se imprime en
+   el PDF. Si se pone en "Si", se muestra el cargador de imagenes
+   y recien ahi aparece la seccion J con lo que se haya subido.
+   ------------------------------------------------------------ */
+let incluirImagenes = false;
+let imagenesJ = [];
+let contImgId = 0;
+
+function setIncluirImagenes(val){
+  incluirImagenes = (val === 'SI');
+  document.querySelectorAll('#toggleImagenes .opt').forEach(b => b.classList.toggle('activo', b.dataset.v === val));
+  document.getElementById('bloqueImagenes').style.display = incluirImagenes ? 'block' : 'none';
+}
+setIncluirImagenes('NO');
+
+document.getElementById('inputImagenes').addEventListener('change', function(e){
+  const files = Array.from(e.target.files || []);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      const img = new Image();
+      img.onload = function(){
+        // Redimensionar para no generar PDFs pesados
+        const maxW = 1200;
+        let w = img.width, h = img.height;
+        if(w > maxW){ h = h * (maxW / w); w = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        imagenesJ.push({ id: ++contImgId, data: dataUrl, w, h, caption: '' });
+        renderImagenesJ();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+});
+
+function renderImagenesJ(){
+  const cont = document.getElementById('cont-imagenesJ');
+  cont.innerHTML = '';
+  imagenesJ.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'foto-item';
+    div.innerHTML = '<button type="button" class="quitar-foto" onclick="quitarImagenJ('+f.id+')">Quitar</button>'
+      + '<img src="'+f.data+'">'
+      + '<input type="text" placeholder="Descripción breve (opcional)" oninput="actualizarCaptionJ('+f.id+', this.value)" value="'+(f.caption||'')+'">';
+    cont.appendChild(div);
+  });
+}
+function quitarImagenJ(id){ imagenesJ = imagenesJ.filter(f => f.id !== id); renderImagenesJ(); }
+function actualizarCaptionJ(id, val){ const f = imagenesJ.find(x => x.id === id); if(f) f.caption = val; }
+
+/* ------------------------------------------------------------
    Encabezado del PDF: estilo plano, blanco y negro -- igual al
    Word oficial exportado a PDF (CAMBIO_DE_TURNO_GENERAL_1.docx) y
    al mismo criterio visual del "Reporte de Actividades Diarias"
@@ -427,6 +507,32 @@ async function generarPDF(){
       imprimirLista(seccionId);
       y+=3;
     });
+
+    // J - Imagenes relevantes (solo si el toggle quedo en "Si")
+    if(incluirImagenes){
+      tituloSeccion('J.- IMÁGENES RELEVANTES');
+      if(imagenesJ.length === 0){
+        doc.setFontSize(9); doc.setFont(undefined,'normal');
+        salto(10); doc.text('Sin imágenes cargadas.', izq+3, y); y += 5;
+      } else {
+        imagenesJ.forEach(f => {
+          const maxW = ancho, maxH = 90;
+          let w = maxW, h = w * (f.h / f.w);
+          if(h > maxH){ h = maxH; w = h * (f.w / f.h); }
+          salto(h + (f.caption ? 10 : 5));
+          try{ doc.addImage(f.data, 'JPEG', izq, y, w, h); }catch(e){}
+          y += h + 4;
+          if(f.caption){
+            doc.setFontSize(8); doc.setFont(undefined,'normal'); doc.setTextColor(90,90,90);
+            const capLineas = doc.splitTextToSize(f.caption, ancho);
+            doc.text(capLineas, izq, y); y += capLineas.length*4;
+            doc.setTextColor(30,30,30);
+          }
+          y += 4;
+        });
+      }
+      y += 1;
+    }
 
     // Pie de pagina
     const totalPag = doc.getNumberOfPages();
