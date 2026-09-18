@@ -1,7 +1,7 @@
 // Service Worker - Checklist Züblin GCC-003
 // Cachea las páginas y librerías para que la app abra aunque no haya señal.
 
-const CACHE_NAME = 'qcdigital-v37'; // sube este número cuando publiques cambios importantes
+const CACHE_NAME = 'qcdigital-v38'; // sube este número cuando publiques cambios importantes
 
 // OJO: si un archivo de esta lista no existe con ese nombre exacto (o no
 // hay señal para descargarlo en el momento de instalar), ESE archivo
@@ -30,6 +30,7 @@ const ARCHIVOS_PROPIOS = [
   './cambio-turno-general.html',
   './reporte-pnc-rnc-index.html',
   './reporte-liberacion-frente.html',
+  './reporte-cambio-turno.html',
   './ciz-dt-conectado.html',
   './app-inicio.html',
   './login.html',
@@ -50,6 +51,49 @@ const ARCHIVOS_PROPIOS = [
   './dark-mode.js',
   './verificar.html'
 ];
+
+/* ------------------------------------------------------------------
+   Fix (18-09-2026): "Response served by service worker has
+   redirections" en iPhone/Safari.
+
+   Que pasaba: cuando fetch(algo) sigue una redireccion en el camino
+   (ej. http -> https forzado por Github Pages, o el dominio viejo
+   github.io -> el dominio actual reportes.qcdigital.cl vía CNAME), el
+   Response que devuelve queda marcado internamente como
+   "redirected = true". Este Service Worker guardaba esa respuesta tal
+   cual en la cache. Safari/iOS se niega a usar, para ABRIR una pagina
+   (una navegacion), cualquier respuesta marcada como redirigida —
+   sin avisar nada util, solo el error tecnico en pantalla ("Response
+   served by service worker has redirections"), y la pagina no abre.
+
+   Por que pasaba con unos reportes si y otros no: no es al azar --
+   depende de si, la ULTIMA vez que ese reporte en particular se pidio
+   con señal, esa peticion paso o no por una redireccion. Los reportes
+   que "funcionaban offline" simplemente tuvieron la suerte de haberse
+   guardado en cache sin haber pasado por ninguna redireccion.
+
+   La solucion: antes de guardar (o de responder con) cualquier
+   respuesta que vino de una redireccion, se reconstruye una respuesta
+   NUEVA con el mismo contenido, status y headers, pero sin el
+   historial de redireccion. Una respuesta armada asi nunca queda
+   marcada como "redirected", asi que Safari ya no tiene motivo para
+   rechazarla.
+   ------------------------------------------------------------------ */
+async function limpiarRespuesta(respuesta) {
+  if (!respuesta || !respuesta.redirected) return respuesta;
+  try {
+    const cuerpo = await respuesta.clone().blob();
+    return new Response(cuerpo, {
+      status: respuesta.status,
+      statusText: respuesta.statusText,
+      headers: respuesta.headers
+    });
+  } catch (e) {
+    // Si por algun motivo no se pudo reconstruir, se devuelve la
+    // original -- peor es nada (sigue el comportamiento de antes).
+    return respuesta;
+  }
+}
 
 // Instala: guarda en caché las páginas principales
 //
@@ -78,9 +122,15 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME).then((cache) =>
       Promise.allSettled(
         ARCHIVOS_PROPIOS.map((ruta) =>
-          cache.add(ruta).catch((err) => {
-            console.warn('Service Worker: no se pudo cachear (se reintentará solo más adelante):', ruta, err);
-          })
+          fetch(ruta)
+            .then((respuesta) => {
+              if (!respuesta.ok) throw new Error('HTTP ' + respuesta.status);
+              return limpiarRespuesta(respuesta);
+            })
+            .then((limpia) => cache.put(ruta, limpia))
+            .catch((err) => {
+              console.warn('Service Worker: no se pudo cachear (se reintentará solo más adelante):', ruta, err);
+            })
         )
       )
     )
@@ -115,11 +165,11 @@ self.addEventListener('fetch', (event) => {
 
   event.respondWith(
     fetch(event.request)
-      .then((respuesta) => {
-        const copia = respuesta.clone();
+      .then((respuesta) => limpiarRespuesta(respuesta).then((limpia) => {
+        const copia = limpia.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copia));
-        return respuesta;
-      })
+        return limpia;
+      }))
       .catch(() =>
         caches.match(event.request).then((cacheada) =>
           cacheada || new Response('Sin conexion y pagina no disponible en cache. Intenta de nuevo con senal.', {
