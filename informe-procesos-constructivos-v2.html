@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<script>
+try{ if(localStorage.getItem('qcd_dark')==='1') document.documentElement.classList.add('dark'); }catch(e){}
+</script>
+<meta name="theme-color" content="#D72622">
+<title>Informe Inspecciones v2 - Calidad Zublin</title>
+<script src="jspdf.umd.min.js"></script>
+<script src="marca.js?v=3"></script>
+<link rel="stylesheet" href="dark-mode.css">
+<script src="dark-mode.js" defer></script>
+<style>
+  :root{ --rojo:#D72622; --gris:#f4f4f4; --borde:#ccc; --texto:#222; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; margin:0; background:#e9e9e9; color:var(--texto); font-size:14px; }
+  .wrap{ max-width:640px; margin:0 auto; background:#fff; min-height:100vh; }
+  .header-rojo{ background:var(--rojo); color:#fff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; position:sticky; top:0; z-index:10; }
+  .header-rojo .logo{ display:flex; align-items:center; }
+  .header-rojo .logo img{ height:24px; display:block; }
+  .placa-logo{ background:#fff; border-radius:6px; padding:5px 9px; display:flex; align-items:center; }
+  .header-rojo .codigo{ font-size:11px; text-align:right; line-height:1.4; }
+  .header-contrato{ background:#2a2a2a; color:#eee; font-size:11px; padding:8px 16px; line-height:1.5; }
+  .titulo{ text-align:center; font-weight:700; font-size:14px; padding:10px; background:var(--rojo); color:#fff; }
+  .titulo .sub{ font-size:11px; font-weight:600; opacity:.9; margin-top:2px; }
+  section{ padding:12px 14px; }
+  .seccion-tit{ background:var(--rojo); color:#fff; font-weight:700; font-size:13px; padding:6px 10px; border-radius:5px; margin:16px 0 8px; }
+  .campo{ margin-bottom:10px; }
+  .campo label{ display:block; font-size:12px; color:#555; margin-bottom:3px; font-weight:600; }
+  input,select,textarea{ width:100%; padding:9px 10px; border:1px solid var(--borde); border-radius:6px; font-size:14px; background:#fff; font-family:inherit; }
+  textarea{ min-height:70px; resize:vertical; }
+  input:focus,select:focus,textarea:focus{ outline:none; border-color:var(--rojo); }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .fila-dyn{ background:var(--gris); border:1px solid #e2e2e2; border-radius:8px; padding:10px; margin-bottom:10px; position:relative; }
+  .fila-dyn .num{ position:absolute; top:-8px; left:10px; background:var(--rojo); color:#fff; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; }
+  .fila-dyn .quitar{ position:absolute; top:-8px; right:8px; background:#757575; color:#fff; border:none; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; cursor:pointer; }
+  .fila-dyn .campo{ margin-bottom:8px; }
+  .fila-dyn .campo:last-child{ margin-bottom:0; }
+  .btn-agregar{ width:100%; padding:10px; border:1px dashed var(--rojo); background:#fff5f5; color:var(--rojo); border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; }
+  .leyenda{ font-size:11px; color:#666; background:var(--gris); padding:8px 10px; border-radius:6px; margin-bottom:8px; }
+  .subtit{ font-size:12px; font-weight:700; color:var(--rojo); margin:10px 0 6px; }
+  .acciones{ display:flex; gap:8px; margin-top:10px; }
+  .acciones button{ flex:1; padding:12px; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn-generar{ background:var(--rojo); color:#fff; }
+  .nota{ font-size:12px; color:#888; text-align:center; margin-top:10px; padding:0 10px; }
+  footer{ text-align:center; padding:16px; font-size:11px; color:#999; }
+  .foto-item{ background:var(--gris); border:1px solid #e2e2e2; border-radius:8px; padding:10px; margin-bottom:10px; position:relative; }
+  .foto-item img{ max-width:100%; border-radius:6px; display:block; margin-bottom:8px; }
+  .foto-item .quitar-foto{ position:absolute; top:-8px; right:8px; background:#757575; color:#fff; border:none; font-size:11px; font-weight:700; padding:2px 8px; border-radius:10px; cursor:pointer; }
+
+  @media (min-width:860px){
+    body{ padding:28px 16px; }
+    .wrap{
+      max-width:820px; min-height:auto; margin:0 auto;
+      border-radius:16px; overflow:hidden;
+      box-shadow:0 10px 34px rgba(13,21,38,.14);
+      border:1px solid var(--borde);
+    }
+  }
+</style>
+</head>
+<body>
+<div style="background:#2a2a2a;color:#fff;padding:7px 14px;font-size:12px;"><a href="app-inicio.html" style="color:#fff;text-decoration:none;">&#8249; Menu principal</a></div>
+<div class="wrap">
+  <div class="header-rojo">
+    <div class="logo"><span class="placa-logo"><img id="logoimg" src="" alt="QC Digital"></span></div>
+    <div class="codigo">C&Oacute;DIGO: INF-GOMS-CL-002 REV.0</div>
+  </div>
+  <div class="header-contrato" id="headerContrato">
+    Contrato N&deg; 4600031460 / GCC-003 &mdash; "Desarrollo y Construcci&oacute;n Nivel Superior e Inferior Mina Norte" &mdash; Divisi&oacute;n Chuquicamata &mdash; Empresa Contratista: Z&Uuml;BLIN
+  </div>
+  <div class="titulo">INFORME INSPECCIONES<div class="sub">DEPARTAMENTO DE CALIDAD</div></div>
+
+  <section>
+    <div class="seccion-tit">Datos del informe</div>
+    <div class="grid2">
+      <div class="campo"><label>Fecha</label><input id="fecha" type="date"></div>
+      <div class="campo"><label>Turno</label>
+        <select id="turno"><option value="">-- Seleccionar --</option><option>D&iacute;a</option><option>Noche</option></select>
+      </div>
+    </div>
+    <div class="campo"><label>&Aacute;rea</label><input id="area" type="text" placeholder="Ej: GA-03 N52 / Nivel Superior"></div>
+  </section>
+
+  <section>
+    <div class="seccion-tit">A - Personal en turno</div>
+    <div id="cont-personal"></div>
+    <button class="btn-agregar" onclick="agregarFila('personal')">+ Agregar persona</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">B - Resumen del turno</div>
+    <div class="campo"><label>Detalle (opcional, se imprime como primera l&iacute;nea)</label><input id="detalle-resumen" type="text" placeholder="Ej: El prop&oacute;sito espec&iacute;fico por el cual se realiza esta inspecci&oacute;n"></div>
+    <div id="cont-resumen"></div>
+    <button class="btn-agregar" onclick="agregarFila('resumen')">+ Agregar punto</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">D - Antecedentes</div>
+    <div class="campo"><label>Detalle (opcional)</label><input id="detalle-antecedentes" type="text" placeholder="Ej: Contexto previo que da marco a la inspecci&oacute;n actual"></div>
+    <div id="cont-antecedentes"></div>
+    <button class="btn-agregar" onclick="agregarFila('antecedentes')">+ Agregar antecedente</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">E - Desarrollo</div>
+    <div class="campo"><label>Detalle (opcional)</label><input id="detalle-desarrollo" type="text" value="An&aacute;lisis de los registros del turno y hallazgos que ameritaron correcci&oacute;n:"></div>
+    <div class="leyenda">Cada punto lleva un t&iacute;tulo (ej. "3.1 Acopio de materiales"), una descripci&oacute;n y, si corresponde, las acciones correctivas (una por l&iacute;nea; se imprimen como sub-vi&ntilde;etas).</div>
+    <div id="cont-desarrollo"></div>
+    <button class="btn-agregar" onclick="agregarFila('desarrollo')">+ Agregar punto de desarrollo</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">F - Conclusi&oacute;n</div>
+    <div class="campo"><label>Detalle (opcional)</label><input id="detalle-conclusion" type="text" value="Veredicto t&eacute;cnico del departamento de calidad sobre las condiciones del &aacute;rea evaluada:"></div>
+    <div id="cont-conclusion"></div>
+    <button class="btn-agregar" onclick="agregarFila('conclusion')">+ Agregar conclusi&oacute;n</button>
+  </section>
+
+  <section>
+    <div class="seccion-tit">G - Evidencia adjunta</div>
+    <div class="leyenda">Las fotos se imprimen como "Anexo 1" al final del informe (2 por fila). Si no se carga ninguna, la secci&oacute;n G indica "Sin evidencia adjunta".</div>
+    <input type="file" id="inputImagenes" accept="image/*" multiple style="margin-bottom:10px;">
+    <div id="cont-imagenes"></div>
+  </section>
+
+  <section>
+    <div class="acciones">
+      <button class="btn-generar" onclick="generarPDF()">Generar y descargar PDF</button>
+    </div>
+    <p class="nota" id="nota">Este informe no se guarda en ninguna base de datos: se genera el PDF directo en tu dispositivo, con el mismo formato del documento oficial.</p>
+  </section>
+
+  <footer>Z&uuml;blin - Informe Inspecciones (v2) - Departamento de Calidad</footer>
+</div>
+
+<script>
+/* ============================================================
+   Informe Inspecciones (Procesos Constructivos) - v2
+   Standalone: sin base de datos, sin firmas, sin login. Rellena
+   los campos y se descarga un PDF que reproduce el formato del
+   documento oficial "INFORME INSPECCIONES" (CODIGO: INF-GOMS-CL-002
+   REV.0, Word INSPECCIONES.docx compartido por Rodrigo el
+   05-10-2026). Mismo motor generico que reporte-cambio-turno.html.
+   ============================================================ */
+
+const CODIGO_DOC = 'INF-GOMS-CL-002 REV.0';
+const TEXTO_CONTRATO_PDF = 'CONTRATO N.º 4600031460 "DESARROLLO Y CONSTRUCCION NIVEL SUPERIOR E INFERIOR MINA NORTE"';
+
+let LOGO = null;
+MARCA.iniciar().then(() => {
+  MARCA.aplicarCSS();
+  MARCA.pintarHeaderHTML('logoimg');
+  LOGO = MARCA.logoDataUrl;
+  const contratoEl = document.getElementById('headerContrato');
+  if(contratoEl) contratoEl.textContent = MARCA.textoContrato();
+});
+
+/* ------------------------------------------------------------
+   Configuracion de cada seccion (motor generico).
+   ------------------------------------------------------------ */
+const SECCIONES = {
+  personal: {
+    etiqueta: 'Persona',
+    campos: [
+      {clave:'nombre', label:'Nombre', tipo:'text'},
+      {clave:'cargo', label:'Cargo', tipo:'text', valor:'Inspector de Calidad'}
+    ]
+  },
+  resumen: {
+    etiqueta: 'Punto',
+    campos: [ {clave:'texto', label:'Texto', tipo:'textarea'} ]
+  },
+  antecedentes: {
+    etiqueta: 'Antecedente',
+    campos: [ {clave:'texto', label:'Texto', tipo:'textarea'} ]
+  },
+  desarrollo: {
+    etiqueta: 'Punto',
+    campos: [
+      {clave:'titulo', label:'Título (ej: 3.1 Acopio de materiales)', tipo:'text'},
+      {clave:'descripcion', label:'Descripción', tipo:'textarea'},
+      {clave:'acciones', label:'Acción correctiva / desviaciones (una por línea, opcional)', tipo:'textarea'}
+    ]
+  },
+  conclusion: {
+    etiqueta: 'Conclusión',
+    campos: [ {clave:'texto', label:'Texto', tipo:'textarea'} ]
+  }
+};
+
+function campoHtml(seccionId, campo){
+  if(campo.tipo === 'select'){
+    const opts = campo.opciones.map(o=>'<option value="'+o+'">'+o+'</option>').join('');
+    return '<div class="campo"><label>'+campo.label+'</label><select data-clave="'+campo.clave+'"><option value="">-- Seleccionar --</option>'+opts+'</select></div>';
+  }
+  if(campo.tipo === 'textarea'){
+    return '<div class="campo"><label>'+campo.label+'</label><textarea data-clave="'+campo.clave+'"></textarea></div>';
+  }
+  const val = campo.valor ? ' value="'+campo.valor+'"' : '';
+  return '<div class="campo"><label>'+campo.label+'</label><input data-clave="'+campo.clave+'" type="'+campo.tipo+'"'+val+'></div>';
+}
+
+function agregarFila(seccionId){
+  const cfg = SECCIONES[seccionId];
+  const div = document.createElement('div');
+  div.className = 'fila-dyn';
+  div.innerHTML = '<span class="num"></span>'
+    + '<button type="button" class="quitar" onclick="quitarFila(this,\''+seccionId+'\')">Quitar</button>'
+    + cfg.campos.map(c => campoHtml(seccionId, c)).join('');
+  document.getElementById('cont-'+seccionId).appendChild(div);
+  renumerar(seccionId);
+}
+
+function quitarFila(btn, seccionId){
+  btn.closest('.fila-dyn').remove();
+  renumerar(seccionId);
+}
+
+function renumerar(seccionId){
+  const cfg = SECCIONES[seccionId];
+  const filas = document.querySelectorAll('#cont-'+seccionId+' .fila-dyn');
+  filas.forEach((f,i) => { f.querySelector('.num').textContent = cfg.etiqueta+' '+(i+1); });
+}
+
+function recolectarFilas(seccionId){
+  const filas = Array.from(document.querySelectorAll('#cont-'+seccionId+' .fila-dyn'));
+  return filas.map(f => {
+    const row = {};
+    f.querySelectorAll('[data-clave]').forEach(el => { row[el.dataset.clave] = el.value.trim(); });
+    return row;
+  }).filter(row => Object.values(row).some(v => v !== ''));
+}
+
+// Filas iniciales
+agregarFila('personal'); agregarFila('personal');
+agregarFila('resumen');
+agregarFila('antecedentes');
+agregarFila('desarrollo');
+agregarFila('conclusion');
+
+// Fecha por defecto: hoy
+(function(){
+  const d = new Date();
+  const iso = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  document.getElementById('fecha').value = iso;
+})();
+
+function v(id){ return document.getElementById(id).value.trim(); }
+function fmtFecha(iso){ if(!iso) return ''; const p=iso.split('-'); return p[2]+'-'+p[1]+'-'+p[0]; }
+
+/* ------------------------------------------------------------
+   G - Evidencia adjunta (fotos). Se imprimen como Anexo 1.
+   ------------------------------------------------------------ */
+let imagenes = [];
+let contImgId = 0;
+
+document.getElementById('inputImagenes').addEventListener('change', function(e){
+  const files = Array.from(e.target.files || []);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      const img = new Image();
+      img.onload = function(){
+        const maxW = 1200;
+        let w = img.width, h = img.height;
+        if(w > maxW){ h = h * (maxW / w); w = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        imagenes.push({ id: ++contImgId, data: dataUrl, w, h, caption: '' });
+        renderImagenes();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+});
+
+function renderImagenes(){
+  const cont = document.getElementById('cont-imagenes');
+  cont.innerHTML = '';
+  imagenes.forEach((f,i) => {
+    const div = document.createElement('div');
+    div.className = 'foto-item';
+    div.innerHTML = '<button type="button" class="quitar-foto" onclick="quitarImagen('+f.id+')">Quitar</button>'
+      + '<img src="'+f.data+'">'
+      + '<input type="text" placeholder="Fotografía '+(i+1)+' - descripción breve (opcional)" oninput="actualizarCaption('+f.id+', this.value)" value="'+(f.caption||'')+'">';
+    cont.appendChild(div);
+  });
+}
+function quitarImagen(id){ imagenes = imagenes.filter(f => f.id !== id); renderImagenes(); }
+function actualizarCaption(id, val){ const f = imagenes.find(x => x.id === id); if(f) f.caption = val; }
+
+/* ------------------------------------------------------------
+   PDF: replica del Word oficial. Encabezado: logo arriba a la
+   izquierda, "CODIGO: ... REV.0" + fecha arriba a la derecha,
+   linea de contrato junto al logo (Times New Roman, como el Word),
+   titulo "INFORME INSPECCIONES" y "DEPARTAMENTO DE CALIDAD" en
+   negrita, campos FECHA/TURNO/AREA, secciones A, B, D, E, F, G
+   (misma letra que el Word) en Times negrita, cuerpo en gris con
+   vinetas, pie "ZUBLIN - Departamento de Calidad" centrado.
+   ------------------------------------------------------------ */
+const GRIS_CUERPO = [89,89,89];
+const NEGRO = [0,0,0];
+
+// Cabecera que se repite en TODAS las paginas (como el header del Word)
+function dibujarCabeceraPagina(doc){
+  const anchoPagina = doc.internal.pageSize.getWidth();
+  const izq = 20, der = anchoPagina-20;
+  doc.setTextColor(0,0,0);
+
+  // Logo (proporcion 204x108 del logo oficial)
+  try{ doc.addImage(LOGO,'PNG', izq, 9, 24, 12.7); }catch(e){}
+
+  // Codigo + fecha (arriba a la derecha)
+  doc.setFont('times','normal'); doc.setFontSize(8);
+  doc.text('CODIGO: ' + CODIGO_DOC, der, 11.5, {align:'right'});
+  const fechaDoc = v('fecha') ? fmtFecha(v('fecha')) : new Date().toLocaleDateString('es-CL');
+  doc.text(fechaDoc, der, 15.5, {align:'right'});
+
+  // Linea de contrato junto al logo
+  doc.setFont('times','normal'); doc.setFontSize(7.5);
+  doc.text(TEXTO_CONTRATO_PDF, izq+28, 20);
+}
+
+function dibujarEncabezado(doc){
+  const izq = 20;
+  dibujarCabeceraPagina(doc);
+  let y = 34;
+  doc.setFont('times','bold'); doc.setFontSize(16);
+  doc.text('INFORME INSPECCIONES', izq, y); y += 9;
+  doc.setFont('times','bold'); doc.setFontSize(10.5);
+  doc.text('DEPARTAMENTO DE CALIDAD', izq, y); y += 8;
+  return y;
+}
+
+async function generarPDF(){
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:'mm', format:'a4', compress:true});
+    const izq = 20, ancho = 170;
+    let y = 10;
+
+    function salto(min){ if(y > 297-18-min){ doc.addPage(); y = 32; } }
+
+    function tituloSeccion(t){
+      y += 3; salto(16);
+      doc.setTextColor(0,0,0); doc.setFont('times','bold'); doc.setFontSize(10.5);
+      doc.text(t, izq, y);
+      y += 6;
+    }
+
+    function cuerpo(){ doc.setTextColor(GRIS_CUERPO[0],GRIS_CUERPO[1],GRIS_CUERPO[2]); doc.setFont('helvetica','normal'); doc.setFontSize(9.5); }
+
+    // Parrafo con vineta: nivel 1 = "•", nivel 2 = "o"
+    function vineta(texto, nivel){
+      nivel = nivel || 1;
+      const sangriaBullet = nivel === 1 ? izq+5 : izq+13;
+      const sangriaTexto  = nivel === 1 ? izq+11 : izq+19;
+      cuerpo();
+      const ls = doc.splitTextToSize(texto, ancho-(sangriaTexto-izq));
+      salto(ls.length*4.6+1);
+      doc.text(nivel === 1 ? '•' : 'o', sangriaBullet, y);
+      doc.text(ls, sangriaTexto, y);
+      y += ls.length*4.6 + 1.6;
+    }
+
+    // "Detalle: ..." (primera linea de una seccion, con la etiqueta en negrita)
+    function lineaDetalle(texto){
+      if(!texto) return;
+      cuerpo(); doc.setFont('helvetica','bold');
+      const etiqueta = 'Detalle: ';
+      const wEt = doc.getTextWidth(etiqueta);
+      const ls = doc.splitTextToSize(texto, ancho-wEt);
+      salto(ls.length*4.6+1);
+      doc.text(etiqueta, izq, y);
+      doc.setFont('helvetica','normal');
+      doc.text(ls[0], izq+wEt, y);
+      if(ls.length > 1) doc.text(ls.slice(1), izq, y+4.6);
+      y += ls.length*4.6 + 2;
+    }
+
+    function listaSimple(seccionId){
+      const filas = recolectarFilas(seccionId);
+      if(filas.length === 0){ cuerpo(); salto(8); doc.text('Sin registros.', izq+5, y); y += 6; return; }
+      filas.forEach(r => vineta(r.texto, 1));
+    }
+
+    y = dibujarEncabezado(doc);
+
+    // FECHA / TURNO / AREA
+    doc.setTextColor(0,0,0); doc.setFont('times','bold'); doc.setFontSize(10);
+    const xColon = izq+22, xVal = izq+26;
+    doc.text('FECHA', izq, y); doc.text(':', xColon, y); doc.setFont('times','normal'); doc.text(v('fecha') ? fmtFecha(v('fecha')) : '', xVal, y); y += 5.5;
+    doc.setFont('times','bold'); doc.text('TURNO', izq, y); doc.text(':', xColon, y); doc.setFont('times','normal'); doc.text(v('turno') || '', xVal, y); y += 5.5;
+    doc.setFont('times','bold'); doc.text('AREA', izq, y); doc.text(':', xColon, y); doc.setFont('times','normal');
+    const lsArea = doc.splitTextToSize(v('area') || '', ancho-26); doc.text(lsArea, xVal, y); y += Math.max(1, lsArea.length)*5.5;
+    y += 6;
+
+    // A - Personal en turno
+    tituloSeccion('A.- PERSONAL EN TURNO');
+    const personal = recolectarFilas('personal');
+    if(personal.length === 0){ cuerpo(); doc.text('Sin registros.', izq+5, y); y += 6; }
+    personal.forEach(p => vineta(p.nombre + (p.cargo ? ' (' + p.cargo + ')' : ''), 1));
+
+    // B - Resumen del turno
+    tituloSeccion('B.- RESUMEN DEL TURNO');
+    lineaDetalle(v('detalle-resumen'));
+    listaSimple('resumen');
+
+    // D - Antecedentes (misma letra que el Word oficial)
+    tituloSeccion('D.- ANTECEDENTES');
+    lineaDetalle(v('detalle-antecedentes'));
+    listaSimple('antecedentes');
+
+    // E - Desarrollo
+    tituloSeccion('E.- DESARROLLO');
+    lineaDetalle(v('detalle-desarrollo'));
+    const desarrollo = recolectarFilas('desarrollo');
+    if(desarrollo.length === 0){ cuerpo(); doc.text('Sin registros.', izq+5, y); y += 6; }
+    desarrollo.forEach(d => {
+      // Titulo en negrita + descripcion en la misma vineta
+      cuerpo();
+      const tit = d.titulo ? d.titulo + ': ' : '';
+      doc.setFont('helvetica','bold');
+      const wTit = doc.getTextWidth(tit);
+      const sangriaTexto = izq+11;
+      const lsDesc = doc.splitTextToSize(d.descripcion || '', ancho-(sangriaTexto-izq)-wTit);
+      salto(lsDesc.length*4.6+2);
+      doc.text('•', izq+5, y);
+      if(tit) doc.text(tit, sangriaTexto, y);
+      doc.setFont('helvetica','normal');
+      if(lsDesc.length){
+        doc.text(lsDesc[0], sangriaTexto+wTit, y);
+        if(lsDesc.length > 1){
+          const resto = doc.splitTextToSize(lsDesc.slice(1).join(' '), ancho-(sangriaTexto-izq));
+          doc.text(resto, sangriaTexto, y+4.6);
+          y += (resto.length)*4.6;
+        }
+      }
+      y += 4.6 + 1.6;
+
+      const acciones = (d.acciones || '').split('\n').map(s => s.trim()).filter(Boolean);
+      if(acciones.length){
+        cuerpo(); doc.setFont('helvetica','bold');
+        const et = 'Acción Correctiva: ';
+        const wEt = doc.getTextWidth(et);
+        const intro = 'Se detectaron las siguientes desviaciones operativas que requieren intervención:';
+        const lsI = doc.splitTextToSize(intro, ancho-11-wEt);
+        salto(lsI.length*4.6+2);
+        doc.text('•', izq+5, y); doc.text(et, sangriaTexto, y);
+        doc.setFont('helvetica','normal'); doc.text(lsI[0], sangriaTexto+wEt, y);
+        if(lsI.length>1) doc.text(lsI.slice(1), sangriaTexto, y+4.6);
+        y += lsI.length*4.6 + 1.6;
+        acciones.forEach(a => vineta(a, 2));
+      }
+    });
+
+    // F - Conclusion
+    tituloSeccion('F.- CONCLUSION');
+    lineaDetalle(v('detalle-conclusion'));
+    listaSimple('conclusion');
+
+    // G - Evidencia adjunta
+    tituloSeccion('G.- EVIDENCIA ADJUNTA');
+    if(imagenes.length === 0){
+      cuerpo(); salto(8); doc.text('Sin evidencia adjunta.', izq+5, y); y += 6;
+    } else {
+      vineta('Se adjunta Anexo 1 con ' + imagenes.length + ' fotografía' + (imagenes.length === 1 ? '' : 's') + ' del registro visual.', 1);
+      // Anexo 1: fotos en grilla de 2 columnas
+      doc.addPage(); y = 32;
+      doc.setTextColor(0,0,0); doc.setFont('times','bold'); doc.setFontSize(10.5);
+      doc.text('ANEXO 1 - REGISTRO FOTOGRÁFICO', izq, y); y += 8;
+      const gap = 6, colW = (ancho-gap)/2, maxH = 70;
+      for(let i=0; i<imagenes.length; i+=2){
+        const par = imagenes.slice(i, i+2);
+        const dims = par.map(f => { let w=colW, h=w*(f.h/f.w); if(h>maxH){ h=maxH; w=h*(f.w/f.h); } return {w,h}; });
+        const altoFila = Math.max(...dims.map(d=>d.h));
+        salto(altoFila + 12);
+        par.forEach((f,j) => {
+          const x = izq + j*(colW+gap) + (colW-dims[j].w)/2;
+          try{ doc.addImage(f.data, 'JPEG', x, y, dims[j].w, dims[j].h); }catch(e){}
+          doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(GRIS_CUERPO[0],GRIS_CUERPO[1],GRIS_CUERPO[2]);
+          const cap = 'Fotografía ' + (i+j+1) + (f.caption ? ': ' + f.caption : '');
+          const lsC = doc.splitTextToSize(cap, colW);
+          doc.text(lsC, izq + j*(colW+gap) + colW/2, y + altoFila + 4, {align:'center'});
+        });
+        y += altoFila + 14;
+      }
+    }
+
+    // Pie de pagina (centrado, como el Word)
+    const totalPag = doc.getNumberOfPages();
+    const anchoPagina = doc.internal.pageSize.getWidth();
+    for(let pg=1; pg<=totalPag; pg++){
+      doc.setPage(pg);
+      if(pg > 1) dibujarCabeceraPagina(doc);
+      doc.setFont('times','normal'); doc.setFontSize(7.5); doc.setTextColor(110,110,110);
+      doc.text('ZÜBLIN — Departamento de Calidad', anchoPagina/2, 287, {align:'center'});
+      doc.text('Página '+pg+' de '+totalPag, anchoPagina-20, 287, {align:'right'});
+    }
+    doc.setTextColor(30,30,30);
+
+    const f = v('fecha') ? v('fecha').replace(/-/g,'') : new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const turnoArch = v('turno') ? '_' + v('turno').toUpperCase().replace('Í','I') : '';
+    const nombreArch = 'InformeInspecciones_' + f + turnoArch + '.pdf';
+    doc.save(nombreArch);
+    document.getElementById('nota').innerHTML = 'PDF generado y descargado: '+nombreArch;
+    document.getElementById('nota').style.color = '#2e7d32';
+  }catch(err){
+    console.error(err);
+    alert('Error al generar el PDF (Informe Inspecciones v2): ' + (err && err.message ? err.message : err));
+  }
+}
+</script>
+</body>
+</html>
